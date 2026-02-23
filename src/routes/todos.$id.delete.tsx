@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { todos } from '@/db/schema'
+import { todo } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -21,13 +21,13 @@ import {
 const fetchTodo = createServerFn()
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    return db.query.todos.findFirst({ where: eq(todos.id, id) })
+    return db.query.todo.findFirst({ where: eq(todo.id, id) })
   })
 
 const deleteTodo = createServerFn({ method: 'POST' })
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    await db.delete(todos).where(eq(todos.id, id))
+    await db.delete(todo).where(eq(todo.id, id))
   })
 
 export const Route = createFileRoute('/todos/$id/delete')({

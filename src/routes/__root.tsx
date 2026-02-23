@@ -27,7 +27,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Корпоративный портал DVR Group',
       },
     ],
     links: [
@@ -47,7 +47,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession()
 
   return (
-    <html lang="ru" className="dark">
+    <html lang="ru" className="light">
       <head>
         <HeadContent />
       </head>
@@ -64,9 +64,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 />
                 <AppBreadcrumb />
               </header>
-              <div className="min-h-screen container space-y-8 p-8">
-                {children}
-              </div>
+              <div className="p-8">{children}</div>
             </SidebarInset>
           </SidebarProvider>
         ) : (

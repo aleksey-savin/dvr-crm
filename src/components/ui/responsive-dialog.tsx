@@ -39,15 +39,17 @@ export function ResponsiveDialog({
   if (!isMobile) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-5xl flex flex-col max-h-[90dvh]">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{title}</DialogTitle>
             {description && (
               <DialogDescription>{description}</DialogDescription>
             )}
           </DialogHeader>
-          {children}
-          {footer && <DialogFooter>{footer}</DialogFooter>}
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {children}
+          </div>
+          {footer && <DialogFooter className="shrink-0">{footer}</DialogFooter>}
         </DialogContent>
       </Dialog>
     )

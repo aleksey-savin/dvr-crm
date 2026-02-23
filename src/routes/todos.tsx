@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { db } from '@/db'
-import { todos } from '@/db/schema'
+import { todo } from '@/db/schema'
 import { cn } from '@/lib/utils'
 import {
   createFileRoute,
@@ -27,11 +27,28 @@ import {
 } from '@tanstack/react-router'
 import { createServerFn, useServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
-import { EditIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
+import { EditIcon, EyeIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
 import z from 'zod'
 
 const fetchTodos = createServerFn().handler(async () => {
-  return db.query.todos.findMany()
+  return await db.query.todo.findMany({
+    with: {
+      creator: {
+        columns: {
+          name: true,
+        },
+      },
+      responsibleUsers: {
+        with: {
+          user: {
+            columns: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  })
 })
 
 const toggleFn = createServerFn({ method: 'POST' })
@@ -40,9 +57,9 @@ const toggleFn = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     await db
-      .update(todos)
+      .update(todo)
       .set({ completedAt: data.completedAt })
-      .where(eq(todos.id, data.id))
+      .where(eq(todo.id, data.id))
   })
 
 export const Route = createFileRoute('/todos')({
@@ -59,6 +76,12 @@ function RouteComponent() {
   const router = useRouter()
 
   const toggleFnServer = useServerFn(toggleFn)
+
+  const statusOptions = [
+    { status: 'not started', label: 'не в работе', badgeVariant: 'warning' },
+    { status: 'in progress', label: 'в работе', badgeVariant: 'default' },
+    { status: 'completed', label: 'выполнена', badgeVariant: 'success' },
+  ] as const
 
   return (
     <>
@@ -102,7 +125,9 @@ function RouteComponent() {
               <TableHead>Поздразделение</TableHead>
               <TableHead>Создана</TableHead>
               <TableHead>Дата</TableHead>
-              <TableHead>Ответственный</TableHead>
+              <TableHead>Ответственные</TableHead>
+              <TableHead>Срок выполнения</TableHead>
+              <TableHead>Статус</TableHead>
               <TableHead className="text-right w-0"></TableHead>
             </TableRow>
           </TableHeader>
@@ -140,17 +165,51 @@ function RouteComponent() {
                   ---
                 </TableCell>
                 <TableCell className={cn('text-muted-foreground text-sm')}>
-                  ---
+                  {item.creator.name}
                 </TableCell>
-
                 <TableCell className={cn('text-muted-foreground text-sm')}>
                   {new Date(item.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className={cn('text-muted-foreground text-sm')}>
-                  ---
+                  {item.responsibleUsers.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {item.responsibleUsers.map(({ user }) => (
+                        <Badge key={user.name} variant="secondary">
+                          {user.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    '---'
+                  )}
+                </TableCell>
+                <TableCell className={cn('text-muted-foreground text-sm')}>
+                  {item.deadline
+                    ? new Date(item.deadline).toLocaleDateString()
+                    : '---'}
+                </TableCell>
+                <TableCell className={cn('text-muted-foreground text-sm')}>
+                  <Badge
+                    variant={
+                      statusOptions.find(
+                        (option) => option.status === item.status,
+                      )?.badgeVariant
+                    }
+                  >
+                    {
+                      statusOptions.find(
+                        (option) => option.status === item.status,
+                      )?.label
+                    }
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right" data-actions>
                   <div className="flex items-center justify-end gap-1">
+                    <Button asChild variant="ghost" size="icon-sm">
+                      <Link to="/todos/$id/view" params={{ id: item.id }}>
+                        <EyeIcon />
+                      </Link>
+                    </Button>
                     <Button asChild variant="ghost" size="icon-sm">
                       <Link to="/todos/$id/update" params={{ id: item.id }}>
                         <EditIcon />
