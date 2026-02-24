@@ -11,6 +11,7 @@ import {
 const ROUTE_LABELS: Record<string, string> = {
   dashboard: 'Дашборд',
   clients: 'Клиенты',
+  companies: 'Компании',
   todos: 'Ту-Ду',
   users: 'Пользователи',
   departments: 'Бизнес-юниты',

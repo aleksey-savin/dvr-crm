@@ -77,6 +77,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: '#',
         items: [
           {
+            title: 'Компании',
+            url: '/companies',
+            isActive: false,
+          },
+          {
             title: 'Пользователи',
             url: '/users',
             isActive: false,

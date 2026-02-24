@@ -17,11 +17,14 @@ import { Route as PreferencesRouteImport } from './routes/preferences'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DepartmentsRouteImport } from './routes/departments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
 import { Route as DepartmentsNewRouteImport } from './routes/departments.new'
+import { Route as CompaniesNewRouteImport } from './routes/companies.new'
+import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as UsersIdUpdateRouteImport } from './routes/users.$id.update'
 import { Route as UsersIdUnbanRouteImport } from './routes/users.$id.unban'
 import { Route as UsersIdDeleteRouteImport } from './routes/users.$id.delete'
@@ -32,6 +35,12 @@ import { Route as TodosIdDeleteRouteImport } from './routes/todos.$id.delete'
 import { Route as DepartmentsIdViewRouteImport } from './routes/departments_.$id.view'
 import { Route as DepartmentsIdUpdateRouteImport } from './routes/departments.$id.update'
 import { Route as DepartmentsIdDeleteRouteImport } from './routes/departments.$id.delete'
+import { Route as CompaniesIdViewRouteImport } from './routes/companies_.$id.view'
+import { Route as CompaniesIdUpdateRouteImport } from './routes/companies.$id.update'
+import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.delete'
+import { Route as ClientsIdViewRouteImport } from './routes/clients_.$id.view'
+import { Route as ClientsIdUpdateRouteImport } from './routes/clients.$id.update'
+import { Route as ClientsIdDeleteRouteImport } from './routes/clients.$id.delete'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const WishlistRoute = WishlistRouteImport.update({
@@ -74,6 +83,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompaniesRoute = CompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientsRoute = ClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -98,6 +112,16 @@ const DepartmentsNewRoute = DepartmentsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => DepartmentsRoute,
+} as any)
+const CompaniesNewRoute = CompaniesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => CompaniesRoute,
+} as any)
+const ClientsNewRoute = ClientsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ClientsRoute,
 } as any)
 const UsersIdUpdateRoute = UsersIdUpdateRouteImport.update({
   id: '/$id/update',
@@ -149,6 +173,36 @@ const DepartmentsIdDeleteRoute = DepartmentsIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => DepartmentsRoute,
 } as any)
+const CompaniesIdViewRoute = CompaniesIdViewRouteImport.update({
+  id: '/companies_/$id/view',
+  path: '/companies/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompaniesIdUpdateRoute = CompaniesIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => CompaniesRoute,
+} as any)
+const CompaniesIdDeleteRoute = CompaniesIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => CompaniesRoute,
+} as any)
+const ClientsIdViewRoute = ClientsIdViewRouteImport.update({
+  id: '/clients_/$id/view',
+  path: '/clients/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsIdUpdateRoute = ClientsIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => ClientsRoute,
+} as any)
+const ClientsIdDeleteRoute = ClientsIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => ClientsRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -157,7 +211,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
+  '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
@@ -166,10 +221,18 @@ export interface FileRoutesByFullPath {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/clients/new': typeof ClientsNewRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/clients/$id/delete': typeof ClientsIdDeleteRoute
+  '/clients/$id/update': typeof ClientsIdUpdateRoute
+  '/clients/$id/view': typeof ClientsIdViewRoute
+  '/companies/$id/delete': typeof CompaniesIdDeleteRoute
+  '/companies/$id/update': typeof CompaniesIdUpdateRoute
+  '/companies/$id/view': typeof CompaniesIdViewRoute
   '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
   '/departments/$id/update': typeof DepartmentsIdUpdateRoute
   '/departments/$id/view': typeof DepartmentsIdViewRoute
@@ -183,7 +246,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
+  '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
@@ -192,10 +256,18 @@ export interface FileRoutesByTo {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/clients/new': typeof ClientsNewRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/clients/$id/delete': typeof ClientsIdDeleteRoute
+  '/clients/$id/update': typeof ClientsIdUpdateRoute
+  '/clients/$id/view': typeof ClientsIdViewRoute
+  '/companies/$id/delete': typeof CompaniesIdDeleteRoute
+  '/companies/$id/update': typeof CompaniesIdUpdateRoute
+  '/companies/$id/view': typeof CompaniesIdViewRoute
   '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
   '/departments/$id/update': typeof DepartmentsIdUpdateRoute
   '/departments/$id/view': typeof DepartmentsIdViewRoute
@@ -210,7 +282,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/clients': typeof ClientsRoute
+  '/clients': typeof ClientsRouteWithChildren
+  '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
@@ -219,10 +292,18 @@ export interface FileRoutesById {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/clients/new': typeof ClientsNewRoute
+  '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/clients/$id/delete': typeof ClientsIdDeleteRoute
+  '/clients/$id/update': typeof ClientsIdUpdateRoute
+  '/clients_/$id/view': typeof ClientsIdViewRoute
+  '/companies/$id/delete': typeof CompaniesIdDeleteRoute
+  '/companies/$id/update': typeof CompaniesIdUpdateRoute
+  '/companies_/$id/view': typeof CompaniesIdViewRoute
   '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
   '/departments/$id/update': typeof DepartmentsIdUpdateRoute
   '/departments_/$id/view': typeof DepartmentsIdViewRoute
@@ -239,6 +320,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/clients'
+    | '/companies'
     | '/dashboard'
     | '/departments'
     | '/login'
@@ -247,10 +329,18 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/clients/new'
+    | '/companies/new'
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/clients/$id/delete'
+    | '/clients/$id/update'
+    | '/clients/$id/view'
+    | '/companies/$id/delete'
+    | '/companies/$id/update'
+    | '/companies/$id/view'
     | '/departments/$id/delete'
     | '/departments/$id/update'
     | '/departments/$id/view'
@@ -265,6 +355,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/clients'
+    | '/companies'
     | '/dashboard'
     | '/departments'
     | '/login'
@@ -273,10 +364,18 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/clients/new'
+    | '/companies/new'
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/clients/$id/delete'
+    | '/clients/$id/update'
+    | '/clients/$id/view'
+    | '/companies/$id/delete'
+    | '/companies/$id/update'
+    | '/companies/$id/view'
     | '/departments/$id/delete'
     | '/departments/$id/update'
     | '/departments/$id/view'
@@ -291,6 +390,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/clients'
+    | '/companies'
     | '/dashboard'
     | '/departments'
     | '/login'
@@ -299,10 +399,18 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/clients/new'
+    | '/companies/new'
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/clients/$id/delete'
+    | '/clients/$id/update'
+    | '/clients_/$id/view'
+    | '/companies/$id/delete'
+    | '/companies/$id/update'
+    | '/companies_/$id/view'
     | '/departments/$id/delete'
     | '/departments/$id/update'
     | '/departments_/$id/view'
@@ -317,7 +425,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ClientsRoute: typeof ClientsRoute
+  ClientsRoute: typeof ClientsRouteWithChildren
+  CompaniesRoute: typeof CompaniesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   DepartmentsRoute: typeof DepartmentsRouteWithChildren
   LoginRoute: typeof LoginRoute
@@ -327,6 +436,8 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ClientsIdViewRoute: typeof ClientsIdViewRoute
+  CompaniesIdViewRoute: typeof CompaniesIdViewRoute
   DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
   TodosIdViewRoute: typeof TodosIdViewRoute
 }
@@ -389,6 +500,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/companies': {
+      id: '/companies'
+      path: '/companies'
+      fullPath: '/companies'
+      preLoaderRoute: typeof CompaniesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clients': {
       id: '/clients'
       path: '/clients'
@@ -423,6 +541,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/departments/new'
       preLoaderRoute: typeof DepartmentsNewRouteImport
       parentRoute: typeof DepartmentsRoute
+    }
+    '/companies/new': {
+      id: '/companies/new'
+      path: '/new'
+      fullPath: '/companies/new'
+      preLoaderRoute: typeof CompaniesNewRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
+    '/clients/new': {
+      id: '/clients/new'
+      path: '/new'
+      fullPath: '/clients/new'
+      preLoaderRoute: typeof ClientsNewRouteImport
+      parentRoute: typeof ClientsRoute
     }
     '/users/$id/update': {
       id: '/users/$id/update'
@@ -494,6 +626,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DepartmentsIdDeleteRouteImport
       parentRoute: typeof DepartmentsRoute
     }
+    '/companies_/$id/view': {
+      id: '/companies_/$id/view'
+      path: '/companies/$id/view'
+      fullPath: '/companies/$id/view'
+      preLoaderRoute: typeof CompaniesIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/companies/$id/update': {
+      id: '/companies/$id/update'
+      path: '/$id/update'
+      fullPath: '/companies/$id/update'
+      preLoaderRoute: typeof CompaniesIdUpdateRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
+    '/companies/$id/delete': {
+      id: '/companies/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/companies/$id/delete'
+      preLoaderRoute: typeof CompaniesIdDeleteRouteImport
+      parentRoute: typeof CompaniesRoute
+    }
+    '/clients_/$id/view': {
+      id: '/clients_/$id/view'
+      path: '/clients/$id/view'
+      fullPath: '/clients/$id/view'
+      preLoaderRoute: typeof ClientsIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/$id/update': {
+      id: '/clients/$id/update'
+      path: '/$id/update'
+      fullPath: '/clients/$id/update'
+      preLoaderRoute: typeof ClientsIdUpdateRouteImport
+      parentRoute: typeof ClientsRoute
+    }
+    '/clients/$id/delete': {
+      id: '/clients/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/clients/$id/delete'
+      preLoaderRoute: typeof ClientsIdDeleteRouteImport
+      parentRoute: typeof ClientsRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -503,6 +677,37 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ClientsRouteChildren {
+  ClientsNewRoute: typeof ClientsNewRoute
+  ClientsIdDeleteRoute: typeof ClientsIdDeleteRoute
+  ClientsIdUpdateRoute: typeof ClientsIdUpdateRoute
+}
+
+const ClientsRouteChildren: ClientsRouteChildren = {
+  ClientsNewRoute: ClientsNewRoute,
+  ClientsIdDeleteRoute: ClientsIdDeleteRoute,
+  ClientsIdUpdateRoute: ClientsIdUpdateRoute,
+}
+
+const ClientsRouteWithChildren =
+  ClientsRoute._addFileChildren(ClientsRouteChildren)
+
+interface CompaniesRouteChildren {
+  CompaniesNewRoute: typeof CompaniesNewRoute
+  CompaniesIdDeleteRoute: typeof CompaniesIdDeleteRoute
+  CompaniesIdUpdateRoute: typeof CompaniesIdUpdateRoute
+}
+
+const CompaniesRouteChildren: CompaniesRouteChildren = {
+  CompaniesNewRoute: CompaniesNewRoute,
+  CompaniesIdDeleteRoute: CompaniesIdDeleteRoute,
+  CompaniesIdUpdateRoute: CompaniesIdUpdateRoute,
+}
+
+const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
+  CompaniesRouteChildren,
+)
 
 interface DepartmentsRouteChildren {
   DepartmentsNewRoute: typeof DepartmentsNewRoute
@@ -554,7 +759,8 @@ const UsersRouteWithChildren = UsersRoute._addFileChildren(UsersRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ClientsRoute: ClientsRoute,
+  ClientsRoute: ClientsRouteWithChildren,
+  CompaniesRoute: CompaniesRouteWithChildren,
   DashboardRoute: DashboardRoute,
   DepartmentsRoute: DepartmentsRouteWithChildren,
   LoginRoute: LoginRoute,
@@ -564,6 +770,8 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ClientsIdViewRoute: ClientsIdViewRoute,
+  CompaniesIdViewRoute: CompaniesIdViewRoute,
   DepartmentsIdViewRoute: DepartmentsIdViewRoute,
   TodosIdViewRoute: TodosIdViewRoute,
 }

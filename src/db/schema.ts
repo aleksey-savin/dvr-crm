@@ -6,6 +6,8 @@ import {
   boolean,
   index,
   primaryKey,
+  numeric,
+  integer,
 } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('user', {
@@ -146,6 +148,165 @@ export const department = pgTable(
   (table) => [index('department_name_idx').on(table.name)],
 )
 
+export const company = pgTable('company', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const client = pgTable(
+  'client',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+    target: boolean().notNull().default(false),
+    lost: boolean().notNull().default(false),
+    lostReasons: text('lost_reasons').notNull().default(''),
+  },
+  (table) => [index('client_companyId_idx').on(table.companyId)],
+)
+
+// ---------------------------------------------------------------------------
+// Client Managers (many-to-many)
+// ---------------------------------------------------------------------------
+
+export const clientManager = pgTable(
+  'client_managers',
+  {
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.clientId, table.userId] }),
+    index('client_managers_clientId_idx').on(table.clientId),
+    index('client_managers_userId_idx').on(table.userId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Client Risks
+// ---------------------------------------------------------------------------
+
+export const clientRisk = pgTable(
+  'client_risks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index('client_risks_clientId_idx').on(table.clientId)],
+)
+
+// ---------------------------------------------------------------------------
+// Client Gross Profit (per year)
+// ---------------------------------------------------------------------------
+
+export const clientGrossProfit = pgTable(
+  'client_gross_profits',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('client_gross_profits_clientId_idx').on(table.clientId),
+    index('client_gross_profits_clientId_year_idx').on(
+      table.clientId,
+      table.year,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Client Upselling Opportunities
+// ---------------------------------------------------------------------------
+
+export const clientUpsellingOpportunity = pgTable(
+  'client_upselling_opportunities',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('client_upselling_opportunities_clientId_idx').on(table.clientId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Client Target Forecast (per year)
+// ---------------------------------------------------------------------------
+
+export const clientTargetForecast = pgTable(
+  'client_target_forecasts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => client.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('client_target_forecasts_clientId_idx').on(table.clientId),
+    index('client_target_forecasts_clientId_year_idx').on(
+      table.clientId,
+      table.year,
+    ),
+  ],
+)
+
 // ---------------------------------------------------------------------------
 // Comments (entity-agnostic / polymorphic)
 // ---------------------------------------------------------------------------
@@ -271,9 +432,83 @@ export const commentReadRelations = relations(commentRead, ({ one }) => ({
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
+  managedClients: many(clientManager),
   responsibleTodos: many(todoResponsibleUsers),
   comments: many(comment),
   commentReads: many(commentRead),
+}))
+
+export const clientRelations = relations(client, ({ one, many }) => ({
+  company: one(company, {
+    fields: [client.companyId],
+    references: [company.id],
+  }),
+  department: one(department, {
+    fields: [client.departmentId],
+    references: [department.id],
+  }),
+  managers: many(clientManager),
+  risks: many(clientRisk),
+  grossProfits: many(clientGrossProfit),
+  targetForecasts: many(clientTargetForecast),
+  upsellingOpportunities: many(clientUpsellingOpportunity),
+}))
+
+export const clientManagerRelations = relations(clientManager, ({ one }) => ({
+  client: one(client, {
+    fields: [clientManager.clientId],
+    references: [client.id],
+  }),
+  user: one(user, {
+    fields: [clientManager.userId],
+    references: [user.id],
+  }),
+}))
+
+export const clientRiskRelations = relations(clientRisk, ({ one }) => ({
+  client: one(client, {
+    fields: [clientRisk.clientId],
+    references: [client.id],
+  }),
+}))
+
+export const clientGrossProfitRelations = relations(
+  clientGrossProfit,
+  ({ one }) => ({
+    client: one(client, {
+      fields: [clientGrossProfit.clientId],
+      references: [client.id],
+    }),
+  }),
+)
+
+export const clientTargetForecastRelations = relations(
+  clientTargetForecast,
+  ({ one }) => ({
+    client: one(client, {
+      fields: [clientTargetForecast.clientId],
+      references: [client.id],
+    }),
+  }),
+)
+
+export const clientUpsellingOpportunityRelations = relations(
+  clientUpsellingOpportunity,
+  ({ one }) => ({
+    client: one(client, {
+      fields: [clientUpsellingOpportunity.clientId],
+      references: [client.id],
+    }),
+  }),
+)
+
+export const companyRelations = relations(company, ({ many }) => ({
+  clients: many(client),
+}))
+
+export const departmentRelations = relations(department, ({ many }) => ({
+  todos: many(todo),
+  clients: many(client),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({

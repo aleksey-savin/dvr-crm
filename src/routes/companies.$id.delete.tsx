@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { department } from '@/db/schema'
+import { company } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -18,40 +18,40 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const fetchDepartment = createServerFn()
+const fetchCompany = createServerFn()
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    return db.query.department.findFirst({ where: eq(department.id, id) })
+    return db.query.company.findFirst({ where: eq(company.id, id) })
   })
 
-const deleteDepartment = createServerFn({ method: 'POST' })
+const deleteCompany = createServerFn({ method: 'POST' })
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    await db.delete(department).where(eq(department.id, id))
+    await db.delete(company).where(eq(company.id, id))
   })
 
-export const Route = createFileRoute('/departments/$id/delete')({
-  loader: ({ params }) => fetchDepartment({ data: params.id }),
+export const Route = createFileRoute('/companies/$id/delete')({
+  loader: ({ params }) => fetchCompany({ data: params.id }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const department = Route.useLoaderData()
+  const company = Route.useLoaderData()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleClose = () => {
-    router.navigate({ to: '/departments' })
+    router.navigate({ to: '/companies' })
   }
 
   const handleConfirm = async () => {
-    if (!department) return
+    if (!company) return
     setIsLoading(true)
     try {
-      await deleteDepartment({ data: department.id })
-      toast.success('Задача удалена')
+      await deleteCompany({ data: company.id })
+      toast.success('Компания удалена')
       router.invalidate()
-      router.navigate({ to: '/departments' })
+      router.navigate({ to: '/companies' })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {
@@ -70,7 +70,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить бизнес-юнит?</AlertDialogTitle>
           <AlertDialogDescription>
-            Бизнес-юнит «{department?.name}» будет удален без возможности
+            Бизнес-юнит «{company?.name}» будет удален без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>
