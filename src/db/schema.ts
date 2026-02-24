@@ -96,6 +96,9 @@ export const todo = pgTable('todos', {
   })
     .default('not started')
     .notNull(),
+  departmentId: text('department_id')
+    .notNull()
+    .references(() => department.id, { onDelete: 'cascade' }),
   createdBy: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -129,16 +132,158 @@ export const todoResponsibleUsers = pgTable(
   ],
 )
 
+export const department = pgTable(
+  'department',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('department_name_idx').on(table.name)],
+)
+
+// ---------------------------------------------------------------------------
+// Comments (entity-agnostic / polymorphic)
+// ---------------------------------------------------------------------------
+// `entityType` holds a string key that identifies the target table, e.g.
+//   'todo' | 'user' | 'company' | …
+// `entityId`   holds the primary-key value of the target row.
+// No database-level foreign key is declared so the table stays generic.
+// ---------------------------------------------------------------------------
+
+export const comment = pgTable(
+  'comments',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    content: text('content').notNull(),
+    /** Identifies which table/entity this comment belongs to, e.g. 'todo', 'user', 'company' */
+    entityType: text('entity_type').notNull(),
+    /** Primary-key value of the target row */
+    entityId: text('entity_id').notNull(),
+    authorId: text('author_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    editedAt: timestamp('edited_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    // Fast lookup of all comments for a given entity
+    index('comments_entity_idx').on(table.entityType, table.entityId),
+    index('comments_authorId_idx').on(table.authorId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Comment Attachments
+// ---------------------------------------------------------------------------
+
+export const commentAttachment = pgTable(
+  'comment_attachments',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    commentId: text('comment_id')
+      .notNull()
+      .references(() => comment.id, { onDelete: 'cascade' }),
+    /** Public or pre-signed URL of the uploaded file */
+    url: text('url').notNull(),
+    /** Original filename, e.g. "report.pdf" */
+    name: text('name').notNull(),
+    /** MIME type, e.g. "application/pdf", "image/png" */
+    mimeType: text('mime_type'),
+    /** File size in bytes */
+    size: text('size'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('comment_attachments_commentId_idx').on(table.commentId)],
+)
+
+// ---------------------------------------------------------------------------
+// Comment Reads (read/unread tracking per user)
+// ---------------------------------------------------------------------------
+// A row exists when a user has read a comment.
+// Absence of a row means the comment is unread for that user.
+// ---------------------------------------------------------------------------
+
+export const commentRead = pgTable(
+  'comment_reads',
+  {
+    commentId: text('comment_id')
+      .notNull()
+      .references(() => comment.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    readAt: timestamp('read_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.commentId, table.userId] }),
+    index('comment_reads_commentId_idx').on(table.commentId),
+    index('comment_reads_userId_idx').on(table.userId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+
+export const commentRelations = relations(comment, ({ one, many }) => ({
+  author: one(user, {
+    fields: [comment.authorId],
+    references: [user.id],
+  }),
+  attachments: many(commentAttachment),
+  reads: many(commentRead),
+}))
+
+export const commentAttachmentRelations = relations(
+  commentAttachment,
+  ({ one }) => ({
+    comment: one(comment, {
+      fields: [commentAttachment.commentId],
+      references: [comment.id],
+    }),
+  }),
+)
+
+export const commentReadRelations = relations(commentRead, ({ one }) => ({
+  comment: one(comment, {
+    fields: [commentRead.commentId],
+    references: [comment.id],
+  }),
+  user: one(user, {
+    fields: [commentRead.userId],
+    references: [user.id],
+  }),
+}))
+
+// ---------------------------------------------------------------------------
+
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   responsibleTodos: many(todoResponsibleUsers),
+  comments: many(comment),
+  commentReads: many(commentRead),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({
   creator: one(user, {
     fields: [todo.createdBy],
     references: [user.id],
+  }),
+  department: one(department, {
+    fields: [todo.departmentId],
+    references: [department.id],
   }),
   responsibleUsers: many(todoResponsibleUsers),
 }))

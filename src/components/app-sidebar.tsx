@@ -82,7 +82,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             isActive: false,
           },
           {
-            title: 'Подразделения',
+            title: 'Бизнес-юниты',
             url: '/departments',
             isActive: false,
           },

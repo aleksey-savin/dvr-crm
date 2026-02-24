@@ -13,7 +13,7 @@ const ROUTE_LABELS: Record<string, string> = {
   clients: 'Клиенты',
   todos: 'Ту-Ду',
   users: 'Пользователи',
-  departments: 'Подразделения',
+  departments: 'Бизнес-юниты',
   preferences: 'Настройки',
 }
 

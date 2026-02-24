@@ -83,9 +83,10 @@ export const TodoActions = ({ item }: { item: any }) => {
   }
 
   return (
-    <div className="flex gap-4 pt-4">
+    <div className="flex gap-4">
       {item.status === 'not started' && (
         <Button
+          size="lg"
           disabled={isLoading}
           onClick={() => handleUpdateStatus('accept')}
         >
@@ -94,6 +95,7 @@ export const TodoActions = ({ item }: { item: any }) => {
       )}
       {item.status === 'in progress' && (
         <Button
+          size="lg"
           disabled={isLoading}
           onClick={() => handleUpdateStatus('complete')}
         >
@@ -102,6 +104,7 @@ export const TodoActions = ({ item }: { item: any }) => {
       )}
       {(item.status === 'completed' || item.archivedAt) && (
         <Button
+          size="lg"
           disabled={isLoading}
           onClick={() => handleUpdateStatus('reopen')}
         >
@@ -110,6 +113,7 @@ export const TodoActions = ({ item }: { item: any }) => {
       )}
       {item.status === 'completed' && !item.archivedAt && (
         <Button
+          size="lg"
           disabled={isLoading}
           onClick={() => handleUpdateStatus('archive')}
         >

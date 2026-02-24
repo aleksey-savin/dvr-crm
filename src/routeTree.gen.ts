@@ -21,6 +21,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
+import { Route as DepartmentsNewRouteImport } from './routes/departments.new'
 import { Route as UsersIdUpdateRouteImport } from './routes/users.$id.update'
 import { Route as UsersIdUnbanRouteImport } from './routes/users.$id.unban'
 import { Route as UsersIdDeleteRouteImport } from './routes/users.$id.delete'
@@ -28,6 +29,9 @@ import { Route as UsersIdBanRouteImport } from './routes/users.$id.ban'
 import { Route as TodosIdViewRouteImport } from './routes/todos_.$id.view'
 import { Route as TodosIdUpdateRouteImport } from './routes/todos.$id.update'
 import { Route as TodosIdDeleteRouteImport } from './routes/todos.$id.delete'
+import { Route as DepartmentsIdViewRouteImport } from './routes/departments_.$id.view'
+import { Route as DepartmentsIdUpdateRouteImport } from './routes/departments.$id.update'
+import { Route as DepartmentsIdDeleteRouteImport } from './routes/departments.$id.delete'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const WishlistRoute = WishlistRouteImport.update({
@@ -90,6 +94,11 @@ const TodosNewRoute = TodosNewRouteImport.update({
   path: '/new',
   getParentRoute: () => TodosRoute,
 } as any)
+const DepartmentsNewRoute = DepartmentsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => DepartmentsRoute,
+} as any)
 const UsersIdUpdateRoute = UsersIdUpdateRouteImport.update({
   id: '/$id/update',
   path: '/$id/update',
@@ -125,6 +134,21 @@ const TodosIdDeleteRoute = TodosIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => TodosRoute,
 } as any)
+const DepartmentsIdViewRoute = DepartmentsIdViewRouteImport.update({
+  id: '/departments_/$id/view',
+  path: '/departments/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DepartmentsIdUpdateRoute = DepartmentsIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => DepartmentsRoute,
+} as any)
+const DepartmentsIdDeleteRoute = DepartmentsIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => DepartmentsRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -135,16 +159,20 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRoute
+  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
+  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
+  '/departments/$id/view': typeof DepartmentsIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -157,16 +185,20 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRoute
+  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
+  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
+  '/departments/$id/view': typeof DepartmentsIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -180,16 +212,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/clients': typeof ClientsRoute
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRoute
+  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRoute
+  '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
+  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
+  '/departments_/$id/view': typeof DepartmentsIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos_/$id/view': typeof TodosIdViewRoute
@@ -211,9 +247,13 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/departments/$id/delete'
+    | '/departments/$id/update'
+    | '/departments/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -233,9 +273,13 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/departments/$id/delete'
+    | '/departments/$id/update'
+    | '/departments/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -255,9 +299,13 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/departments/new'
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/departments/$id/delete'
+    | '/departments/$id/update'
+    | '/departments_/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos_/$id/view'
@@ -271,7 +319,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ClientsRoute: typeof ClientsRoute
   DashboardRoute: typeof DashboardRoute
-  DepartmentsRoute: typeof DepartmentsRoute
+  DepartmentsRoute: typeof DepartmentsRouteWithChildren
   LoginRoute: typeof LoginRoute
   PreferencesRoute: typeof PreferencesRoute
   SignupRoute: typeof SignupRoute
@@ -279,6 +327,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
   TodosIdViewRoute: typeof TodosIdViewRoute
 }
 
@@ -368,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosNewRouteImport
       parentRoute: typeof TodosRoute
     }
+    '/departments/new': {
+      id: '/departments/new'
+      path: '/new'
+      fullPath: '/departments/new'
+      preLoaderRoute: typeof DepartmentsNewRouteImport
+      parentRoute: typeof DepartmentsRoute
+    }
     '/users/$id/update': {
       id: '/users/$id/update'
       path: '/$id/update'
@@ -417,6 +473,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosIdDeleteRouteImport
       parentRoute: typeof TodosRoute
     }
+    '/departments_/$id/view': {
+      id: '/departments_/$id/view'
+      path: '/departments/$id/view'
+      fullPath: '/departments/$id/view'
+      preLoaderRoute: typeof DepartmentsIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/departments/$id/update': {
+      id: '/departments/$id/update'
+      path: '/$id/update'
+      fullPath: '/departments/$id/update'
+      preLoaderRoute: typeof DepartmentsIdUpdateRouteImport
+      parentRoute: typeof DepartmentsRoute
+    }
+    '/departments/$id/delete': {
+      id: '/departments/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/departments/$id/delete'
+      preLoaderRoute: typeof DepartmentsIdDeleteRouteImport
+      parentRoute: typeof DepartmentsRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -426,6 +503,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface DepartmentsRouteChildren {
+  DepartmentsNewRoute: typeof DepartmentsNewRoute
+  DepartmentsIdDeleteRoute: typeof DepartmentsIdDeleteRoute
+  DepartmentsIdUpdateRoute: typeof DepartmentsIdUpdateRoute
+}
+
+const DepartmentsRouteChildren: DepartmentsRouteChildren = {
+  DepartmentsNewRoute: DepartmentsNewRoute,
+  DepartmentsIdDeleteRoute: DepartmentsIdDeleteRoute,
+  DepartmentsIdUpdateRoute: DepartmentsIdUpdateRoute,
+}
+
+const DepartmentsRouteWithChildren = DepartmentsRoute._addFileChildren(
+  DepartmentsRouteChildren,
+)
 
 interface TodosRouteChildren {
   TodosNewRoute: typeof TodosNewRoute
@@ -463,7 +556,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRoute,
   DashboardRoute: DashboardRoute,
-  DepartmentsRoute: DepartmentsRoute,
+  DepartmentsRoute: DepartmentsRouteWithChildren,
   LoginRoute: LoginRoute,
   PreferencesRoute: PreferencesRoute,
   SignupRoute: SignupRoute,
@@ -471,6 +564,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  DepartmentsIdViewRoute: DepartmentsIdViewRoute,
   TodosIdViewRoute: TodosIdViewRoute,
 }
 export const routeTree = rootRouteImport

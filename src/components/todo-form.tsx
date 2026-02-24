@@ -11,7 +11,7 @@ import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/tiptap/rich-text-editor'
 
 import { createServerFn } from '@tanstack/react-start'
-import { todo, todoResponsibleUsers, user } from '@/db/schema'
+import { todo, todoResponsibleUsers, user, department } from '@/db/schema'
 import { db } from '@/db'
 import { eq } from 'drizzle-orm'
 
@@ -29,6 +29,13 @@ import {
   ComboboxList,
   ComboboxValue,
 } from '@/components/ui/combobox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Задача должна содержать минимум 2 символа'),
@@ -37,6 +44,7 @@ const formSchema = z.object({
     z.undefined(),
   ]),
   deadline: z.union([z.string(), z.undefined()]),
+  departmentId: z.string().uuid('Выберите отдел'),
 })
 
 const addSchema = z.object({
@@ -45,6 +53,7 @@ const addSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  departmentId: z.string().uuid(),
   responsibles: z.array(z.string()).optional(),
   createdBy: z.string(),
   deadline: z.string().optional(),
@@ -57,12 +66,18 @@ const updateSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  departmentId: z.string().uuid(),
   responsibles: z.array(z.string()).optional(),
   createdBy: z.string(),
   deadline: z.string().optional(),
 })
 
 type UserOption = {
+  id: string
+  name: string
+}
+
+type DepartmentOption = {
   id: string
   name: string
 }
@@ -75,6 +90,14 @@ const getUsers = createServerFn({ method: 'GET' }).handler(async () => {
   return users
 })
 
+const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
+  const departments = await db
+    .select({ id: department.id, name: department.name })
+    .from(department)
+    .orderBy(department.name)
+  return departments
+})
+
 const addTodo = createServerFn({ method: 'POST' })
   .inputValidator(addSchema)
   .handler(async ({ data }) => {
@@ -84,6 +107,7 @@ const addTodo = createServerFn({ method: 'POST' })
         name: data.name,
         description: data.description,
         createdBy: data.createdBy,
+        departmentId: data.departmentId,
         ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
       })
       .returning({ id: todo.id })
@@ -99,6 +123,7 @@ const updateTodo = createServerFn({ method: 'POST' })
         name: data.name,
         description: data.description,
         createdBy: data.createdBy,
+        departmentId: data.departmentId,
         ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
       })
       .where(eq(todo.id, data.id))
@@ -146,11 +171,13 @@ const TodoForm = ({
 }) => {
   const { data: session } = authClient.useSession()
   const [users, setUsers] = React.useState<UserOption[]>([])
+  const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [selectedUsers, setSelectedUsers] = React.useState<UserOption[]>([])
   const portalRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     getUsers().then(setUsers).catch(console.error)
+    getDepartments().then(setDepartments).catch(console.error)
   }, [])
 
   React.useEffect(() => {
@@ -170,6 +197,7 @@ const TodoForm = ({
       name: (item?.name ?? '') as string,
       description: item?.description as string | undefined,
       deadline: defaultDeadline as string | undefined,
+      departmentId: (item?.departmentId ?? '') as string,
     },
     validators: {
       onSubmit: formSchema,
@@ -184,6 +212,7 @@ const TodoForm = ({
               name: value.name,
               description: value.description,
               createdBy: userId,
+              departmentId: value.departmentId,
               deadline: value.deadline,
             },
           })
@@ -207,6 +236,7 @@ const TodoForm = ({
               name: value.name,
               description: value.description,
               createdBy: userId,
+              departmentId: value.departmentId,
               deadline: value.deadline,
             },
           })
@@ -287,6 +317,40 @@ const TodoForm = ({
 
         {/* Bottom fields — fixed, always visible */}
         <div className="shrink-0 flex flex-col gap-6">
+          <form.Field
+            name="departmentId"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Отдел</FieldLabel>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(val) => field.handleChange(val)}
+                  >
+                    <SelectTrigger
+                      id={field.name}
+                      aria-invalid={isInvalid}
+                      className="w-full"
+                      onBlur={field.handleBlur}
+                    >
+                      <SelectValue placeholder="Выберите отдел" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              )
+            }}
+          />
+
           <form.Field
             name="deadline"
             children={(field) => {

@@ -1,6 +1,5 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Empty,
   EmptyContent,
@@ -17,23 +16,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { db } from '@/db'
-import { todo } from '@/db/schema'
 import { cn } from '@/lib/utils'
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useRouter,
-} from '@tanstack/react-router'
-import { createServerFn, useServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { EditIcon, EyeIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
-import z from 'zod'
 
 const fetchTodos = createServerFn().handler(async () => {
   return await db.query.todo.findMany({
     with: {
       creator: {
+        columns: {
+          name: true,
+        },
+      },
+      department: {
         columns: {
           name: true,
         },
@@ -51,17 +47,6 @@ const fetchTodos = createServerFn().handler(async () => {
   })
 })
 
-const toggleFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({ id: z.string().min(1), completedAt: z.date().nullable() }),
-  )
-  .handler(async ({ data }) => {
-    await db
-      .update(todo)
-      .set({ completedAt: data.completedAt })
-      .where(eq(todo.id, data.id))
-  })
-
 export const Route = createFileRoute('/todos')({
   component: RouteComponent,
   loader: () => fetchTodos(),
@@ -73,10 +58,6 @@ function RouteComponent() {
   const completedCount = todos.filter((t) => t.completedAt).length
   const totalCount = todos.length
 
-  const router = useRouter()
-
-  const toggleFnServer = useServerFn(toggleFn)
-
   const statusOptions = [
     { status: 'not started', label: 'не в работе', badgeVariant: 'warning' },
     { status: 'in progress', label: 'в работе', badgeVariant: 'default' },
@@ -85,7 +66,7 @@ function RouteComponent() {
 
   return (
     <>
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex justify-between items-center gap-4 pb-4">
         <div>
           <Button asChild>
             <Link to="/todos/new" className="flex items-center gap-2">
@@ -119,7 +100,6 @@ function RouteComponent() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-left"></TableHead>
               <TableHead>Описание</TableHead>
               <TableHead>Клиент</TableHead>
               <TableHead>Поздразделение</TableHead>
@@ -133,23 +113,7 @@ function RouteComponent() {
           </TableHeader>
           <TableBody>
             {todos?.map((item) => (
-              <TableRow
-                key={item.id}
-                onClick={async (e) => {
-                  const target = e.target as HTMLElement
-                  if (target.closest('[data-actions]')) return
-                  await toggleFnServer({
-                    data: {
-                      id: item.id,
-                      completedAt: item.completedAt ? null : new Date(),
-                    },
-                  })
-                  router.invalidate()
-                }}
-              >
-                <TableCell>
-                  <Checkbox checked={!!item.completedAt} />
-                </TableCell>
+              <TableRow key={item.id}>
                 <TableCell
                   className={cn(
                     !!item.completedAt && 'text-muted-foreground line-through',
@@ -162,7 +126,7 @@ function RouteComponent() {
                   ---
                 </TableCell>
                 <TableCell className={cn('text-muted-foreground text-sm')}>
-                  ---
+                  {item.department?.name ?? '---'}
                 </TableCell>
                 <TableCell className={cn('text-muted-foreground text-sm')}>
                   {item.creator.name}
