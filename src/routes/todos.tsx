@@ -67,15 +67,8 @@ function RouteComponent() {
   return (
     <>
       <div className="flex justify-between items-center gap-4 pb-4">
-        <div>
-          <Button asChild>
-            <Link to="/todos/new" className="flex items-center gap-2">
-              <Plus /> Создать
-            </Link>
-          </Button>
-        </div>
         <div className="space-y-2">
-          <Badge>
+          <Badge className="p-2 px-4">
             Выполнено {completedCount} из {totalCount}
           </Badge>
         </div>

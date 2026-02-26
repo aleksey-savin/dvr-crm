@@ -52,14 +52,6 @@ function RouteComponent() {
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 md:flex-row">
-        <Button asChild>
-          <Link className="flex items-center gap-2" to="/users/new">
-            <Plus /> Создать
-          </Link>
-        </Button>
-      </div>
-
       <Table>
         <TableHeader>
           <TableRow>

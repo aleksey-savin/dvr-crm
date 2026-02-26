@@ -109,21 +109,12 @@ const addGrossProfit = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
-    const [clientRow] = await db
-      .select({ departmentId: client.departmentId })
-      .from(client)
-      .where(eq(client.id, data.clientId))
-      .limit(1)
-
-    if (!clientRow) throw new Error('Клиент не найден')
-
     const existing = await db
       .select({ id: clientGrossProfit.id })
       .from(clientGrossProfit)
-      .innerJoin(client, eq(clientGrossProfit.clientId, client.id))
       .where(
         and(
-          eq(client.departmentId, clientRow.departmentId),
+          eq(clientGrossProfit.clientId, data.clientId),
           eq(clientGrossProfit.year, data.year),
         ),
       )
@@ -131,7 +122,7 @@ const addGrossProfit = createServerFn({ method: 'POST' })
 
     if (existing.length > 0) {
       throw new Error(
-        `Запись валовой прибыли за ${data.year} год уже существует для этого бизнес-юнита`,
+        `Запись валовой прибыли за ${data.year} год уже существует для этого клиента`,
       )
     }
 
@@ -157,21 +148,12 @@ const addTargetForecast = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
-    const [clientRow] = await db
-      .select({ departmentId: client.departmentId })
-      .from(client)
-      .where(eq(client.id, data.clientId))
-      .limit(1)
-
-    if (!clientRow) throw new Error('Клиент не найден')
-
     const existing = await db
       .select({ id: clientTargetForecast.id })
       .from(clientTargetForecast)
-      .innerJoin(client, eq(clientTargetForecast.clientId, client.id))
       .where(
         and(
-          eq(client.departmentId, clientRow.departmentId),
+          eq(clientTargetForecast.clientId, data.clientId),
           eq(clientTargetForecast.year, data.year),
         ),
       )
@@ -179,7 +161,7 @@ const addTargetForecast = createServerFn({ method: 'POST' })
 
     if (existing.length > 0) {
       throw new Error(
-        `Прогноз за ${data.year} год уже существует для этого бизнес-юнита`,
+        `Прогноз за ${data.year} год уже существует для этого клиента`,
       )
     }
 

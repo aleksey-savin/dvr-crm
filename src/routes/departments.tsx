@@ -33,15 +33,6 @@ function RouteComponent() {
 
   return (
     <>
-      <div className="flex justify-between items-center gap-4 pb-4">
-        <div>
-          <Button asChild>
-            <Link to="/departments/new" className="flex items-center gap-2">
-              <Plus /> Создать
-            </Link>
-          </Button>
-        </div>
-      </div>
       {departments.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>

@@ -8,14 +8,7 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+
 import { db } from '@/db'
 import {
   clientManager,
@@ -30,7 +23,10 @@ import {
 import { and, eq, isNull, ne, inArray, count } from 'drizzle-orm'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { EditIcon, EyeIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
+import { ListTodoIcon, Plus } from 'lucide-react'
+import { DataTable } from '@/components/tables/data-table'
+import { columns as activeClientsColumns } from '@/components/tables/active-clients-cols'
+import { columns as lostClientsColumns } from '@/components/tables/lost-clients-cols'
 
 const fetchClients = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
@@ -157,13 +153,13 @@ const fetchClients = createServerFn().handler(async () => {
     upsellings.map((r) => [r.clientId, r.count]),
   )
 
-  // Split todo counts into marketolog vs other
-  const marketologTodos: Record<string, number> = {}
+  // Split todo counts into marketer vs other
+  const marketerTodos: Record<string, number> = {}
   const managerTodos: Record<string, number> = {}
   for (const row of todoCounts) {
-    if (row.userRole === 'marketolog') {
-      marketologTodos[row.clientId] =
-        (marketologTodos[row.clientId] ?? 0) + row.count
+    if (row.userRole === 'marketer') {
+      marketerTodos[row.clientId] =
+        (marketerTodos[row.clientId] ?? 0) + row.count
     } else {
       managerTodos[row.clientId] = (managerTodos[row.clientId] ?? 0) + row.count
     }
@@ -176,7 +172,7 @@ const fetchClients = createServerFn().handler(async () => {
     potentialNextYear: potentialByClient[c.id] ?? null,
     risksCount: risksByClient[c.id] ?? 0,
     upsellingCount: upsellingByClient[c.id] ?? 0,
-    marketologTodosCount: marketologTodos[c.id] ?? 0,
+    marketerTodosCount: marketerTodos[c.id] ?? 0,
     managerTodosCount: managerTodos[c.id] ?? 0,
   }))
 
@@ -187,199 +183,6 @@ export const Route = createFileRoute('/clients')({
   component: RouteComponent,
   loader: () => fetchClients(),
 })
-
-type EnrichedClient = Awaited<
-  ReturnType<typeof fetchClients>
->['clients'][number]
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function fmtNum(v: string | null) {
-  if (v === null) return <span className="text-muted-foreground">—</span>
-  return Number(v).toLocaleString('ru-RU', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })
-}
-
-function CountBadge({
-  count,
-  variant = 'secondary',
-}: {
-  count: number
-  variant?: 'secondary' | 'destructive' | 'outline'
-}) {
-  if (count === 0)
-    return <span className="text-muted-foreground text-sm">—</span>
-  return <Badge variant={variant}>{count}</Badge>
-}
-
-// ---------------------------------------------------------------------------
-// Action buttons for each row
-// ---------------------------------------------------------------------------
-
-function RowActions({ item }: { item: EnrichedClient }) {
-  return (
-    <div className="flex items-center justify-end gap-1">
-      <Button asChild variant="ghost" size="icon-sm">
-        <Link to="/clients/$id/view" params={{ id: item.id }}>
-          <EyeIcon />
-        </Link>
-      </Button>
-      <Button asChild variant="ghost" size="icon-sm">
-        <Link to="/clients/$id/update" params={{ id: item.id }}>
-          <EditIcon />
-        </Link>
-      </Button>
-      <Button asChild variant="destructiveGhost" size="icon-sm">
-        <Link to="/clients/$id/delete" params={{ id: item.id }}>
-          <Trash2Icon />
-        </Link>
-      </Button>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Tables
-// ---------------------------------------------------------------------------
-
-function ActiveClientsTable({
-  items,
-  lastYear,
-  currentYear,
-}: {
-  items: EnrichedClient[]
-  lastYear: number
-  currentYear: number
-}) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Клиент</TableHead>
-          <TableHead>Валовая прибыль {lastYear}</TableHead>
-          <TableHead>Цель/Прогноз {currentYear}</TableHead>
-          <TableHead>Риски</TableHead>
-          <TableHead>Апсейл</TableHead>
-          <TableHead>Задачи маркетолога</TableHead>
-          <TableHead>Задачи менеджера</TableHead>
-          <TableHead>Менеджеры</TableHead>
-          <TableHead className="w-0" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">{item.company.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.department.name}
-                </span>
-              </div>
-            </TableCell>
-            <TableCell>{fmtNum(item.gpLastYear)}</TableCell>
-            <TableCell>{fmtNum(item.forecastCurrentYear)}</TableCell>
-            <TableCell>
-              <CountBadge
-                count={item.risksCount}
-                variant={item.risksCount > 0 ? 'destructive' : 'secondary'}
-              />
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.upsellingCount} />
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.marketologTodosCount} />
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.managerTodosCount} />
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-wrap gap-1">
-                {item.managers.map(({ user }) => (
-                  <Badge key={user.id} variant="secondary">
-                    {user.name}
-                  </Badge>
-                ))}
-              </div>
-            </TableCell>
-            <TableCell>
-              <RowActions item={item} />
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
-
-function LostClientsTable({
-  items,
-  nextYear,
-}: {
-  items: EnrichedClient[]
-  nextYear: number
-}) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Клиент</TableHead>
-          <TableHead>Потенциал на {nextYear}</TableHead>
-          <TableHead>Статус прекращения взаимодействия</TableHead>
-          <TableHead>Возможности</TableHead>
-          <TableHead>Задачи маркетолога</TableHead>
-          <TableHead>Задачи менеджера</TableHead>
-          <TableHead>Клиентский менеджер</TableHead>
-          <TableHead className="w-0" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <TableRow key={item.id}>
-            <TableCell>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium">{item.company.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.department.name}
-                </span>
-              </div>
-            </TableCell>
-            <TableCell>{fmtNum(item.potentialNextYear)}</TableCell>
-            <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-              {item.lostReasons || <span className="italic">Не указан</span>}
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.upsellingCount} />
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.marketologTodosCount} />
-            </TableCell>
-            <TableCell>
-              <CountBadge count={item.managerTodosCount} />
-            </TableCell>
-            <TableCell>
-              <div className="flex flex-wrap gap-1">
-                {item.managers.map(({ user }) => (
-                  <Badge key={user.id} variant="secondary">
-                    {user.name}
-                  </Badge>
-                ))}
-              </div>
-            </TableCell>
-            <TableCell>
-              <RowActions item={item} />
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Section wrapper
@@ -399,7 +202,9 @@ function Section({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <h2 className="scroll-m-20 pb-1 text-3xl font-semibold first:mt-0">
+          {title}
+        </h2>
         {count > 0 && <Badge variant={countVariant}>{count}</Badge>}
       </div>
       {count === 0 ? (
@@ -418,22 +223,35 @@ function Section({
 // ---------------------------------------------------------------------------
 
 function RouteComponent() {
-  const { clients, currentYear, lastYear, nextYear } = Route.useLoaderData()
+  const { clients } = Route.useLoaderData()
 
-  const target = clients.filter((c) => c.target && !c.lost)
-  const regular = clients.filter((c) => !c.target && !c.lost)
-  const lost = clients.filter((c) => c.lost)
+  const target = clients
+    .filter((c) => c.target && !c.lost)
+    .map((c) => ({
+      ...c,
+      name: c.company.name,
+      department: c.department.name,
+      managers: c.managers.map((m) => m.user.name),
+    }))
+  const regular = clients
+    .filter((c) => !c.target && !c.lost)
+    .map((c) => ({
+      ...c,
+      name: c.company.name,
+      department: c.department.name,
+      managers: c.managers.map((m) => m.user.name),
+    }))
+  const lost = clients
+    .filter((c) => c.lost)
+    .map((c) => ({
+      ...c,
+      name: c.company.name,
+      department: c.department.name,
+      managers: c.managers.map((m) => m.user.name),
+    }))
 
   return (
     <>
-      <div className="flex justify-between items-center gap-4 pb-4">
-        <Button asChild>
-          <Link to="/clients/new" className="flex items-center gap-2">
-            <Plus /> Создать
-          </Link>
-        </Button>
-      </div>
-
       {clients.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
@@ -452,28 +270,18 @@ function RouteComponent() {
         </Empty>
       ) : (
         <div className="flex flex-col gap-10">
-          <Section title="Целевые клиенты" count={target.length}>
-            <ActiveClientsTable
-              items={target}
-              lastYear={lastYear}
-              currentYear={currentYear}
-            />
+          <Section title="Целевые" count={target.length}>
+            <DataTable columns={activeClientsColumns} data={target} />
           </Section>
-
-          <Section title="Нецелевые клиенты" count={regular.length}>
-            <ActiveClientsTable
-              items={regular}
-              lastYear={lastYear}
-              currentYear={currentYear}
-            />
+          <Section title="Нецелевые" count={regular.length}>
+            <DataTable columns={activeClientsColumns} data={regular} />
           </Section>
-
           <Section
-            title="Потерянные клиенты"
+            title="Потерянные"
             count={lost.length}
             countVariant="destructive"
           >
-            <LostClientsTable items={lost} nextYear={nextYear} />
+            <DataTable columns={lostClientsColumns} data={lost} />
           </Section>
         </div>
       )}
