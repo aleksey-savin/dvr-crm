@@ -148,6 +148,7 @@ export const department = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     name: text('name').notNull(),
     description: text('description'),
+    accentColor: text('accent_color'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },

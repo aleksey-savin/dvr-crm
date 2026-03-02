@@ -169,6 +169,13 @@
       "when": 1772438503927,
       "tag": "0023_many_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772457852615,
+      "tag": "0024_overrated_captain_midlands",
+      "breakpoints": true
     }
   ]
 }

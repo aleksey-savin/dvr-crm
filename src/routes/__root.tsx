@@ -18,6 +18,7 @@ import { authClient } from 'utils/auth-client'
 import { authMiddleware } from 'utils/middleware'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ModeToggle } from '@/components/mode-toggle'
+import { useDepartmentStore } from '@/stores/department-store'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = authClient.useSession()
+  const accentColor = useDepartmentStore((s) => s.selectedAccentColor)
 
   return (
     <html lang="ru" className="light">
@@ -69,8 +71,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             {isPending ? null : session?.user ? (
               <SidebarProvider>
                 <AppSidebar />
-                <SidebarInset>
-                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 justify-between">
+                <SidebarInset
+                  style={
+                    accentColor
+                      ? ({
+                          '--dept-accent': accentColor,
+                        } as React.CSSProperties)
+                      : undefined
+                  }
+                >
+                  <header
+                    className={`flex h-16 shrink-0 items-center gap-2 border-b px-4 justify-between${accentColor ? ' header-dept-accent' : ''}`}
+                  >
                     <div className="flex gap-4 items-center">
                       <SidebarTrigger className="-ml-1" />
                       <Separator

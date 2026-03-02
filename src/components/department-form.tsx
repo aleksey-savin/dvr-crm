@@ -23,6 +23,7 @@ const formSchema = z.object({
     z.string().min(2, 'Описание должно содержать минимум 2 символа'),
     z.undefined(),
   ]),
+  accentColor: z.string().min(6, 'Цвет должен содержать минимум 6 символов'),
 })
 
 const addSchema = z.object({
@@ -31,6 +32,7 @@ const addSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  accentColor: z.string().min(6, 'Цвет должен содержать минимум 6 символов'),
 })
 
 const updateSchema = z.object({
@@ -40,6 +42,7 @@ const updateSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  accentColor: z.string().min(6, 'Цвет должен содержать минимум 6 символов'),
 })
 
 const addDepartment = createServerFn({ method: 'POST' })
@@ -50,6 +53,7 @@ const addDepartment = createServerFn({ method: 'POST' })
       .values({
         name: data.name,
         description: data.description,
+        accentColor: data.accentColor,
       })
       .returning({ id: department.id })
     return inserted.id
@@ -63,6 +67,7 @@ const updateDepartment = createServerFn({ method: 'POST' })
       .set({
         name: data.name,
         description: data.description,
+        accentColor: data.accentColor,
       })
       .where(eq(department.id, data.id))
   })
@@ -78,6 +83,7 @@ const DepartmentForm = ({
     defaultValues: {
       name: (item?.name ?? '') as string,
       description: item?.description as string | undefined,
+      accentColor: item?.accentColor as string | undefined,
     },
     validators: {
       onSubmit: formSchema,
@@ -89,6 +95,7 @@ const DepartmentForm = ({
             data: {
               name: value.name,
               description: value.description,
+              accentColor: value.accentColor || '',
             },
           })
           toast.success('Бизнес-юнит успешно создан')
@@ -105,6 +112,7 @@ const DepartmentForm = ({
               id: item.id,
               name: value.name,
               description: value.description,
+              accentColor: value.accentColor || '',
             },
           })
 
@@ -171,6 +179,31 @@ const DepartmentForm = ({
                   value={field.state.value}
                   onChange={(html) => field.handleChange(html)}
                   className="flex-1 min-h-0 w-full rounded-xl"
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )
+          }}
+        />
+        <form.Field
+          name="accentColor"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid
+            return (
+              <Field data-invalid={isInvalid} className="shrink-0">
+                <FieldLabel htmlFor={field.name}>Фоновый цвет</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="#FFFFFF"
+                  autoComplete="off"
+                  type="text"
+                  required
                 />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>

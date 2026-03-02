@@ -29,7 +29,7 @@ import { useDepartmentStore } from '@/stores/department-store'
 
 const fetchDepartments = createServerFn({ method: 'GET' }).handler(async () => {
   return db.query.department.findMany({
-    columns: { id: true, name: true },
+    columns: { id: true, name: true, accentColor: true },
     orderBy: (d, { asc }) => [asc(d.name)],
   })
 })
@@ -130,6 +130,7 @@ const navMain = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession()
   const setDepartments = useDepartmentStore((s) => s.setDepartments)
+  const accentColor = useDepartmentStore((s) => s.selectedAccentColor)
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
@@ -149,7 +150,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   }
 
   return (
-    <Sidebar {...props}>
+    <Sidebar
+      className={accentColor ? 'sidebar-dept-accent' : undefined}
+      style={
+        accentColor
+          ? ({ '--dept-accent': accentColor } as React.CSSProperties)
+          : undefined
+      }
+      {...props}
+    >
       <SidebarHeader>
         <VersionSwitcher departments={departments} />
         <SearchForm />
