@@ -18,113 +18,152 @@ import {
 import { NavUser } from './nav-user'
 import { authClient } from 'utils/auth-client'
 import { Link } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { useQuery } from '@tanstack/react-query'
+import { db } from '@/db'
+import { useDepartmentStore } from '@/stores/department-store'
+
+// ---------------------------------------------------------------------------
+// Server function
+// ---------------------------------------------------------------------------
+
+const fetchDepartments = createServerFn({ method: 'GET' }).handler(async () => {
+  return db.query.department.findMany({
+    columns: { id: true, name: true },
+    orderBy: (d, { asc }) => [asc(d.name)],
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Nav data
+// ---------------------------------------------------------------------------
+
+const navMain = [
+  {
+    title: 'Обзор',
+    url: '#',
+    items: [
+      {
+        title: 'Дашборд',
+        url: '/dashboard',
+      },
+    ],
+  },
+  {
+    title: 'CRM',
+    url: '#',
+    items: [
+      {
+        title: 'Клиенты',
+        url: '/clients',
+      },
+      {
+        title: 'Вишлист',
+        url: '/wishlist',
+      },
+      {
+        title: 'Задачи',
+        url: '/todos',
+      },
+    ],
+  },
+  {
+    title: 'AI-сервисы',
+    url: '#',
+    items: [
+      {
+        title: 'Встречи',
+        url: '/meetings',
+      },
+      {
+        title: 'Мониторинг активности',
+        url: '/clients-activity',
+      },
+      {
+        title: 'Отслеживание отзывов',
+        url: '/tracking-reviews',
+      },
+    ],
+  },
+  {
+    title: 'Моя компания',
+    url: '#',
+    items: [
+      {
+        title: 'Бронирование переговорок',
+        url: '/meeting-room-booking',
+      },
+      {
+        title: 'Списки рассылок',
+        url: '/mailing-lists',
+      },
+    ],
+  },
+  {
+    title: 'Администрирование',
+    url: '#',
+    items: [
+      {
+        title: 'Компании',
+        url: '/companies',
+      },
+      {
+        title: 'Пользователи',
+        url: '/users',
+      },
+      {
+        title: 'Бизнес-юниты',
+        url: '/departments',
+      },
+      {
+        title: 'Настройки',
+        url: '/preferences',
+      },
+    ],
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession()
-  const data = {
-    user: session?.user || {
-      name: 'Guest',
-      email: 'guest@example.com',
-      image: '/images/avatar.png',
-    },
-    versions: ['Руководитель', 'Менеджер', 'Администратор', 'Клиент'],
-    navMain: [
-      {
-        title: 'Основное',
-        url: '#',
-        items: [
-          {
-            title: 'Дашборд',
-            url: '/dashboard',
-            isActive: false,
-          },
-          {
-            title: 'Клиенты',
-            url: '/clients',
-            isActive: false,
-          },
-          {
-            title: 'Вишлист',
-            url: '/wishlist',
-            isActive: false,
-          },
-          {
-            title: 'Ту-Ду',
-            url: '/todos',
-            isActive: false,
-          },
-        ],
-      },
-      {
-        title: 'AI-сервисы',
-        url: '#',
-        items: [
-          {
-            title: 'Мониторинг активности',
-            url: '/clients-activity',
-            isActive: false,
-          },
-          {
-            title: 'Отслеживание отзывов',
-            url: '/tracking-reviews',
-            isActive: false,
-          },
-        ],
-      },
+  const setDepartments = useDepartmentStore((s) => s.setDepartments)
 
-      {
-        title: 'Администрирование',
-        url: '#',
-        items: [
-          {
-            title: 'Компании',
-            url: '/companies',
-            isActive: false,
-          },
-          {
-            title: 'Пользователи',
-            url: '/users',
-            isActive: false,
-          },
-          {
-            title: 'Бизнес-юниты',
-            url: '/departments',
-            isActive: false,
-          },
-          {
-            title: 'Настройки',
-            url: '/preferences',
-            isActive: false,
-          },
-        ],
-      },
-    ],
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => fetchDepartments(),
+    staleTime: 60_000,
+  })
+
+  // Seed the store whenever the list changes
+  React.useEffect(() => {
+    setDepartments(departments)
+  }, [departments, setDepartments])
+
+  const user = session?.user ?? {
+    name: 'Guest',
+    email: 'guest@example.com',
+    image: '/images/avatar.png',
   }
 
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <VersionSwitcher
-          versions={data.versions}
-          defaultVersion={data.versions[0]}
-        />
+        <VersionSwitcher departments={departments} />
         <SearchForm />
       </SidebarHeader>
       <SidebarContent>
-        {/* We create a SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
+        {navMain.map((item) => (
           <SidebarGroup key={item.title}>
             {item.title && <SidebarGroupLabel>{item.title}</SidebarGroupLabel>}
             <SidebarGroupContent>
               <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={item.isActive}
-                      className="text-base"
-                    >
-                      <Link to={item.url}>{item.title}</Link>
+                {item.items.map((child) => (
+                  <SidebarMenuItem key={child.title}>
+                    <SidebarMenuButton asChild className="text-base">
+                      <Link to={child.url}>{child.title}</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -134,7 +173,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

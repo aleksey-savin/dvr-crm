@@ -17,6 +17,9 @@ export const user = pgTable('user', {
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
   role: text('role').notNull().default('user'),
+  departmentId: text('department_id').references(() => department.id, {
+    onDelete: 'set null',
+  }),
   banned: boolean('banned').default(false).notNull(),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires'),
@@ -101,6 +104,9 @@ export const todo = pgTable('todos', {
   departmentId: text('department_id')
     .notNull()
     .references(() => department.id, { onDelete: 'cascade' }),
+  clientId: text('client_id').references(() => client.id, {
+    onDelete: 'cascade',
+  }),
   createdBy: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -395,6 +401,32 @@ export const commentRead = pgTable(
   ],
 )
 
+export const meeting = pgTable('meeting', {
+  id: text('id').notNull().primaryKey(),
+  title: text('title').notNull(),
+  summary: text('summary'),
+  transcription: text('transcription'),
+  companyId: text('company_id').references(() => company.id, {
+    onDelete: 'cascade',
+  }),
+})
+
+export const apiKey = pgTable('api_key', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  key: text('key').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
+
 // ---------------------------------------------------------------------------
 
 export const commentRelations = relations(comment, ({ one, many }) => ({
@@ -427,15 +459,18 @@ export const commentReadRelations = relations(commentRead, ({ one }) => ({
   }),
 }))
 
-// ---------------------------------------------------------------------------
-
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
   managedClients: many(clientManager),
   responsibleTodos: many(todoResponsibleUsers),
   comments: many(comment),
   commentReads: many(commentRead),
+  apiKeys: many(apiKey),
+  department: one(department, {
+    fields: [user.departmentId],
+    references: [department.id],
+  }),
 }))
 
 export const clientRelations = relations(client, ({ one, many }) => ({
@@ -452,6 +487,7 @@ export const clientRelations = relations(client, ({ one, many }) => ({
   grossProfits: many(clientGrossProfit),
   targetForecasts: many(clientTargetForecast),
   upsellingOpportunities: many(clientUpsellingOpportunity),
+  meetings: many(meeting),
 }))
 
 export const clientManagerRelations = relations(clientManager, ({ one }) => ({
@@ -509,6 +545,11 @@ export const companyRelations = relations(company, ({ many }) => ({
 export const departmentRelations = relations(department, ({ many }) => ({
   todos: many(todo),
   clients: many(client),
+  users: many(user),
+}))
+
+export const meetingRelations = relations(meeting, ({ many }) => ({
+  clients: many(client),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({
@@ -519,6 +560,10 @@ export const todoRelations = relations(todo, ({ one, many }) => ({
   department: one(department, {
     fields: [todo.departmentId],
     references: [department.id],
+  }),
+  client: one(client, {
+    fields: [todo.clientId],
+    references: [client.id],
   }),
   responsibleUsers: many(todoResponsibleUsers),
 }))
@@ -547,6 +592,13 @@ export const sessionRelations = relations(session, ({ one }) => ({
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, {
     fields: [account.userId],
+    references: [user.id],
+  }),
+}))
+
+export const apiKeyRelations = relations(apiKey, ({ one }) => ({
+  user: one(user, {
+    fields: [apiKey.userId],
     references: [user.id],
   }),
 }))

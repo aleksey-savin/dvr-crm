@@ -8,7 +8,7 @@ export const authMiddleware = createMiddleware().server(
     const url = new URL(request.url)
     const pathname = url.pathname
 
-    const publicRoutes = ['/login', '/signup']
+    const publicRoutes = ['/login', '/signup', '/api/meetings']
 
     if (
       !session &&

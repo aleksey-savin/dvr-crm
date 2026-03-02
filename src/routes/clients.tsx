@@ -20,13 +20,23 @@ import {
   todoResponsibleUsers,
   user,
 } from '@/db/schema'
-import { and, eq, isNull, ne, inArray, count } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  isNull,
+  isNotNull,
+  ne,
+  inArray,
+  count,
+  countDistinct,
+} from 'drizzle-orm'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { ListTodoIcon, Plus } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
 import { columns as activeClientsColumns } from '@/components/tables/active-clients-cols'
 import { columns as lostClientsColumns } from '@/components/tables/lost-clients-cols'
+import { useDepartmentStore } from '@/stores/department-store'
 
 const fetchClients = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
@@ -115,26 +125,50 @@ const fetchClients = createServerFn().handler(async () => {
     .where(inArray(clientUpsellingOpportunity.clientId, clientIds))
     .groupBy(clientUpsellingOpportunity.clientId)
 
-  // Active todo counts per client, split by manager role
-  // Join: todo → todoResponsibleUsers → user → clientManager
-  const todoCounts = await db
+  // Marketer todos: todo.clientId = client.id + responsible user has role 'marketeer'
+  const marketerTodoCounts = await db
     .select({
-      clientId: clientManager.clientId,
-      userRole: user.role,
-      count: count(todo.id),
+      clientId: todo.clientId,
+      count: countDistinct(todo.id),
     })
     .from(todo)
     .innerJoin(todoResponsibleUsers, eq(todo.id, todoResponsibleUsers.todoId))
     .innerJoin(user, eq(todoResponsibleUsers.userId, user.id))
-    .innerJoin(clientManager, eq(user.id, clientManager.userId))
     .where(
       and(
-        inArray(clientManager.clientId, clientIds),
+        isNotNull(todo.clientId),
+        inArray(todo.clientId, clientIds),
+        ne(todo.status, 'completed'),
+        isNull(todo.archivedAt),
+        eq(user.role, 'marketer'),
+      ),
+    )
+    .groupBy(todo.clientId)
+
+  // Manager todos: todo.clientId = client.id + responsible user is a clientManager of that same client
+  const managerTodoCounts = await db
+    .select({
+      clientId: todo.clientId,
+      count: countDistinct(todo.id),
+    })
+    .from(todo)
+    .innerJoin(todoResponsibleUsers, eq(todo.id, todoResponsibleUsers.todoId))
+    .innerJoin(
+      clientManager,
+      and(
+        eq(todoResponsibleUsers.userId, clientManager.userId),
+        eq(todo.clientId, clientManager.clientId),
+      ),
+    )
+    .where(
+      and(
+        isNotNull(todo.clientId),
+        inArray(todo.clientId, clientIds),
         ne(todo.status, 'completed'),
         isNull(todo.archivedAt),
       ),
     )
-    .groupBy(clientManager.clientId, user.role)
+    .groupBy(todo.clientId)
 
   // Index all results by clientId for O(1) lookup
   const gpByClient = Object.fromEntries(
@@ -153,17 +187,17 @@ const fetchClients = createServerFn().handler(async () => {
     upsellings.map((r) => [r.clientId, r.count]),
   )
 
-  // Split todo counts into marketer vs other
-  const marketerTodos: Record<string, number> = {}
-  const managerTodos: Record<string, number> = {}
-  for (const row of todoCounts) {
-    if (row.userRole === 'marketer') {
-      marketerTodos[row.clientId] =
-        (marketerTodos[row.clientId] ?? 0) + row.count
-    } else {
-      managerTodos[row.clientId] = (managerTodos[row.clientId] ?? 0) + row.count
-    }
-  }
+  // Index todo counts by clientId
+  const marketerTodos: Record<string, number> = Object.fromEntries(
+    marketerTodoCounts
+      .filter((r) => r.clientId !== null)
+      .map((r) => [r.clientId!, r.count]),
+  )
+  const managerTodos: Record<string, number> = Object.fromEntries(
+    managerTodoCounts
+      .filter((r) => r.clientId !== null)
+      .map((r) => [r.clientId!, r.count]),
+  )
 
   const enriched = clients.map((c) => ({
     ...c,
@@ -224,8 +258,13 @@ function Section({
 
 function RouteComponent() {
   const { clients } = Route.useLoaderData()
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
-  const target = clients
+  const filteredClients = selectedDepartmentId
+    ? clients.filter((c) => c.department.id === selectedDepartmentId)
+    : clients
+
+  const target = filteredClients
     .filter((c) => c.target && !c.lost)
     .map((c) => ({
       ...c,
@@ -233,7 +272,7 @@ function RouteComponent() {
       department: c.department.name,
       managers: c.managers.map((m) => m.user.name),
     }))
-  const regular = clients
+  const regular = filteredClients
     .filter((c) => !c.target && !c.lost)
     .map((c) => ({
       ...c,
@@ -241,7 +280,7 @@ function RouteComponent() {
       department: c.department.name,
       managers: c.managers.map((m) => m.user.name),
     }))
-  const lost = clients
+  const lost = filteredClients
     .filter((c) => c.lost)
     .map((c) => ({
       ...c,
@@ -252,7 +291,7 @@ function RouteComponent() {
 
   return (
     <>
-      {clients.length === 0 ? (
+      {filteredClients.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">

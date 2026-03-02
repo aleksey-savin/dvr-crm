@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Check, ChevronsUpDown, GalleryVerticalEnd } from 'lucide-react'
 
 import {
@@ -12,15 +11,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useDepartmentStore, type Department } from '@/stores/department-store'
 
 export function VersionSwitcher({
-  versions,
-  defaultVersion,
+  departments,
 }: {
-  versions: string[]
-  defaultVersion: string
+  departments: Department[]
 }) {
-  const [selectedVersion, setSelectedVersion] = React.useState(defaultVersion)
+  const { selectedDepartmentId, setSelectedDepartmentId } = useDepartmentStore()
+
+  const selected = departments.find((d) => d.id === selectedDepartmentId)
+  const label = selected?.name ?? 'Все подразделения'
 
   return (
     <SidebarMenu>
@@ -36,7 +37,7 @@ export function VersionSwitcher({
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-medium">ДВР Групп</span>
-                <span className="">{selectedVersion}</span>
+                <span className="">{label}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -45,13 +46,19 @@ export function VersionSwitcher({
             className="w-(--radix-dropdown-menu-trigger-width)"
             align="start"
           >
-            {versions.map((version) => (
+            <DropdownMenuItem onSelect={() => setSelectedDepartmentId(null)}>
+              Все подразделения
+              {selectedDepartmentId === null && <Check className="ml-auto" />}
+            </DropdownMenuItem>
+            {departments.map((dept) => (
               <DropdownMenuItem
-                key={version}
-                onSelect={() => setSelectedVersion(version)}
+                key={dept.id}
+                onSelect={() => setSelectedDepartmentId(dept.id)}
               >
-                {version}{' '}
-                {version === selectedVersion && <Check className="ml-auto" />}
+                {dept.name}
+                {dept.id === selectedDepartmentId && (
+                  <Check className="ml-auto" />
+                )}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

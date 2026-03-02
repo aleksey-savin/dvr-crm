@@ -120,6 +120,55 @@
       "when": 1771915000377,
       "tag": "0016_perfect_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1772073658167,
+      "tag": "0017_foamy_stature",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1772073735078,
+      "tag": "0018_foamy_puma",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1772074188131,
+      "tag": "0019_rapid_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1772426935536,
+      "tag": "0020_material_moondragon",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1772427058710,
+      "tag": "0021_ancient_maestro",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1772438303315,
+      "tag": "0022_equal_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772438503927,
+      "tag": "0023_many_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

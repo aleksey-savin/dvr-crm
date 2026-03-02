@@ -3,6 +3,7 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
+import { useDepartmentStore } from '@/stores/department-store'
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -37,13 +38,18 @@ export const columns: ColumnDef<Client>[] = [
     },
     cell: ({ row }) => {
       const client = row.original
+      const selectedDepartmentId = useDepartmentStore(
+        (s) => s.selectedDepartmentId,
+      )
 
       return (
         <div className="flex flex-col">
           <div> {client.name as any as React.ReactNode}</div>
-          <div className="text-xs text-muted-foreground">
-            {client.department as any as React.ReactNode}
-          </div>
+          {!selectedDepartmentId && (
+            <div className="text-xs text-muted-foreground">
+              {client.department as any as React.ReactNode}
+            </div>
+          )}
         </div>
       )
     },

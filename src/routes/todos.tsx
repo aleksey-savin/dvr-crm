@@ -18,6 +18,7 @@ import {
 import { db } from '@/db'
 import { cn } from '@/lib/utils'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { useDepartmentStore } from '@/stores/department-store'
 import { createServerFn } from '@tanstack/react-start'
 import { EditIcon, EyeIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
 
@@ -32,6 +33,15 @@ const fetchTodos = createServerFn().handler(async () => {
       department: {
         columns: {
           name: true,
+        },
+      },
+      client: {
+        with: {
+          company: {
+            columns: {
+              name: true,
+            },
+          },
         },
       },
       responsibleUsers: {
@@ -54,9 +64,14 @@ export const Route = createFileRoute('/todos')({
 
 function RouteComponent() {
   const todos = Route.useLoaderData()
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
-  const completedCount = todos.filter((t) => t.completedAt).length
-  const totalCount = todos.length
+  const filteredTodos = selectedDepartmentId
+    ? todos.filter((t) => t.departmentId === selectedDepartmentId)
+    : todos
+
+  const completedCount = filteredTodos.filter((t) => t.completedAt).length
+  const totalCount = filteredTodos.length
 
   const statusOptions = [
     { status: 'not started', label: 'не в работе', badgeVariant: 'warning' },
@@ -73,7 +88,7 @@ function RouteComponent() {
           </Badge>
         </div>
       </div>
-      {todos.length === 0 ? (
+      {filteredTodos.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -95,7 +110,7 @@ function RouteComponent() {
             <TableRow>
               <TableHead>Описание</TableHead>
               <TableHead>Клиент</TableHead>
-              <TableHead>Поздразделение</TableHead>
+              {!selectedDepartmentId && <TableHead>Бизнес-Юнит</TableHead>}
               <TableHead>Создана</TableHead>
               <TableHead>Дата</TableHead>
               <TableHead>Ответственные</TableHead>
@@ -105,7 +120,7 @@ function RouteComponent() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {todos?.map((item) => (
+            {filteredTodos.map((item) => (
               <TableRow key={item.id}>
                 <TableCell
                   className={cn(
@@ -116,11 +131,23 @@ function RouteComponent() {
                   {item.name}
                 </TableCell>
                 <TableCell className={cn('text-muted-foreground text-sm')}>
-                  ---
+                  {item.client ? (
+                    <Link
+                      to="/clients/$id/view"
+                      params={{ id: item.client.id }}
+                      className="hover:underline text-foreground"
+                    >
+                      {item.client.company?.name ?? item.client.id}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
                 </TableCell>
-                <TableCell className={cn('text-muted-foreground text-sm')}>
-                  {item.department?.name ?? '---'}
-                </TableCell>
+                {!selectedDepartmentId && (
+                  <TableCell className={cn('text-muted-foreground text-sm')}>
+                    {item.department?.name ?? '---'}
+                  </TableCell>
+                )}
                 <TableCell className={cn('text-muted-foreground text-sm')}>
                   {item.creator.name}
                 </TableCell>

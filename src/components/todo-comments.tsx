@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { createServerFn } from '@tanstack/react-start'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { db } from '@/db'
 import { comment, commentRead } from '@/db/schema'
 
@@ -18,6 +19,7 @@ import {
   MessageSquareIcon,
   PaperclipIcon,
   SendHorizontalIcon,
+  RefreshCwIcon,
 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
@@ -88,6 +90,13 @@ const markCommentsRead = createServerFn({ method: 'POST' })
 type CommentItem = Awaited<ReturnType<typeof fetchComments>>[number]
 
 // ---------------------------------------------------------------------------
+// Query key factory
+// ---------------------------------------------------------------------------
+
+const commentsKey = (entityType: string, entityId: string) =>
+  ['comments', entityType, entityId] as const
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -124,6 +133,14 @@ function formatCommentTime(date: Date | string) {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatBytes(bytes: string) {
+  const n = parseInt(bytes, 10)
+  if (isNaN(n)) return bytes
+  if (n < 1024) return `${n} Б`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} КБ`
+  return `${(n / 1024 / 1024).toFixed(1)} МБ`
 }
 
 // ---------------------------------------------------------------------------
@@ -241,14 +258,6 @@ function CommentBubble({
   )
 }
 
-function formatBytes(bytes: string) {
-  const n = parseInt(bytes, 10)
-  if (isNaN(n)) return bytes
-  if (n < 1024) return `${n} Б`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} КБ`
-  return `${(n / 1024 / 1024).toFixed(1)} МБ`
-}
-
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
@@ -260,100 +269,99 @@ interface TodoCommentsProps {
 
 export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
   const { data: session } = authClient.useSession()
+  const queryClient = useQueryClient()
+  const userId = session?.user?.id
 
-  const [comments, setComments] = React.useState<CommentItem[]>([])
-  const [loading, setLoading] = React.useState(true)
   const [content, setContent] = React.useState('')
-  const [submitting, setSubmitting] = React.useState(false)
-
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   // ------------------------------------------------------------------
-  // Load comments + mark unread as read in one shot
+  // Fetch comments with background polling
   // ------------------------------------------------------------------
-  const loadComments = React.useCallback(
-    async (userId?: string) => {
-      setLoading(true)
-      try {
-        const data = await fetchComments({ data: { entityType, entityId } })
-        setComments(data)
-
-        if (userId && data.length > 0) {
-          const unreadIds = data
-            .filter((c) => !c.reads.some((r) => r.userId === userId))
-            .map((c) => c.id)
-
-          if (unreadIds.length > 0) {
-            // Fire-and-forget; update local state immediately for snappy UI
-            markCommentsRead({ data: { commentIds: unreadIds, userId } }).catch(
-              console.error,
-            )
-            setComments(
-              data.map((c) =>
-                unreadIds.includes(c.id)
-                  ? {
-                      ...c,
-                      reads: [
-                        ...c.reads,
-                        {
-                          commentId: c.id,
-                          userId,
-                          readAt: new Date(),
-                        },
-                      ],
-                    }
-                  : c,
-              ),
-            )
-          }
-        }
-      } catch {
-        toast.error('Не удалось загрузить комментарии')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [entityType, entityId],
-  )
-
-  React.useEffect(() => {
-    loadComments(session?.user?.id)
-  }, [loadComments, session?.user?.id])
+  const {
+    data: comments = [],
+    isLoading,
+    isFetching,
+    isError,
+  } = useQuery({
+    queryKey: commentsKey(entityType, entityId),
+    queryFn: () => fetchComments({ data: { entityType, entityId } }),
+    refetchInterval: 10_000,
+    staleTime: 5_000,
+  })
 
   // ------------------------------------------------------------------
-  // Scroll to bottom when new comments arrive
+  // Mark unread as read whenever new comments arrive
   // ------------------------------------------------------------------
   React.useEffect(() => {
-    if (!loading) {
+    if (!userId || comments.length === 0) return
+
+    const unreadIds = comments
+      .filter((c) => !c.reads.some((r) => r.userId === userId))
+      .map((c) => c.id)
+
+    if (unreadIds.length === 0) return
+
+    // Optimistically update the cache so "Новое" badges disappear immediately
+    queryClient.setQueryData(
+      commentsKey(entityType, entityId),
+      (old: CommentItem[] | undefined) =>
+        (old ?? []).map((c) =>
+          unreadIds.includes(c.id)
+            ? {
+                ...c,
+                reads: [
+                  ...c.reads,
+                  { commentId: c.id, userId, readAt: new Date() },
+                ],
+              }
+            : c,
+        ),
+    )
+
+    markCommentsRead({ data: { commentIds: unreadIds, userId } }).catch(
+      console.error,
+    )
+  }, [comments, userId, entityType, entityId, queryClient])
+
+  // ------------------------------------------------------------------
+  // Scroll to bottom when the list grows
+  // ------------------------------------------------------------------
+  React.useEffect(() => {
+    if (!isLoading) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [comments.length, loading])
+  }, [comments.length, isLoading])
 
   // ------------------------------------------------------------------
-  // Submit
+  // Add comment mutation — invalidates the query on success
   // ------------------------------------------------------------------
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const mutation = useMutation({
+    mutationFn: (vars: {
+      entityType: string
+      entityId: string
+      content: string
+      authorId: string
+    }) => addComment({ data: vars }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: commentsKey(entityType, entityId),
+      })
+    },
+    onError: () => {
+      toast.error('Не удалось отправить комментарий')
+    },
+  })
+
+  const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault()
     const trimmed = content.trim()
-    if (!trimmed || !session?.user?.id || submitting) return
+    if (!trimmed || !userId || mutation.isPending) return
 
-    setSubmitting(true)
-    try {
-      await addComment({
-        data: {
-          entityType,
-          entityId,
-          content: trimmed,
-          authorId: session.user.id,
-        },
-      })
-      setContent('')
-      await loadComments(session.user.id)
-    } catch {
-      toast.error('Не удалось отправить комментарий')
-    } finally {
-      setSubmitting(false)
-    }
+    mutation.mutate(
+      { entityType, entityId, content: trimmed, authorId: userId },
+      { onSuccess: () => setContent('') },
+    )
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -364,9 +372,7 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
   }
 
   const unreadCount = comments.filter(
-    (c) =>
-      c.author.id !== session?.user?.id &&
-      !c.reads.some((r) => r.userId === session?.user?.id),
+    (c) => c.author.id !== userId && !c.reads.some((r) => r.userId === userId),
   ).length
 
   return (
@@ -379,7 +385,7 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
         <div className="flex items-center gap-2">
           <MessageSquareIcon className="size-4 text-muted-foreground" />
           <CardTitle className="text-base font-semibold">Комментарии</CardTitle>
-          {!loading && comments.length > 0 && (
+          {!isLoading && comments.length > 0 && (
             <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-xs">
               {comments.length}
             </Badge>
@@ -389,18 +395,29 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
               {unreadCount} новых
             </Badge>
           )}
+          {/* Background refetch spinner */}
+          {isFetching && !isLoading && (
+            <RefreshCwIcon className="size-3.5 text-muted-foreground animate-spin ml-auto" />
+          )}
         </div>
       </CardHeader>
 
       {/* Comments list */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-5 p-4">
-          {loading ? (
+          {isLoading ? (
             <>
               <CommentSkeleton />
               <CommentSkeleton />
               <CommentSkeleton />
             </>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+              <MessageSquareIcon className="size-8 text-destructive/40" />
+              <p className="text-sm text-muted-foreground">
+                Не удалось загрузить комментарии.
+              </p>
+            </div>
           ) : comments.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
               <MessageSquareIcon className="size-8 text-muted-foreground/40" />
@@ -410,11 +427,7 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
             </div>
           ) : (
             comments.map((c) => (
-              <CommentBubble
-                key={c.id}
-                item={c}
-                currentUserId={session?.user?.id}
-              />
+              <CommentBubble key={c.id} item={c} currentUserId={userId} />
             ))
           )}
           <div ref={bottomRef} />
@@ -429,7 +442,7 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
           onKeyDown={handleKeyDown}
           placeholder="Написать комментарий…"
           className="resize-none min-h-18 text-sm"
-          disabled={submitting || !session?.user}
+          disabled={mutation.isPending || !session?.user}
         />
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
@@ -438,11 +451,11 @@ export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
           <Button
             size="sm"
             onClick={() => handleSubmit()}
-            disabled={!content.trim() || submitting || !session?.user}
+            disabled={!content.trim() || mutation.isPending || !session?.user}
             className="gap-1.5"
           >
             <SendHorizontalIcon className="size-3.5" />
-            Отправить
+            {mutation.isPending ? 'Отправка…' : 'Отправить'}
           </Button>
         </div>
       </div>

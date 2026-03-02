@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -17,6 +18,15 @@ import { authClient } from 'utils/auth-client'
 import { authMiddleware } from 'utils/middleware'
 import { ThemeProvider } from '@/components/theme-provider'
 import { ModeToggle } from '@/components/mode-toggle'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5_000,
+      refetchOnWindowFocus: true,
+    },
+  },
+})
 
 export const Route = createRootRoute({
   head: () => ({
@@ -54,42 +64,44 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider>
-          {isPending ? null : session?.user ? (
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 justify-between">
-                  <div className="flex gap-4 items-center">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator
-                      orientation="vertical"
-                      className="mr-2 data-[orientation=vertical]:h-4"
-                    />
-                    <AppBreadcrumb />
-                  </div>
-                  <ModeToggle />
-                </header>
-                <div className="p-8">{children}</div>
-              </SidebarInset>
-            </SidebarProvider>
-          ) : (
-            <>{children}</>
-          )}
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            {isPending ? null : session?.user ? (
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 justify-between">
+                    <div className="flex gap-4 items-center">
+                      <SidebarTrigger className="-ml-1" />
+                      <Separator
+                        orientation="vertical"
+                        className="mr-2 data-[orientation=vertical]:h-4"
+                      />
+                      <AppBreadcrumb />
+                    </div>
+                    <ModeToggle />
+                  </header>
+                  <div className="p-8">{children}</div>
+                </SidebarInset>
+              </SidebarProvider>
+            ) : (
+              <>{children}</>
+            )}
 
-          <Toaster />
-          <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
-        </ThemeProvider>
+            <Toaster />
+            <TanStackDevtools
+              config={{
+                position: 'bottom-right',
+              }}
+              plugins={[
+                {
+                  name: 'Tanstack Router',
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>

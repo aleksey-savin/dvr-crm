@@ -14,6 +14,9 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as TodosRouteImport } from './routes/todos'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PreferencesRouteImport } from './routes/preferences'
+import { Route as MeetingsRouteImport } from './routes/meetings'
+import { Route as MeetingRoomBookingRouteImport } from './routes/meeting-room-booking'
+import { Route as MailingListsRouteImport } from './routes/mailing-lists'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DepartmentsRouteImport } from './routes/departments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -41,6 +44,7 @@ import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.de
 import { Route as ClientsIdViewRouteImport } from './routes/clients_.$id.view'
 import { Route as ClientsIdUpdateRouteImport } from './routes/clients.$id.update'
 import { Route as ClientsIdDeleteRouteImport } from './routes/clients.$id.delete'
+import { Route as ApiMeetingsSplatRouteImport } from './routes/api/meetings/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const WishlistRoute = WishlistRouteImport.update({
@@ -66,6 +70,21 @@ const SignupRoute = SignupRouteImport.update({
 const PreferencesRoute = PreferencesRouteImport.update({
   id: '/preferences',
   path: '/preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeetingsRoute = MeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeetingRoomBookingRoute = MeetingRoomBookingRouteImport.update({
+  id: '/meeting-room-booking',
+  path: '/meeting-room-booking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MailingListsRoute = MailingListsRouteImport.update({
+  id: '/mailing-lists',
+  path: '/mailing-lists',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -203,6 +222,11 @@ const ClientsIdDeleteRoute = ClientsIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => ClientsRoute,
 } as any)
+const ApiMeetingsSplatRoute = ApiMeetingsSplatRouteImport.update({
+  id: '/api/meetings/$',
+  path: '/api/meetings/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -216,6 +240,9 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
+  '/mailing-lists': typeof MailingListsRoute
+  '/meeting-room-booking': typeof MeetingRoomBookingRoute
+  '/meetings': typeof MeetingsRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -227,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -251,6 +279,9 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
+  '/mailing-lists': typeof MailingListsRoute
+  '/meeting-room-booking': typeof MeetingRoomBookingRoute
+  '/meetings': typeof MeetingsRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -262,6 +293,7 @@ export interface FileRoutesByTo {
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -287,6 +319,9 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
+  '/mailing-lists': typeof MailingListsRoute
+  '/meeting-room-booking': typeof MeetingRoomBookingRoute
+  '/meetings': typeof MeetingsRoute
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -298,6 +333,7 @@ export interface FileRoutesById {
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients_/$id/view': typeof ClientsIdViewRoute
@@ -324,6 +360,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/departments'
     | '/login'
+    | '/mailing-lists'
+    | '/meeting-room-booking'
+    | '/meetings'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -335,6 +374,7 @@ export interface FileRouteTypes {
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/api/meetings/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -359,6 +399,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/departments'
     | '/login'
+    | '/mailing-lists'
+    | '/meeting-room-booking'
+    | '/meetings'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -370,6 +413,7 @@ export interface FileRouteTypes {
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/api/meetings/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -394,6 +438,9 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/departments'
     | '/login'
+    | '/mailing-lists'
+    | '/meeting-room-booking'
+    | '/meetings'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -405,6 +452,7 @@ export interface FileRouteTypes {
     | '/todos/new'
     | '/users/new'
     | '/api/auth/$'
+    | '/api/meetings/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients_/$id/view'
@@ -430,12 +478,16 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DepartmentsRoute: typeof DepartmentsRouteWithChildren
   LoginRoute: typeof LoginRoute
+  MailingListsRoute: typeof MailingListsRoute
+  MeetingRoomBookingRoute: typeof MeetingRoomBookingRoute
+  MeetingsRoute: typeof MeetingsRoute
   PreferencesRoute: typeof PreferencesRoute
   SignupRoute: typeof SignupRoute
   TodosRoute: typeof TodosRouteWithChildren
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMeetingsSplatRoute: typeof ApiMeetingsSplatRoute
   ClientsIdViewRoute: typeof ClientsIdViewRoute
   CompaniesIdViewRoute: typeof CompaniesIdViewRoute
   DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
@@ -477,6 +529,27 @@ declare module '@tanstack/react-router' {
       path: '/preferences'
       fullPath: '/preferences'
       preLoaderRoute: typeof PreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meetings': {
+      id: '/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof MeetingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meeting-room-booking': {
+      id: '/meeting-room-booking'
+      path: '/meeting-room-booking'
+      fullPath: '/meeting-room-booking'
+      preLoaderRoute: typeof MeetingRoomBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mailing-lists': {
+      id: '/mailing-lists'
+      path: '/mailing-lists'
+      fullPath: '/mailing-lists'
+      preLoaderRoute: typeof MailingListsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -668,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsIdDeleteRouteImport
       parentRoute: typeof ClientsRoute
     }
+    '/api/meetings/$': {
+      id: '/api/meetings/$'
+      path: '/api/meetings/$'
+      fullPath: '/api/meetings/$'
+      preLoaderRoute: typeof ApiMeetingsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -764,12 +844,16 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DepartmentsRoute: DepartmentsRouteWithChildren,
   LoginRoute: LoginRoute,
+  MailingListsRoute: MailingListsRoute,
+  MeetingRoomBookingRoute: MeetingRoomBookingRoute,
+  MeetingsRoute: MeetingsRoute,
   PreferencesRoute: PreferencesRoute,
   SignupRoute: SignupRoute,
   TodosRoute: TodosRouteWithChildren,
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMeetingsSplatRoute: ApiMeetingsSplatRoute,
   ClientsIdViewRoute: ClientsIdViewRoute,
   CompaniesIdViewRoute: CompaniesIdViewRoute,
   DepartmentsIdViewRoute: DepartmentsIdViewRoute,
