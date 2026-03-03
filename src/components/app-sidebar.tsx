@@ -54,13 +54,18 @@ const navMain = [
     url: '#',
     items: [
       {
-        title: 'Клиенты',
-        url: '/clients',
+        title: 'Компании',
+        url: '/companies',
       },
       {
         title: 'Вишлист',
         url: '/wishlist',
       },
+      {
+        title: 'Клиенты',
+        url: '/clients',
+      },
+
       {
         title: 'Задачи',
         url: '/todos',
@@ -103,10 +108,6 @@ const navMain = [
     title: 'Администрирование',
     url: '#',
     items: [
-      {
-        title: 'Компании',
-        url: '/companies',
-      },
       {
         title: 'Пользователи',
         url: '/users',

@@ -107,6 +107,10 @@ export const todo = pgTable('todos', {
   clientId: text('client_id').references(() => client.id, {
     onDelete: 'cascade',
   }),
+  wishlistClientId: text('wishlist_client_id').references(
+    () => wishlistClient.id,
+    { onDelete: 'cascade' },
+  ),
   createdBy: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
@@ -161,6 +165,7 @@ export const company = pgTable('company', {
     .$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
   description: text('description'),
+  regionalMarketPosition: text('regional_market_position'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
@@ -171,17 +176,89 @@ export const client = pgTable(
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
+
     companyId: text('company_id')
       .notNull()
       .references(() => company.id, { onDelete: 'cascade' }),
     departmentId: text('department_id')
       .notNull()
       .references(() => department.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
     target: boolean().notNull().default(false),
     lost: boolean().notNull().default(false),
     lostReasons: text('lost_reasons').notNull().default(''),
+    why: text('why'),
   },
-  (table) => [index('client_companyId_idx').on(table.companyId)],
+  (table) => [
+    index('client_companyId_idx').on(table.companyId),
+    index('client_departmentId_position_idx').on(
+      table.departmentId,
+      table.position,
+    ),
+  ],
+)
+
+export const wishlistClient = pgTable(
+  'wishlist_client',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+    why: text('why'),
+    industry: text('industry'),
+  },
+  (table) => [index('wishlist_client_companyId_idx').on(table.companyId)],
+)
+
+// ---------------------------------------------------------------------------
+// Wishlist Client Departments (many-to-many)
+// ---------------------------------------------------------------------------
+
+export const wishlistClientDepartment = pgTable(
+  'wishlist_client_department',
+  {
+    wishlistClientId: text('wishlist_client_id')
+      .notNull()
+      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.wishlistClientId, table.departmentId] }),
+    index('wishlist_client_dept_wishlistClientId_idx').on(
+      table.wishlistClientId,
+    ),
+    index('wishlist_client_dept_departmentId_idx').on(table.departmentId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Wishlist Client Responsible Users (many-to-many)
+// ---------------------------------------------------------------------------
+
+export const wishlistClientResponsibleUsers = pgTable(
+  'wishlist_client_responsible_users',
+  {
+    wishlistClientId: text('wishlist_client_id')
+      .notNull()
+      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.wishlistClientId, table.userId] }),
+    index('wishlist_client_responsible_wishlistClientId_idx').on(
+      table.wishlistClientId,
+    ),
+    index('wishlist_client_responsible_userId_idx').on(table.userId),
+  ],
 )
 
 // ---------------------------------------------------------------------------
@@ -257,6 +334,84 @@ export const clientGrossProfit = pgTable(
       table.year,
     ),
   ],
+)
+
+// ---------------------------------------------------------------------------
+// Company Revenue (per company)
+// ---------------------------------------------------------------------------
+
+export const companyRevenue = pgTable(
+  'company_revenue',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('company_revenue_companyId_idx').on(table.companyId),
+    index('company_revenue_companyId_year_idx').on(table.companyId, table.year),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Client Hooks (per wishlist client)
+// ---------------------------------------------------------------------------
+
+export const clientHook = pgTable(
+  'client_hook',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    wishlistClientId: text('wishlist_client_id')
+      .notNull()
+      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('client_hook_wishlistClientId_idx').on(table.wishlistClientId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Company Contacts
+// ---------------------------------------------------------------------------
+
+export const companyContact = pgTable(
+  'company_contact',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    position: text('position'),
+    description: text('description'),
+    contacts: text('contacts'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index('company_contacts_companyId_idx').on(table.companyId)],
 )
 
 // ---------------------------------------------------------------------------
@@ -465,6 +620,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   accounts: many(account),
   managedClients: many(clientManager),
   responsibleTodos: many(todoResponsibleUsers),
+  responsibleWishlistClients: many(wishlistClientResponsibleUsers),
   comments: many(comment),
   commentReads: many(commentRead),
   apiKeys: many(apiKey),
@@ -490,6 +646,48 @@ export const clientRelations = relations(client, ({ one, many }) => ({
   upsellingOpportunities: many(clientUpsellingOpportunity),
   meetings: many(meeting),
 }))
+
+export const wishlistClientRelations = relations(
+  wishlistClient,
+  ({ one, many }) => ({
+    company: one(company, {
+      fields: [wishlistClient.companyId],
+      references: [company.id],
+    }),
+    departments: many(wishlistClientDepartment),
+    hooks: many(clientHook),
+    todos: many(todo),
+    responsibleUsers: many(wishlistClientResponsibleUsers),
+  }),
+)
+
+export const wishlistClientResponsibleUsersRelations = relations(
+  wishlistClientResponsibleUsers,
+  ({ one }) => ({
+    wishlistClient: one(wishlistClient, {
+      fields: [wishlistClientResponsibleUsers.wishlistClientId],
+      references: [wishlistClient.id],
+    }),
+    user: one(user, {
+      fields: [wishlistClientResponsibleUsers.userId],
+      references: [user.id],
+    }),
+  }),
+)
+
+export const wishlistClientDepartmentRelations = relations(
+  wishlistClientDepartment,
+  ({ one }) => ({
+    wishlistClient: one(wishlistClient, {
+      fields: [wishlistClientDepartment.wishlistClientId],
+      references: [wishlistClient.id],
+    }),
+    department: one(department, {
+      fields: [wishlistClientDepartment.departmentId],
+      references: [department.id],
+    }),
+  }),
+)
 
 export const clientManagerRelations = relations(clientManager, ({ one }) => ({
   client: one(client, {
@@ -541,11 +739,36 @@ export const clientUpsellingOpportunityRelations = relations(
 
 export const companyRelations = relations(company, ({ many }) => ({
   clients: many(client),
+  wishlistClients: many(wishlistClient),
+  revenues: many(companyRevenue),
+  contacts: many(companyContact),
+}))
+
+export const companyRevenueRelations = relations(companyRevenue, ({ one }) => ({
+  company: one(company, {
+    fields: [companyRevenue.companyId],
+    references: [company.id],
+  }),
+}))
+
+export const clientHookRelations = relations(clientHook, ({ one }) => ({
+  wishlistClient: one(wishlistClient, {
+    fields: [clientHook.wishlistClientId],
+    references: [wishlistClient.id],
+  }),
+}))
+
+export const companyContactRelations = relations(companyContact, ({ one }) => ({
+  company: one(company, {
+    fields: [companyContact.companyId],
+    references: [company.id],
+  }),
 }))
 
 export const departmentRelations = relations(department, ({ many }) => ({
   todos: many(todo),
   clients: many(client),
+  wishlistClients: many(wishlistClientDepartment),
   users: many(user),
 }))
 
@@ -565,6 +788,10 @@ export const todoRelations = relations(todo, ({ one, many }) => ({
   client: one(client, {
     fields: [todo.clientId],
     references: [client.id],
+  }),
+  wishlistClient: one(wishlistClient, {
+    fields: [todo.wishlistClientId],
+    references: [wishlistClient.id],
   }),
   responsibleUsers: many(todoResponsibleUsers),
 }))

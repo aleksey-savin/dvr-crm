@@ -1,9 +1,9 @@
-import ClientForm from '@/components/client-form'
+import WishlistClientForm from '@/components/wishlist-client-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import * as z from 'zod'
 
-export const Route = createFileRoute('/clients/new')({
+export const Route = createFileRoute('/wishlist/new')({
   component: RouteComponent,
   validateSearch: z.object({
     companyId: z.string().optional(),
@@ -15,12 +15,12 @@ function RouteComponent() {
   const { companyId } = Route.useSearch()
 
   const handleClose = () => {
-    router.navigate({ to: '/clients' })
+    router.history.back()
   }
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/clients' })
+    router.history.back()
   }
 
   return (
@@ -29,10 +29,13 @@ function RouteComponent() {
       onOpenChange={(open) => {
         if (!open) handleClose()
       }}
-      title="Новый клиент"
-      description="Добавление нового клиента"
+      title="Добавить в вишлист"
+      description="Добавление компании в вишлист"
     >
-      <ClientForm initialCompanyId={companyId} onSuccess={handleSuccess} />
+      <WishlistClientForm
+        initialCompanyId={companyId}
+        onSuccess={handleSuccess}
+      />
     </ResponsiveDialog>
   )
 }

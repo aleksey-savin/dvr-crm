@@ -23,11 +23,15 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WishlistNewRouteImport } from './routes/wishlist.new'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
 import { Route as DepartmentsNewRouteImport } from './routes/departments.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
+import { Route as WishlistIdViewRouteImport } from './routes/wishlist_.$id.view'
+import { Route as WishlistIdUpdateRouteImport } from './routes/wishlist.$id.update'
+import { Route as WishlistIdDeleteRouteImport } from './routes/wishlist.$id.delete'
 import { Route as UsersIdUpdateRouteImport } from './routes/users.$id.update'
 import { Route as UsersIdUnbanRouteImport } from './routes/users.$id.unban'
 import { Route as UsersIdDeleteRouteImport } from './routes/users.$id.delete'
@@ -117,6 +121,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WishlistNewRoute = WishlistNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => WishlistRoute,
+} as any)
 const UsersNewRoute = UsersNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -141,6 +150,21 @@ const ClientsNewRoute = ClientsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => ClientsRoute,
+} as any)
+const WishlistIdViewRoute = WishlistIdViewRouteImport.update({
+  id: '/wishlist_/$id/view',
+  path: '/wishlist/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WishlistIdUpdateRoute = WishlistIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => WishlistRoute,
+} as any)
+const WishlistIdDeleteRoute = WishlistIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => WishlistRoute,
 } as any)
 const UsersIdUpdateRoute = UsersIdUpdateRouteImport.update({
   id: '/$id/update',
@@ -247,12 +271,13 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
-  '/wishlist': typeof WishlistRoute
+  '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
+  '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
@@ -271,6 +296,9 @@ export interface FileRoutesByFullPath {
   '/users/$id/delete': typeof UsersIdDeleteRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
+  '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
+  '/wishlist/$id/update': typeof WishlistIdUpdateRoute
+  '/wishlist/$id/view': typeof WishlistIdViewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -286,12 +314,13 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
-  '/wishlist': typeof WishlistRoute
+  '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
+  '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
@@ -310,6 +339,9 @@ export interface FileRoutesByTo {
   '/users/$id/delete': typeof UsersIdDeleteRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
+  '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
+  '/wishlist/$id/update': typeof WishlistIdUpdateRoute
+  '/wishlist/$id/view': typeof WishlistIdViewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -326,12 +358,13 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
-  '/wishlist': typeof WishlistRoute
+  '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/departments/new': typeof DepartmentsNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
+  '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
@@ -350,6 +383,9 @@ export interface FileRoutesById {
   '/users/$id/delete': typeof UsersIdDeleteRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
+  '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
+  '/wishlist/$id/update': typeof WishlistIdUpdateRoute
+  '/wishlist_/$id/view': typeof WishlistIdViewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -373,6 +409,7 @@ export interface FileRouteTypes {
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
+    | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/clients/$id/delete'
@@ -391,6 +428,9 @@ export interface FileRouteTypes {
     | '/users/$id/delete'
     | '/users/$id/unban'
     | '/users/$id/update'
+    | '/wishlist/$id/delete'
+    | '/wishlist/$id/update'
+    | '/wishlist/$id/view'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -412,6 +452,7 @@ export interface FileRouteTypes {
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
+    | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/clients/$id/delete'
@@ -430,6 +471,9 @@ export interface FileRouteTypes {
     | '/users/$id/delete'
     | '/users/$id/unban'
     | '/users/$id/update'
+    | '/wishlist/$id/delete'
+    | '/wishlist/$id/update'
+    | '/wishlist/$id/view'
   id:
     | '__root__'
     | '/'
@@ -451,6 +495,7 @@ export interface FileRouteTypes {
     | '/departments/new'
     | '/todos/new'
     | '/users/new'
+    | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/clients/$id/delete'
@@ -469,6 +514,9 @@ export interface FileRouteTypes {
     | '/users/$id/delete'
     | '/users/$id/unban'
     | '/users/$id/update'
+    | '/wishlist/$id/delete'
+    | '/wishlist/$id/update'
+    | '/wishlist_/$id/view'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -485,13 +533,14 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TodosRoute: typeof TodosRouteWithChildren
   UsersRoute: typeof UsersRouteWithChildren
-  WishlistRoute: typeof WishlistRoute
+  WishlistRoute: typeof WishlistRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMeetingsSplatRoute: typeof ApiMeetingsSplatRoute
   ClientsIdViewRoute: typeof ClientsIdViewRoute
   CompaniesIdViewRoute: typeof CompaniesIdViewRoute
   DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
   TodosIdViewRoute: typeof TodosIdViewRoute
+  WishlistIdViewRoute: typeof WishlistIdViewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -594,6 +643,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/wishlist/new': {
+      id: '/wishlist/new'
+      path: '/new'
+      fullPath: '/wishlist/new'
+      preLoaderRoute: typeof WishlistNewRouteImport
+      parentRoute: typeof WishlistRoute
+    }
     '/users/new': {
       id: '/users/new'
       path: '/new'
@@ -628,6 +684,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/new'
       preLoaderRoute: typeof ClientsNewRouteImport
       parentRoute: typeof ClientsRoute
+    }
+    '/wishlist_/$id/view': {
+      id: '/wishlist_/$id/view'
+      path: '/wishlist/$id/view'
+      fullPath: '/wishlist/$id/view'
+      preLoaderRoute: typeof WishlistIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wishlist/$id/update': {
+      id: '/wishlist/$id/update'
+      path: '/$id/update'
+      fullPath: '/wishlist/$id/update'
+      preLoaderRoute: typeof WishlistIdUpdateRouteImport
+      parentRoute: typeof WishlistRoute
+    }
+    '/wishlist/$id/delete': {
+      id: '/wishlist/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/wishlist/$id/delete'
+      preLoaderRoute: typeof WishlistIdDeleteRouteImport
+      parentRoute: typeof WishlistRoute
     }
     '/users/$id/update': {
       id: '/users/$id/update'
@@ -837,6 +914,22 @@ const UsersRouteChildren: UsersRouteChildren = {
 
 const UsersRouteWithChildren = UsersRoute._addFileChildren(UsersRouteChildren)
 
+interface WishlistRouteChildren {
+  WishlistNewRoute: typeof WishlistNewRoute
+  WishlistIdDeleteRoute: typeof WishlistIdDeleteRoute
+  WishlistIdUpdateRoute: typeof WishlistIdUpdateRoute
+}
+
+const WishlistRouteChildren: WishlistRouteChildren = {
+  WishlistNewRoute: WishlistNewRoute,
+  WishlistIdDeleteRoute: WishlistIdDeleteRoute,
+  WishlistIdUpdateRoute: WishlistIdUpdateRoute,
+}
+
+const WishlistRouteWithChildren = WishlistRoute._addFileChildren(
+  WishlistRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClientsRoute: ClientsRouteWithChildren,
@@ -851,13 +944,14 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TodosRoute: TodosRouteWithChildren,
   UsersRoute: UsersRouteWithChildren,
-  WishlistRoute: WishlistRoute,
+  WishlistRoute: WishlistRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMeetingsSplatRoute: ApiMeetingsSplatRoute,
   ClientsIdViewRoute: ClientsIdViewRoute,
   CompaniesIdViewRoute: CompaniesIdViewRoute,
   DepartmentsIdViewRoute: DepartmentsIdViewRoute,
   TodosIdViewRoute: TodosIdViewRoute,
+  WishlistIdViewRoute: WishlistIdViewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -9,9 +9,16 @@ import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
 import { createServerFn } from '@tanstack/react-start'
-import { user, department, company, client, clientManager } from '@/db/schema'
+import {
+  user,
+  department,
+  company,
+  client,
+  clientManager,
+  wishlistClient,
+} from '@/db/schema'
 import { db } from '@/db'
-import { eq, ne } from 'drizzle-orm'
+import { and, eq, ne, notInArray } from 'drizzle-orm'
 
 import { Input } from '@/components/ui/input'
 import * as React from 'react'
@@ -76,22 +83,58 @@ type CompanyOption = {
   name: string
 }
 
-const getUsers = createServerFn({ method: 'GET' }).handler(async () => {
-  const users = await db
-    .select({ id: user.id, name: user.name })
-    .from(user)
-    .where(ne(user.role, 'user'))
-    .orderBy(user.name)
-  return users
-})
+const getFilteredUsers = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ departmentId: z.string() }))
+  .handler(async ({ data }) => {
+    const users = await db
+      .select({ id: user.id, name: user.name })
+      .from(user)
+      .where(
+        and(ne(user.role, 'user'), eq(user.departmentId, data.departmentId)),
+      )
+      .orderBy(user.name)
+    return users
+  })
 
-const getCompanies = createServerFn({ method: 'GET' }).handler(async () => {
-  const companies = await db
-    .select({ id: company.id, name: company.name })
-    .from(company)
-    .orderBy(company.name)
-  return companies
-})
+const getFilteredCompanies = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      departmentId: z.string(),
+      excludeClientId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    // Companies already assigned as clients to this department, excluding the
+    // client currently being edited so its company remains selectable
+    const clientCompanyIds = db
+      .select({ id: client.companyId })
+      .from(client)
+      .where(
+        and(
+          eq(client.departmentId, data.departmentId),
+          data.excludeClientId
+            ? ne(client.id, data.excludeClientId)
+            : undefined,
+        ),
+      )
+
+    // Companies already in wishlist (globally)
+    const wishlistCompanyIds = db
+      .select({ id: wishlistClient.companyId })
+      .from(wishlistClient)
+
+    const companies = await db
+      .select({ id: company.id, name: company.name })
+      .from(company)
+      .where(
+        and(
+          notInArray(company.id, clientCompanyIds),
+          notInArray(company.id, wishlistCompanyIds),
+        ),
+      )
+      .orderBy(company.name)
+    return companies
+  })
 
 const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
   const departments = await db
@@ -100,6 +143,46 @@ const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
     .orderBy(department.name)
   return departments
 })
+
+const getFilteredDepartments = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      companyId: z.string(),
+      excludeClientId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    // Departments where this company is already a client, excluding the
+    // client currently being edited so its department remains selectable
+    const existingDeptIds = db
+      .select({ id: client.departmentId })
+      .from(client)
+      .where(
+        and(
+          eq(client.companyId, data.companyId),
+          data.excludeClientId
+            ? ne(client.id, data.excludeClientId)
+            : undefined,
+        ),
+      )
+
+    return await db
+      .select({ id: department.id, name: department.name })
+      .from(department)
+      .where(notInArray(department.id, existingDeptIds))
+      .orderBy(department.name)
+  })
+
+const getCompanyById = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const result = await db
+      .select({ id: company.id, name: company.name })
+      .from(company)
+      .where(eq(company.id, data.id))
+      .limit(1)
+    return result[0] ?? null
+  })
 
 const addClient = createServerFn({ method: 'POST' })
   .inputValidator(addSchema)
@@ -167,22 +250,63 @@ const getClientManagers = createServerFn({ method: 'GET' })
 
 const ClientForm = ({
   item,
+  initialCompanyId,
   onSuccess,
 }: {
   item?: any
+  initialCompanyId?: string
   onSuccess?: () => void
 }) => {
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [companies, setCompanies] = React.useState<CompanyOption[]>([])
+  const [companiesLoading, setCompaniesLoading] = React.useState(false)
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [selectedUsers, setSelectedUsers] = React.useState<UserOption[]>([])
+  const [selectedDepartmentId, setSelectedDepartmentId] = React.useState(
+    (item?.departmentId ?? '') as string,
+  )
   const portalRef = React.useRef<HTMLDivElement>(null)
 
+  // When company is pre-selected: load filtered departments and lock the company
+  // field. Otherwise load all departments normally.
   React.useEffect(() => {
-    getUsers().then(setUsers).catch(console.error)
-    getCompanies().then(setCompanies).catch(console.error)
-    getDepartments().then(setDepartments).catch(console.error)
+    if (initialCompanyId) {
+      getFilteredDepartments({
+        data: { companyId: initialCompanyId, excludeClientId: item?.id },
+      })
+        .then(setDepartments)
+        .catch(console.error)
+      getCompanyById({ data: { id: initialCompanyId } })
+        .then((c) => {
+          if (c) setCompanies([c])
+        })
+        .catch(console.error)
+    } else {
+      getDepartments().then(setDepartments).catch(console.error)
+    }
   }, [])
+
+  // Refetch filtered companies and managers whenever department changes
+  React.useEffect(() => {
+    if (!selectedDepartmentId) {
+      if (!initialCompanyId) setCompanies([])
+      setUsers([])
+      return
+    }
+    // When company is pre-fixed, skip company refetch — just load managers
+    if (!initialCompanyId) {
+      setCompaniesLoading(true)
+      getFilteredCompanies({
+        data: { departmentId: selectedDepartmentId, excludeClientId: item?.id },
+      })
+        .then(setCompanies)
+        .catch(console.error)
+        .finally(() => setCompaniesLoading(false))
+    }
+    getFilteredUsers({ data: { departmentId: selectedDepartmentId } })
+      .then(setUsers)
+      .catch(console.error)
+  }, [selectedDepartmentId])
 
   React.useEffect(() => {
     if (item?.id) {
@@ -194,7 +318,7 @@ const ClientForm = ({
 
   const form = useForm({
     defaultValues: {
-      companyId: (item?.companyId ?? '') as string,
+      companyId: (item?.companyId ?? initialCompanyId ?? '') as string,
       departmentId: (item?.departmentId ?? '') as string,
       target: (item?.target ?? false) as boolean,
       lost: (item?.lost ?? false) as boolean,
@@ -272,40 +396,6 @@ const ClientForm = ({
       >
         <div className="shrink-0 flex flex-col gap-6">
           <form.Field
-            name="companyId"
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Компания</FieldLabel>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(val) => field.handleChange(val)}
-                  >
-                    <SelectTrigger
-                      id={field.name}
-                      aria-invalid={isInvalid}
-                      className="w-full"
-                      onBlur={field.handleBlur}
-                    >
-                      <SelectValue placeholder="Выберите компанию" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              )
-            }}
-          />
-
-          <form.Field
             name="departmentId"
             children={(field) => {
               const isInvalid =
@@ -315,7 +405,13 @@ const ClientForm = ({
                   <FieldLabel htmlFor={field.name}>Бизнес-юнит</FieldLabel>
                   <Select
                     value={field.state.value}
-                    onValueChange={(val) => field.handleChange(val)}
+                    onValueChange={(val) => {
+                      field.handleChange(val)
+                      setSelectedDepartmentId(val)
+                      // Reset company and managers when department changes
+                      form.setFieldValue('companyId', '')
+                      setSelectedUsers([])
+                    }}
                   >
                     <SelectTrigger
                       id={field.name}
@@ -329,6 +425,55 @@ const ClientForm = ({
                       {departments.map((d) => (
                         <SelectItem key={d.id} value={d.id}>
                           {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                </Field>
+              )
+            }}
+          />
+
+          <form.Field
+            name="companyId"
+            children={(field) => {
+              const isInvalid =
+                field.state.meta.isTouched && !field.state.meta.isValid
+              return (
+                <Field data-invalid={isInvalid}>
+                  <FieldLabel htmlFor={field.name}>Компания</FieldLabel>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(val) => field.handleChange(val)}
+                    disabled={
+                      !!initialCompanyId ||
+                      !selectedDepartmentId ||
+                      companiesLoading
+                    }
+                  >
+                    <SelectTrigger
+                      id={field.name}
+                      aria-invalid={isInvalid}
+                      className="w-full"
+                      onBlur={field.handleBlur}
+                    >
+                      <SelectValue
+                        placeholder={
+                          initialCompanyId
+                            ? 'Загрузка…'
+                            : !selectedDepartmentId
+                              ? 'Сначала выберите бизнес-юнит'
+                              : companiesLoading
+                                ? 'Загрузка…'
+                                : 'Выберите компанию'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

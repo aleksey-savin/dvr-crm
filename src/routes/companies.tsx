@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -6,21 +5,48 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/tables/data-table'
+import { columns, type Company } from '@/components/tables/companies-cols'
 import { db } from '@/db'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { EditIcon, EyeIcon, ListTodoIcon, Plus, Trash2Icon } from 'lucide-react'
+import { ListTodoIcon, Plus } from 'lucide-react'
 
 const fetchCompanies = createServerFn().handler(async () => {
-  return await db.query.company.findMany()
+  const currentYear = new Date().getFullYear()
+
+  const rows = await db.query.company.findMany({
+    with: {
+      clients: {
+        columns: { target: true, lost: true },
+        with: {
+          department: { columns: { name: true } },
+        },
+      },
+      wishlistClients: { columns: { id: true } },
+      revenues: { columns: { year: true, value: true } },
+    },
+  })
+
+  return rows.map((row): Company => {
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      regionalMarketPosition: row.regionalMarketPosition,
+      clients: row.clients.map((c) => ({
+        departmentName: c.department.name,
+        target: c.target,
+        lost: c.lost,
+      })),
+      isWishlist: row.wishlistClients.length > 0,
+      revenueLastYear:
+        row.revenues.find((r) => r.year === currentYear - 1)?.value ?? null,
+      revenueTwoYearsAgo:
+        row.revenues.find((r) => r.year === currentYear - 2)?.value ?? null,
+    }
+  })
 })
 
 export const Route = createFileRoute('/companies')({
@@ -50,40 +76,7 @@ function RouteComponent() {
           </EmptyContent>
         </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Наименование</TableHead>
-              <TableHead className="text-right w-0"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items?.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.name}</TableCell>
-                <TableCell className="text-right" data-actions>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button asChild variant="ghost" size="icon-sm">
-                      <Link to="/companies/$id/view" params={{ id: item.id }}>
-                        <EyeIcon />
-                      </Link>
-                    </Button>
-                    <Button asChild variant="ghost" size="icon-sm">
-                      <Link to="/companies/$id/update" params={{ id: item.id }}>
-                        <EditIcon />
-                      </Link>
-                    </Button>
-                    <Button asChild variant="destructiveGhost" size="icon-sm">
-                      <Link to="/companies/$id/delete" params={{ id: item.id }}>
-                        <Trash2Icon />
-                      </Link>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable columns={columns} data={items} />
       )}
 
       <Outlet />

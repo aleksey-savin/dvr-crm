@@ -1,7 +1,185 @@
-# shadcn instructions
+# Project Overview
+This is a CRM application (dvr-crm) built with TanStack Start, Better Auth, and Drizzle ORM on PostgreSQL.
+- Package manager: pnpm
+- Runtime: Node.js, Vite + Nitro
+- Language: TypeScript (strict)
+- UI: shadcn/ui + Tailwind CSS v4
+- Validation: Zod v4
+- Client state: Zustand
+- Forms: TanStack Form
+- Tables: TanStack Table
 
-Use the latest version of Shadcn to install new components, like this command to add a button component:
+# Directory Structure
+- `src/routes/`        — File-based routes (TanStack Router/Start)
+- `src/db/schema.ts`   — Single Drizzle schema file (all tables + relations)
+- `src/db/index.ts`    — Drizzle db instance (`export const db`)
+- `src/components/ui/` — shadcn/ui components
+- `src/components/`    — App-level components (forms, tables, etc.)
+- `src/stores/`        — Zustand stores (client-only state)
+- `src/lib/utils.ts`   — Shared utilities (`cn`, etc.)
+- `utils/auth.ts`      — Better Auth server instance
+- `utils/auth-client.ts` — Better Auth client instance (`authClient`)
+- `utils/middleware.ts`  — TanStack Start middleware (auth guard)
+- `utils/permissions.ts` — RBAC access control (`ac`, `admin`, `manager`, `user` roles)
+- `auth-schema.ts`     — Better Auth base schema (do not edit manually)
+- `drizzle.config.ts`  — Drizzle Kit config (schema at `src/db/schema.ts`, dialect: postgresql)
 
-```bash
-pnpm dlx shadcn@latest add button
-```
+# Import Aliases
+- `@/` maps to `src/` — use for all src imports
+- `utils/` — use bare (no alias) for auth/middleware/permissions imports
+- Never use relative `../` imports when an alias is available
+
+# TanStack Start Rules
+- ALWAYS use `createServerFn` for any server-side data access (DB queries, auth checks)
+- ALWAYS load initial data via `loader` in `createFileRoute`, never in `useEffect`
+- ALWAYS read loader data with `Route.useLoaderData()` — never prop-drill it
+- Use `router.invalidate()` after mutations to refresh loader data
+- Use `router.navigate()` or `router.history.back()` for post-action navigation
+- Never fetch data on the client with `useEffect` + `fetch` — use loaders or server functions
+- Middleware lives in `utils/middleware.ts`; auth guard is already applied globally
+- For server functions that need the current session/request, use `getRequest()` from `@tanstack/react-start/server` and pass headers to `auth.api.*`
+- Route file naming convention:
+  - `entity.tsx`             — list view with `<Outlet />`
+  - `entity.new.tsx`         — create dialog (renders over list)
+  - `entity.$id.update.tsx`  — edit dialog
+  - `entity.$id.delete.tsx`  — confirm-delete dialog/alert
+  - `entity_.$id.view.tsx`   — detail view (underscore = non-nested layout)
+- Dialog/modal routes open over the parent list route — always `open` prop is hardcoded to `true`, close via `router.navigate` or `router.history.back()`
+- Avoid `useEffect`, `useMemo`, `useCallback` unless absolutely necessary — prefer derived values and loaders
+
+# Drizzle ORM Rules
+- All schema lives in `src/db/schema.ts` — one file, append new tables there
+- Always define relations with `relations()` alongside the table definition
+- DB instance is `import { db } from '@/db'`
+- Prefer `db.query.<table>.findMany/findFirst` with `with:` for relational queries
+- Use `eq`, `and`, `or`, `inArray`, `isNull`, `isNotNull` etc. from `drizzle-orm`
+- Use `db.insert().values().returning()` for inserts that need the result
+- Use `db.update().set().where().returning()` for updates
+- Use `db.delete().where()` for deletes
+- Use `db.transaction()` for multi-step operations
+- Column conventions:
+  - Primary keys: `text('id').primaryKey()` (string UUIDs or cuid2)
+  - Timestamps: `timestamp('created_at').defaultNow().notNull()`
+  - Updated at: `timestamp('updated_at').$onUpdate(() => new Date()).notNull()`
+  - Foreign keys: always add `{ onDelete: 'cascade' }` unless intentionally restricted
+  - Add `index()` on foreign key columns used in frequent queries
+- After schema changes run: `pnpm db:generate` then `pnpm db:migrate`
+- Never use `pnpm db:push` in production — only during development
+- Schema changes that affect Better Auth tables must be synced with `auth-schema.ts`
+
+# Better Auth Rules
+- Server auth instance: `import { auth } from 'utils/auth'`
+- Client auth instance: `import { authClient } from 'utils/auth-client'`
+- Auth API calls on the server always require `headers: request.headers` — get request with `getRequest()` from `@tanstack/react-start/server`
+- RBAC roles are: `admin`, `manager`, `user` — defined in `utils/permissions.ts`
+- Permission statements: `company` (create/update/delete), `task` (create/update/delete/assign/unassign)
+- To check permissions server-side use `auth.api.userHasPermission()`
+- To call admin actions client-side use `authClient.admin.*`
+- Auth route handler is at `src/routes/api/auth/$.ts` — do not modify it
+- `tanstackStartCookies()` plugin is already configured — cookies are handled automatically
+- Social provider (Google) and email/password are both enabled
+
+# shadcn/ui Rules
+- Install new components with: `pnpm dlx shadcn@latest add <component>`
+- All UI components are in `src/components/ui/`
+- Use `cn()` from `@/lib/utils` for conditional class merging
+- Use `<ResponsiveDialog>` from `@/components/ui/responsive-dialog` for modal routes
+- Use `<AlertDialog>` for destructive confirm actions (ban, delete)
+- Use `sonner` (`toast`) for success/error notifications after mutations
+- Tailwind CSS v4 — no `tailwind.config.js`, configuration is in CSS via `@theme`
+
+# General Code Rules
+- TypeScript strict mode — no `any`, always infer types from Drizzle schema or Zod
+- Derive Zod schemas from Drizzle tables using `drizzle-zod` when validating forms
+- One route component per file — `function RouteComponent()` (not exported, not named after the route)
+- Server functions defined at the top of the route file, before `createFileRoute`
+- `inputValidator` is required on server functions that accept parameters
+- Always handle loading/error states in forms (disable buttons, show toasts)
+- Do not use `next-themes` ThemeProvider patterns — check `__root.tsx` for existing theme setup
+
+
+# Component Extraction Rules
+- Route files (`src/routes/`) are ONLY for routing concerns:
+  - `createFileRoute` config (loader, search params, error boundary)
+  - `createServerFn` definitions that belong to this route
+  - The `RouteComponent` function (thin shell — layout + data passing only)
+- Route files must NOT contain:
+  - Large JSX trees (more than ~60 lines in the component body)
+  - Inline form implementations
+  - Inline table implementations
+  - Repeated UI blocks (cards, stat widgets, list items)
+  - Any logic beyond calling a server function or reading loader data
+- Extract to `src/components/` when:
+  - A JSX block exceeds ~50 lines
+  - A block has its own local state (`useState`, `useReducer`)
+  - A block is or could be reused across 2+ routes
+  - A form, table, or dialog has its own submission/mutation logic
+- Component naming:
+  - Forms:   `<EntityForm />` → `src/components/entity-form.tsx`
+  - Tables:  `<EntityTable />` → `src/components/entity-table.tsx`
+  - Cards:   `<EntityCard />` → `src/components/entity-card.tsx`
+  - Dialogs/Alerts that are NOT route-level: `src/components/entity-*-dialog.tsx`
+- Pass only what the component needs — derive everything else inside the component
+- Loader data is fetched in the route, passed as props to the component
+- Server functions used by a component can live in the same component file if
+  they are not needed anywhere else; otherwise extract to `src/lib/<entity>.ts`
+
+
+# TanStack Table Rules
+- All table code lives in `src/components/tables/`
+- Two files per table entity:
+  - `<entity>-cols.tsx`   — column definitions only (`ColumnDef[]` array + row type)
+  - Reuse the shared `<DataTable>` from `src/components/tables/data-table.tsx`
+- Never build a one-off table inline in a route or component — always use `<DataTable>`
+- Never duplicate `DataTable` — if new table behaviour is needed (pagination, row
+  selection, etc.) extend `data-table.tsx` with optional props, do not create a
+  parallel implementation
+
+## Row type
+- Define a plain TypeScript type (e.g. `export type Client = { ... }`) at the top
+  of the cols file — this is the shape of data passed to the table, NOT the raw
+  Drizzle row type
+- Map/transform Drizzle query results to this type in the route loader or server
+  function before passing to `<DataTable>` — keep cols files free of query logic
+
+## Column definitions (`<entity>-cols.tsx`)
+- Export a single `columns` array: `export const columns: ColumnDef<EntityType>[]`
+- Column file imports: `ColumnDef` from `@tanstack/react-table`, UI from `@/components/ui/*`,
+  icons from `lucide-react`, routing from `@tanstack/react-router`
+- Sortable columns: use a `<Button variant="ghost">` header with `column.toggleSorting()`
+  and `<ArrowUpDown>` icon — wrap in `<div className="flex justify-center">` for
+  centered columns
+- Numeric/currency cells: always format with `Intl.NumberFormat` — never render raw
+  numbers; use `'ru-RU'` locale and `'RUB'` currency for money values
+- Badge cells: wrap count/status values in `<Badge>` with the appropriate variant:
+  - `destructive` — risks, errors, blocked
+  - `secondary`   — neutral counts (todos, upsell, etc.)
+  - `default`     — active/in-progress status
+  - `success`     — completed status
+  - `warning`     — pending/not started status
+- Array cells (e.g. managers list): render as `<div className="flex flex-wrap gap-2">`
+  with a `<Badge variant="secondary">` per item
+- Actions column: always last, `id: 'actions'`, empty `header: ''`, right-aligned
+  (`flex items-center justify-end gap-1`), use icon-only buttons:
+  - View:   `<EyeIcon>` with `variant="ghost" size="icon-sm"` as `<Link to=".../$id/view">`
+  - Edit:   `<EditIcon>` with `variant="ghost" size="icon-sm"` as `<Link to=".../$id/update">`
+  - Delete: `<Trash2Icon>` with `variant="destructiveGhost" size="icon-sm"` as `<Link to=".../$id/delete">`
+- Footer (aggregates): define `footer` on numeric/badge columns that benefit from
+  totals; the first cell in the footer row always renders the label `'Итого'` —
+  this is handled automatically by `DataTable`
+- Zustand stores MAY be read inside `cell` renderers (e.g. `useDepartmentStore`)
+  when column rendering depends on cross-route client state — this is acceptable
+
+## DataTable component (`data-table.tsx`)
+- Already supports: global search, per-column filters, sorting, footer aggregates
+- Global filter already handles array-valued cells (searches inside arrays)
+- Do not add client-side pagination unless the dataset is confirmed to be large
+  (>500 rows) — loaders should filter/limit server-side in that case
+- Do not add row selection unless a bulk-action feature is explicitly required
+
+## Usage in route components
+- Import both `columns` and `DataTable` in the component that renders the table
+- Pass loader data (already mapped to the row type) directly:
+  `<DataTable columns={columns} data={data} />`
+- Filtering by Zustand store state (e.g. department) must be done BEFORE passing
+  `data` to `<DataTable>` — derive `filteredData` in the component, not inside cols

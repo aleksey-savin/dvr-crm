@@ -15,6 +15,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     dashboard: { label: 'Дашборд', showAddButton: false },
     clients: { label: 'Клиенты', showAddButton: true },
     companies: { label: 'Компании', showAddButton: true },
+    wishlist: { label: 'Вишлист', showAddButton: true },
     todos: { label: 'Задачи', showAddButton: true },
     users: { label: 'Пользователи', showAddButton: true },
     departments: { label: 'Бизнес-юниты', showAddButton: true },
@@ -51,7 +52,7 @@ export function AppBreadcrumb() {
   let entityName = ''
   if (isViewPage && loaderData) {
     // Special case for clients - use company.name
-    if (lastSegment === 'clients') {
+    if (lastSegment === 'clients' || lastSegment === 'wishlist') {
       entityName = loaderData.company?.name || ''
     } else {
       // For all other entities - use entity.name

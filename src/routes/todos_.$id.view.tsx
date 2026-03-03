@@ -92,18 +92,6 @@ function RouteComponent() {
           <CardHeader className="border-b shrink-0">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 shrink-0 -ml-2"
-                >
-                  <Link to="/todos">
-                    <ArrowLeftIcon className="size-4" />
-                    Задачи
-                  </Link>
-                </Button>
-                <Separator orientation="vertical" className="h-5 shrink-0" />
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
                   <Badge variant={status.variant} className="gap-1 shrink-0">
                     <StatusIcon className="size-3" />

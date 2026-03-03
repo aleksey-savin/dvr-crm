@@ -30,7 +30,7 @@ export function VersionSwitcher({
   const { selectedDepartmentId, setSelectedDepartmentId } = useDepartmentStore()
 
   const selected = departments.find((d) => d.id === selectedDepartmentId)
-  const label = selected?.name ?? 'Все подразделения'
+  const label = selected?.name ?? 'Все бизнес-юниты'
   const accentColor = selected?.accentColor
 
   return (
@@ -88,7 +88,7 @@ export function VersionSwitcher({
                   className="inline-block shrink-0"
                   style={{ width: 8, height: 8 }}
                 />
-                Все подразделения
+                Все бизнес-юниты
               </span>
               {selectedDepartmentId === null && (
                 <Check className="ml-auto size-4" />

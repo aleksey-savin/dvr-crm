@@ -23,6 +23,7 @@ const formSchema = z.object({
     z.string().min(2, 'Описание должно содержать минимум 2 символа'),
     z.undefined(),
   ]),
+  regionalMarketPosition: z.union([z.string(), z.undefined()]),
 })
 
 const addSchema = z.object({
@@ -31,6 +32,7 @@ const addSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  regionalMarketPosition: z.string().optional(),
 })
 
 const updateSchema = z.object({
@@ -40,6 +42,7 @@ const updateSchema = z.object({
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
+  regionalMarketPosition: z.string().optional(),
 })
 
 const addCompany = createServerFn({ method: 'POST' })
@@ -50,6 +53,7 @@ const addCompany = createServerFn({ method: 'POST' })
       .values({
         name: data.name,
         description: data.description,
+        regionalMarketPosition: data.regionalMarketPosition,
       })
       .returning({ id: company.id })
     return inserted.id
@@ -63,6 +67,7 @@ const updateCompany = createServerFn({ method: 'POST' })
       .set({
         name: data.name,
         description: data.description,
+        regionalMarketPosition: data.regionalMarketPosition,
       })
       .where(eq(company.id, data.id))
   })
@@ -78,6 +83,9 @@ const CompanyForm = ({
     defaultValues: {
       name: (item?.name ?? '') as string,
       description: item?.description as string | undefined,
+      regionalMarketPosition: item?.regionalMarketPosition as
+        | string
+        | undefined,
     },
     validators: {
       onSubmit: formSchema,
@@ -89,6 +97,7 @@ const CompanyForm = ({
             data: {
               name: value.name,
               description: value.description,
+              regionalMarketPosition: value.regionalMarketPosition,
             },
           })
           toast.success('Компания успешно создана')
@@ -105,6 +114,7 @@ const CompanyForm = ({
               id: item.id,
               name: value.name,
               description: value.description,
+              regionalMarketPosition: value.regionalMarketPosition,
             },
           })
 
@@ -149,6 +159,33 @@ const CompanyForm = ({
                   autoComplete="off"
                   type="text"
                   required
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )
+          }}
+        />
+        {/* Regional market position */}
+        <form.Field
+          name="regionalMarketPosition"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid
+            return (
+              <Field data-invalid={isInvalid} className="shrink-0">
+                <FieldLabel htmlFor={field.name}>
+                  Позиция на региональном рынке
+                </FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value ?? ''}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="Позиция компании на региональном рынке"
+                  autoComplete="off"
+                  type="text"
                 />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
