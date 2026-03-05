@@ -22,7 +22,12 @@ const fetchWishlistClients = createServerFn().handler(async () => {
     db.query.wishlistClient.findMany({
       with: {
         company: {
-          columns: { id: true, name: true, regionalMarketPosition: true },
+          columns: {
+            id: true,
+            name: true,
+            regionalMarketPosition: true,
+            industry: true,
+          },
           with: {
             revenues: { columns: { year: true, value: true } },
           },
@@ -59,7 +64,7 @@ const fetchWishlistClients = createServerFn().handler(async () => {
       companyId: row.companyId,
       companyName: row.company.name,
       departments: row.departments.map((d) => d.department.name),
-      industry: row.industry,
+      industry: row.company.industry,
       regionalMarketPosition: row.company.regionalMarketPosition,
       revenueLastYear:
         row.company.revenues.find((r) => r.year === currentYear - 1)?.value ??

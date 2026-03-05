@@ -168,6 +168,7 @@ export const company = pgTable('company', {
   regionalMarketPosition: text('regional_market_position'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  industry: text('industry'),
 })
 
 export const client = pgTable(
@@ -209,7 +210,6 @@ export const wishlistClient = pgTable(
       .references(() => company.id, { onDelete: 'cascade' }),
     position: integer('position').notNull().default(0),
     why: text('why'),
-    industry: text('industry'),
   },
   (table) => [index('wishlist_client_companyId_idx').on(table.companyId)],
 )

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
+
 import {
   Select,
   SelectContent,
@@ -61,7 +61,6 @@ const addSchema = z.object({
     .array(z.string())
     .min(1, 'Выберите хотя бы один бизнес-юнит'),
   why: z.string().optional(),
-  industry: z.string().optional(),
 })
 
 const updateSchema = z.object({
@@ -70,14 +69,12 @@ const updateSchema = z.object({
     .array(z.string())
     .min(1, 'Выберите хотя бы один бизнес-юнит'),
   why: z.string().optional(),
-  industry: z.string().optional(),
 })
 
 const formSchema = z.object({
   companyId: z.string().min(1, 'Выберите компанию'),
   departmentIds: z.array(z.string()),
   why: z.union([z.string(), z.undefined()]),
-  industry: z.union([z.string(), z.undefined()]),
 })
 
 // ---------------------------------------------------------------------------
@@ -146,7 +143,6 @@ const addWishlistClient = createServerFn({ method: 'POST' })
       .values({
         companyId: data.companyId,
         why: data.why ?? null,
-        industry: data.industry ?? null,
       })
       .returning({ id: wishlistClient.id })
 
@@ -167,7 +163,7 @@ const updateWishlistClient = createServerFn({ method: 'POST' })
   .handler(async ({ data }) => {
     await db
       .update(wishlistClient)
-      .set({ why: data.why ?? null, industry: data.industry ?? null })
+      .set({ why: data.why ?? null })
       .where(eq(wishlistClient.id, data.id))
 
     // Replace departments
@@ -199,7 +195,6 @@ const WishlistClientForm = ({
     id: string
     companyId: string
     why: string | null
-    industry: string | null
   }
   onSuccess?: () => void
 }) => {
@@ -254,7 +249,6 @@ const WishlistClientForm = ({
       companyId: (item?.companyId ?? initialCompanyId ?? '') as string,
       departmentIds: [] as string[],
       why: (item?.why ?? undefined) as string | undefined,
-      industry: (item?.industry ?? undefined) as string | undefined,
     },
     validators: {
       onSubmit: formSchema,
@@ -274,7 +268,6 @@ const WishlistClientForm = ({
               companyId: value.companyId,
               departmentIds,
               why: value.why,
-              industry: value.industry,
             },
           })
           toast.success('Компания добавлена в вишлист')
@@ -284,7 +277,6 @@ const WishlistClientForm = ({
               id: item.id,
               departmentIds,
               why: value.why,
-              industry: value.industry,
             },
           })
           toast.success('Запись вишлиста обновлена')
@@ -381,32 +373,6 @@ const WishlistClientForm = ({
                     ))}
                   </SelectContent>
                 </Select>
-                {isInvalid && <FieldError errors={field.state.meta.errors} />}
-              </Field>
-            )
-          }}
-        />
-
-        {/* Industry */}
-        <form.Field
-          name="industry"
-          children={(field) => {
-            const isInvalid =
-              field.state.meta.isTouched && !field.state.meta.isValid
-            return (
-              <Field data-invalid={isInvalid}>
-                <FieldLabel htmlFor={field.name}>Отрасль</FieldLabel>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  value={field.state.value ?? ''}
-                  onBlur={field.handleBlur}
-                  onChange={(e) =>
-                    field.handleChange(e.target.value || undefined)
-                  }
-                  aria-invalid={isInvalid}
-                  placeholder="Например: нефтегаз, ритейл, строительство…"
-                />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )

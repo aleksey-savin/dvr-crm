@@ -15,6 +15,7 @@ export type Company = {
   name: string
   description: string | null
   regionalMarketPosition: string | null
+  industry: string | null
   clients: ClientStatus[]
   isWishlist: boolean
   revenueLastYear: string | null
@@ -47,6 +48,18 @@ export const columns: ColumnDef<Company>[] = [
         <span className="text-muted-foreground text-sm line-clamp-1">
           {value}
         </span>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
+      )
+    },
+  },
+  {
+    accessorKey: 'industry',
+    header: 'Отрасль',
+    cell: ({ row }) => {
+      const value = row.getValue<string | null>('industry')
+      return value ? (
+        <span className="text-sm">{value}</span>
       ) : (
         <span className="text-muted-foreground/40 text-sm">—</span>
       )

@@ -35,6 +35,7 @@ const fetchCompanies = createServerFn().handler(async () => {
       name: row.name,
       description: row.description,
       regionalMarketPosition: row.regionalMarketPosition,
+      industry: row.industry,
       clients: row.clients.map((c) => ({
         departmentName: c.department.name,
         target: c.target,

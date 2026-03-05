@@ -16,6 +16,8 @@ import {
   department,
   client,
   company,
+  clientManager,
+  wishlistClientResponsibleUsers,
 } from '@/db/schema'
 import { db } from '@/db'
 import { asc, eq } from 'drizzle-orm'
@@ -54,6 +56,7 @@ const formSchema = z.object({
   deadline: z.union([z.string(), z.undefined()]),
   departmentId: z.string().uuid('Выберите бизнес-юнит'),
   clientId: z.string(),
+  wishlistClientId: z.string(),
 })
 
 const addSchema = z.object({
@@ -67,6 +70,7 @@ const addSchema = z.object({
   createdBy: z.string(),
   deadline: z.string().optional(),
   clientId: z.string().optional(),
+  wishlistClientId: z.string().optional(),
 })
 
 const updateSchema = z.object({
@@ -81,6 +85,7 @@ const updateSchema = z.object({
   createdBy: z.string(),
   deadline: z.string().optional(),
   clientId: z.string().optional(),
+  wishlistClientId: z.string().optional(),
 })
 
 // ---------------------------------------------------------------------------
@@ -107,7 +112,42 @@ type ClientOption = {
 // Server fns
 // ---------------------------------------------------------------------------
 
-const HIGHLIGHTED_ROLES = ['manager', 'marketer'] as const
+// Returns the user IDs of managers explicitly assigned to a client or
+// wishlist client. Used to highlight only relevant managers in the
+// responsibles combobox.
+const getEntityManagers = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      clientId: z.string().optional(),
+      wishlistClientId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const ids: string[] = []
+
+    if (data.clientId) {
+      const rows = await db
+        .select({ userId: clientManager.userId })
+        .from(clientManager)
+        .where(eq(clientManager.clientId, data.clientId))
+      ids.push(...rows.map((r) => r.userId))
+    }
+
+    if (data.wishlistClientId) {
+      const rows = await db
+        .select({ userId: wishlistClientResponsibleUsers.userId })
+        .from(wishlistClientResponsibleUsers)
+        .where(
+          eq(
+            wishlistClientResponsibleUsers.wishlistClientId,
+            data.wishlistClientId,
+          ),
+        )
+      ids.push(...rows.map((r) => r.userId))
+    }
+
+    return ids
+  })
 
 const getUsers = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ departmentId: z.string() }))
@@ -159,6 +199,9 @@ const addTodo = createServerFn({ method: 'POST' })
         departmentId: data.departmentId,
         ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
         ...(data.clientId ? { clientId: data.clientId } : {}),
+        ...(data.wishlistClientId
+          ? { wishlistClientId: data.wishlistClientId }
+          : {}),
       })
       .returning({ id: todo.id })
     return inserted.id
@@ -176,6 +219,9 @@ const updateTodo = createServerFn({ method: 'POST' })
         departmentId: data.departmentId,
         ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
         ...(data.clientId ? { clientId: data.clientId } : { clientId: null }),
+        ...(data.wishlistClientId
+          ? { wishlistClientId: data.wishlistClientId }
+          : { wishlistClientId: null }),
       })
       .where(eq(todo.id, data.id))
   })
@@ -214,6 +260,19 @@ const getTodoResponsibles = createServerFn({ method: 'GET' })
   })
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+// A user is highlighted in the responsibles combobox when:
+//   - they are a marketer (department-level, always relevant), OR
+//   - they are explicitly a manager of the selected client/wishlistClient
+function isHighlighted(u: UserOption, entityManagerIds: Set<string>): boolean {
+  if (u.role === 'marketer') return true
+  if (entityManagerIds.size > 0 && entityManagerIds.has(u.id)) return true
+  return false
+}
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -221,12 +280,18 @@ const TodoForm = ({
   item,
   onSuccess,
   clientId: defaultClientId,
+  wishlistClientId: defaultWishlistClientId,
+  wishlistClientLabel,
   defaultDepartmentId,
 }: {
   item?: any
   onSuccess?: () => void
   /** Pre-selected client when opening from the client view page */
   clientId?: string
+  /** Pre-selected wishlist client when opening from the wishlist view page */
+  wishlistClientId?: string
+  /** Display label shown in the locked wishlist client field */
+  wishlistClientLabel?: string
   defaultDepartmentId?: string
 }) => {
   const { data: session } = authClient.useSession()
@@ -237,6 +302,9 @@ const TodoForm = ({
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [clients, setClients] = React.useState<ClientOption[]>([])
   const [selectedUsers, setSelectedUsers] = React.useState<UserOption[]>([])
+  const [entityManagerIds, setEntityManagerIds] = React.useState<Set<string>>(
+    new Set(),
+  )
   const [watchedDepartmentId, setWatchedDepartmentId] = React.useState<string>(
     item?.departmentId ?? defaultDepartmentId ?? globalDepartmentId ?? '',
   )
@@ -259,6 +327,16 @@ const TodoForm = ({
     }
   }, [item?.id])
 
+  // Pre-load manager IDs for a locked client/wishlistClient (prop-driven, never changes)
+  React.useEffect(() => {
+    const clientId = item?.clientId ?? defaultClientId
+    const wishlistClientId = item?.wishlistClientId ?? defaultWishlistClientId
+    if (!clientId && !wishlistClientId) return
+    getEntityManagers({ data: { clientId, wishlistClientId } })
+      .then((ids) => setEntityManagerIds(new Set(ids)))
+      .catch(console.error)
+  }, [])
+
   const defaultDeadline: string | undefined = item?.deadline
     ? new Date(item.deadline).toISOString().split('T')[0]
     : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -273,6 +351,9 @@ const TodoForm = ({
         globalDepartmentId ??
         '') as string,
       clientId: (item?.clientId ?? defaultClientId ?? '') as string,
+      wishlistClientId: (item?.wishlistClientId ??
+        defaultWishlistClientId ??
+        '') as string,
     },
     validators: {
       onSubmit: formSchema,
@@ -281,6 +362,8 @@ const TodoForm = ({
       const userId = session?.user?.id ?? ''
       // Treat empty string as "no client"
       const resolvedClientId = value.clientId?.trim() || undefined
+      const resolvedWishlistClientId =
+        value.wishlistClientId?.trim() || undefined
 
       if (!item) {
         try {
@@ -292,6 +375,7 @@ const TodoForm = ({
               departmentId: value.departmentId,
               deadline: value.deadline,
               clientId: resolvedClientId,
+              wishlistClientId: resolvedWishlistClientId,
             },
           })
           if (selectedUsers.length > 0) {
@@ -317,6 +401,7 @@ const TodoForm = ({
               departmentId: value.departmentId,
               deadline: value.deadline,
               clientId: resolvedClientId,
+              wishlistClientId: resolvedWishlistClientId,
             },
           })
           await setResponsibleUsers({
@@ -463,53 +548,78 @@ const TodoForm = ({
             }}
           />
 
-          {/* Client (optional) */}
-          <form.Field
-            name="clientId"
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    Клиент{' '}
-                    <span className="text-muted-foreground font-normal">
-                      (необязательно)
-                    </span>
-                  </FieldLabel>
-                  <Select
-                    value={field.state.value ?? ''}
-                    onValueChange={(val) =>
-                      field.handleChange(val === '__none__' ? '' : val)
-                    }
-                    disabled={!watchedDepartmentId}
-                  >
-                    <SelectTrigger
-                      id={field.name}
-                      aria-invalid={isInvalid}
-                      className="w-full"
-                      onBlur={field.handleBlur}
+          {/* Client (optional) — hidden when wishlistClientId is locked */}
+          {defaultWishlistClientId ? (
+            <Field>
+              <FieldLabel>Клиент (вишлист)</FieldLabel>
+              <Input
+                value={wishlistClientLabel ?? defaultWishlistClientId}
+                disabled
+                className="bg-muted text-muted-foreground"
+              />
+            </Field>
+          ) : (
+            <form.Field
+              name="clientId"
+              children={(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <FieldLabel htmlFor={field.name}>
+                      Клиент{' '}
+                      <span className="text-muted-foreground font-normal">
+                        (необязательно)
+                      </span>
+                    </FieldLabel>
+                    <Select
+                      value={field.state.value ?? ''}
+                      onValueChange={(val) => {
+                        const newVal = val === '__none__' ? '' : val
+                        field.handleChange(newVal)
+                        // Re-derive highlighted managers for the newly selected client
+                        if (!defaultClientId) {
+                          const clientId = newVal.trim() || undefined
+                          if (!clientId) {
+                            setEntityManagerIds(new Set())
+                          } else {
+                            getEntityManagers({ data: { clientId } })
+                              .then((ids) => setEntityManagerIds(new Set(ids)))
+                              .catch(console.error)
+                          }
+                        }
+                      }}
+                      disabled={!watchedDepartmentId}
                     >
-                      <SelectValue placeholder="Выберите клиента" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">
-                        <span className="text-muted-foreground">
-                          — Без клиента
-                        </span>
-                      </SelectItem>
-                      {clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.companyName ?? c.id}
+                      <SelectTrigger
+                        id={field.name}
+                        aria-invalid={isInvalid}
+                        className="w-full"
+                        onBlur={field.handleBlur}
+                      >
+                        <SelectValue placeholder="Выберите клиента" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">
+                          <span className="text-muted-foreground">
+                            — Без клиента
+                          </span>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              )
-            }}
-          />
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.companyName ?? c.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </Field>
+                )
+              }}
+            />
+          )}
 
           {/* Deadline */}
           <form.Field
@@ -540,17 +650,8 @@ const TodoForm = ({
             <FieldLabel>Ответственные</FieldLabel>
             <Combobox
               items={[
-                ...users.filter((u) =>
-                  HIGHLIGHTED_ROLES.includes(
-                    u.role as (typeof HIGHLIGHTED_ROLES)[number],
-                  ),
-                ),
-                ...users.filter(
-                  (u) =>
-                    !HIGHLIGHTED_ROLES.includes(
-                      u.role as (typeof HIGHLIGHTED_ROLES)[number],
-                    ),
-                ),
+                ...users.filter((u) => isHighlighted(u, entityManagerIds)),
+                ...users.filter((u) => !isHighlighted(u, entityManagerIds)),
               ]}
               itemToStringValue={(u) => u.name}
               isItemEqualToValue={(a, b) => a.id === b.id}
@@ -575,12 +676,12 @@ const TodoForm = ({
                     <ComboboxItem key={u.id} value={u}>
                       <span className="flex items-center gap-2 w-full">
                         {u.name}
-                        {HIGHLIGHTED_ROLES.includes(
-                          u.role as (typeof HIGHLIGHTED_ROLES)[number],
-                        ) && (
+                        {isHighlighted(u, entityManagerIds) && (
                           <Badge
                             variant={
-                              u.role === 'manager' ? 'default' : 'secondary'
+                              entityManagerIds.has(u.id)
+                                ? 'default'
+                                : 'secondary'
                             }
                             className="ml-auto h-4 px-1.5 text-[10px] leading-none shrink-0"
                           >

@@ -1,4 +1,3 @@
-import * as React from 'react'
 import {
   createFileRoute,
   Link,
@@ -14,13 +13,7 @@ import {
   UsersIcon,
   InfoIcon,
   HeartIcon,
-  ListTodoIcon,
   UsersRoundIcon,
-  CalendarIcon,
-  CheckCircle2Icon,
-  CircleDashedIcon,
-  ClockIcon,
-  ExternalLinkIcon,
 } from 'lucide-react'
 
 import { db } from '@/db'
@@ -34,6 +27,7 @@ import { TodoComments } from '@/components/todo-comments'
 import { Section } from '@/components/client-view/shared'
 import { RevenueSection } from '@/components/company-view/revenue-section'
 import { HooksSection } from '@/components/wishlist-view/hooks-section'
+import { WishlistTodosSection } from '@/components/wishlist-view/wishlist-todos-section'
 
 // ---------------------------------------------------------------------------
 // Server fn
@@ -58,6 +52,15 @@ const fetchWishlistClient = createServerFn({ method: 'GET' })
         },
         hooks: true,
         todos: {
+          columns: {
+            id: true,
+            name: true,
+            status: true,
+            deadline: true,
+            completedAt: true,
+            archivedAt: true,
+            createdAt: true,
+          },
           with: {
             responsibleUsers: {
               with: {
@@ -91,37 +94,6 @@ export const Route = createFileRoute('/wishlist_/$id/view')({
 // Helpers
 // ---------------------------------------------------------------------------
 
-type TodoStatus = 'not started' | 'in progress' | 'completed'
-
-const statusConfig: Record<
-  TodoStatus,
-  {
-    label: string
-    variant: 'warning' | 'default' | 'success'
-    Icon: React.ElementType
-  }
-> = {
-  'not started': {
-    label: 'Не в работе',
-    variant: 'warning',
-    Icon: CircleDashedIcon,
-  },
-  'in progress': { label: 'В работе', variant: 'default', Icon: ClockIcon },
-  completed: { label: 'Выполнена', variant: 'success', Icon: CheckCircle2Icon },
-}
-
-const fmtDate = (d: Date | string) =>
-  new Date(d).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-
-const isOverdue = (deadline: Date | string, status: TodoStatus) => {
-  if (status === 'completed') return false
-  return new Date(deadline) < new Date()
-}
-
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
@@ -129,16 +101,11 @@ const isOverdue = (deadline: Date | string, status: TodoStatus) => {
 function RouteComponent() {
   const item = Route.useLoaderData()
   const router = useRouter()
-  const [showCompletedTodos, setShowCompletedTodos] = React.useState(false)
 
   const refresh = () => router.invalidate()
 
-  const activeTodos = item.todos.filter(
-    (t) => !t.archivedAt && t.status !== 'completed',
-  )
-  const completedTodos = item.todos.filter(
-    (t) => !t.archivedAt && t.status === 'completed',
-  )
+  // Pick the first department's id as default for the todo form (if any)
+  const defaultDepartmentId = item.departments[0]?.department.id
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
@@ -212,9 +179,11 @@ function RouteComponent() {
             </Section>
 
             {/* Industry */}
-            {item.industry && (
+            {item.company.industry && (
               <Section icon={InfoIcon} title="Отрасль">
-                <p className="text-sm text-muted-foreground">{item.industry}</p>
+                <p className="text-sm text-muted-foreground">
+                  {item.company.industry}
+                </p>
               </Section>
             )}
 
@@ -248,141 +217,13 @@ function RouteComponent() {
             <Separator />
 
             {/* Todos */}
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <ListTodoIcon className="size-4 text-muted-foreground" />
-                Задачи
-                {activeTodos.length > 0 && (
-                  <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-                    {activeTodos.length}
-                  </Badge>
-                )}
-              </div>
-
-              {item.todos.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  Задач нет
-                </p>
-              ) : (
-                <div className="flex flex-col divide-y">
-                  {activeTodos.map((t) => {
-                    const cfg =
-                      statusConfig[t.status as TodoStatus] ??
-                      statusConfig['not started']
-                    const { Icon: StatusIcon } = cfg
-                    const overdue = isOverdue(
-                      t.deadline,
-                      t.status as TodoStatus,
-                    )
-                    return (
-                      <div
-                        key={t.id}
-                        className="flex items-start gap-3 py-2.5 group"
-                      >
-                        <StatusIcon className="size-4 mt-0.5 shrink-0 text-muted-foreground" />
-                        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-medium leading-snug truncate">
-                              {t.name}
-                            </span>
-                            <Badge
-                              variant={cfg.variant}
-                              className="h-4 px-1.5 text-[10px] shrink-0"
-                            >
-                              {cfg.label}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                            <span
-                              className={`flex items-center gap-1 ${overdue ? 'text-destructive font-medium' : ''}`}
-                            >
-                              <CalendarIcon className="size-3" />
-                              {fmtDate(t.deadline)}
-                              {overdue && ' (просрочена)'}
-                            </span>
-                            {t.responsibleUsers.length > 0 && (
-                              <span>
-                                {t.responsibleUsers
-                                  .map((r) => r.user.name)
-                                  .join(', ')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon-sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
-                        >
-                          <Link to="/todos/$id/view" params={{ id: t.id }}>
-                            <ExternalLinkIcon className="size-3.5" />
-                          </Link>
-                        </Button>
-                      </div>
-                    )
-                  })}
-
-                  {completedTodos.length > 0 && (
-                    <>
-                      {activeTodos.length > 0 && <Separator className="my-1" />}
-                      <button
-                        type="button"
-                        onClick={() => setShowCompletedTodos((v) => !v)}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-2 text-left w-fit"
-                      >
-                        <CheckCircle2Icon className="size-3.5" />
-                        {showCompletedTodos
-                          ? 'Скрыть выполненные'
-                          : `Показать выполненные (${completedTodos.length})`}
-                      </button>
-
-                      {showCompletedTodos && (
-                        <div className="flex flex-col divide-y opacity-60">
-                          {completedTodos.map((t) => {
-                            const cfg = statusConfig['completed']
-                            const { Icon: StatusIcon } = cfg
-                            return (
-                              <div
-                                key={t.id}
-                                className="flex items-start gap-3 py-2.5 group"
-                              >
-                                <StatusIcon className="size-4 mt-0.5 shrink-0 text-muted-foreground" />
-                                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                                  <span className="text-sm font-medium leading-snug truncate text-muted-foreground line-through">
-                                    {t.name}
-                                  </span>
-                                  {t.responsibleUsers.length > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {t.responsibleUsers
-                                        .map((r) => r.user.name)
-                                        .join(', ')}
-                                    </span>
-                                  )}
-                                </div>
-                                <Button
-                                  asChild
-                                  variant="ghost"
-                                  size="icon-sm"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-muted-foreground"
-                                >
-                                  <Link
-                                    to="/todos/$id/view"
-                                    params={{ id: t.id }}
-                                  >
-                                    <ExternalLinkIcon className="size-3.5" />
-                                  </Link>
-                                </Button>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            <WishlistTodosSection
+              todos={item.todos}
+              wishlistClientId={item.id}
+              companyName={item.company.name}
+              defaultDepartmentId={defaultDepartmentId}
+              onRefresh={refresh}
+            />
 
             <Separator />
 
