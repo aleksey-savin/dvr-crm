@@ -246,6 +246,13 @@
       "when": 1772585802741,
       "tag": "0034_lowly_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1773205149304,
+      "tag": "0035_rich_energizer",
+      "breakpoints": true
     }
   ]
 }
