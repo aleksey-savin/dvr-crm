@@ -8,11 +8,6 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   dialect: 'postgresql',
   dbCredentials: {
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: parseInt(process.env.DATABASE_PORT || '5432'),
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    database: process.env.POSTGRES_DB || 'dvr-crm',
-    ssl: false,
+    url: process.env.DATABASE_URL!,
   },
 })
