@@ -7,7 +7,8 @@ import {
 } from '@/components/ui/empty'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/tables/data-table'
-import { columns, type Company } from '@/components/tables/companies-cols'
+import { columns } from '@/components/tables/companies-cols'
+import type { CompanyRow } from '@/types'
 import { db } from '@/db'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
@@ -18,30 +19,34 @@ const fetchCompanies = createServerFn().handler(async () => {
 
   const rows = await db.query.company.findMany({
     with: {
-      clients: {
-        columns: { target: true, lost: true },
+      accounts: {
+        columns: { accountType: true, isTarget: true, isLost: true },
         with: {
-          department: { columns: { name: true } },
+          businessUnit: { columns: { name: true } },
         },
       },
-      wishlistClients: { columns: { id: true } },
       revenues: { columns: { year: true, value: true } },
     },
   })
 
-  return rows.map((row): Company => {
+  return rows.map((row): CompanyRow => {
+    const clientAccounts = row.accounts.filter(
+      (a) => a.accountType === 'client',
+    )
+    const isWishlist = row.accounts.some((a) => a.accountType === 'wishlist')
+
     return {
       id: row.id,
       name: row.name,
       description: row.description,
       regionalMarketPosition: row.regionalMarketPosition,
       industry: row.industry,
-      clients: row.clients.map((c) => ({
-        departmentName: c.department.name,
-        target: c.target,
-        lost: c.lost,
+      clients: clientAccounts.map((a) => ({
+        departmentName: a.businessUnit.name,
+        isTarget: a.isTarget,
+        isLost: a.isLost,
       })),
-      isWishlist: row.wishlistClients.length > 0,
+      isWishlist,
       revenueLastYear:
         row.revenues.find((r) => r.year === currentYear - 1)?.value ?? null,
       revenueTwoYearsAgo:

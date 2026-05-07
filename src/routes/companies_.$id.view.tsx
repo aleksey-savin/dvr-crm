@@ -39,20 +39,16 @@ const fetchCompany = createServerFn({ method: 'GET' })
       with: {
         contacts: true,
         revenues: true,
-        clients: {
-          columns: { id: true, target: true, lost: true },
-          with: {
-            department: { columns: { id: true, name: true } },
+        accounts: {
+          columns: {
+            id: true,
+            accountType: true,
+            isTarget: true,
+            isLost: true,
+            why: true,
           },
-        },
-        wishlistClients: {
-          columns: { id: true, why: true },
           with: {
-            departments: {
-              with: {
-                department: { columns: { id: true, name: true } },
-              },
-            },
+            businessUnit: { columns: { id: true, name: true } },
           },
         },
       },
@@ -75,18 +71,18 @@ export const Route = createFileRoute('/companies_/$id/view')({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function clientStatusLabel(target: boolean, lost: boolean) {
-  if (lost) return 'Потерянный'
-  if (target) return 'Целевой'
+function clientStatusLabel(isTarget: boolean, isLost: boolean) {
+  if (isLost) return 'Потерянный'
+  if (isTarget) return 'Целевой'
   return 'Клиент'
 }
 
 function clientStatusVariant(
-  target: boolean,
-  lost: boolean,
+  isTarget: boolean,
+  isLost: boolean,
 ): 'destructive' | 'success' | 'default' {
-  if (lost) return 'destructive'
-  if (target) return 'success'
+  if (isLost) return 'destructive'
+  if (isTarget) return 'success'
   return 'default'
 }
 
@@ -99,6 +95,11 @@ function RouteComponent() {
   const router = useRouter()
 
   const refresh = () => router.invalidate()
+
+  const clientAccounts = item.accounts.filter((a) => a.accountType === 'client')
+  const wishlistAccounts = item.accounts.filter(
+    (a) => a.accountType === 'wishlist',
+  )
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
@@ -176,23 +177,23 @@ function RouteComponent() {
 
             {(item.description || item.regionalMarketPosition) && <Separator />}
 
-            {/* Clients */}
-            {item.clients.length > 0 && (
+            {/* Client accounts */}
+            {clientAccounts.length > 0 && (
               <>
                 <Section icon={UsersIcon} title="Клиенты">
                   <div className="flex flex-wrap gap-1.5">
-                    {item.clients.map((c) => (
+                    {clientAccounts.map((a) => (
                       <Link
-                        key={c.id}
+                        key={a.id}
                         to="/clients/$id/view"
-                        params={{ id: c.id }}
+                        params={{ id: a.id }}
                       >
                         <Badge
-                          variant={clientStatusVariant(c.target, c.lost)}
+                          variant={clientStatusVariant(a.isTarget, a.isLost)}
                           className="cursor-pointer gap-1"
                         >
-                          {c.department.name} —{' '}
-                          {clientStatusLabel(c.target, c.lost)}
+                          {a.businessUnit.name} —{' '}
+                          {clientStatusLabel(a.isTarget, a.isLost)}
                         </Badge>
                       </Link>
                     ))}
@@ -202,27 +203,17 @@ function RouteComponent() {
               </>
             )}
 
-            {/* Wishlist clients */}
-            {item.wishlistClients.length > 0 && (
+            {/* Wishlist accounts */}
+            {wishlistAccounts.length > 0 && (
               <>
                 <Section icon={BookmarkIcon} title="Вишлист">
                   <div className="flex flex-col gap-2">
-                    {item.wishlistClients.map((wc) => (
-                      <div key={wc.id} className="flex flex-col gap-1">
-                        <div className="flex flex-wrap gap-1.5">
-                          {wc.departments.length === 0 ? (
-                            <Badge variant="secondary">Без бизнес-юнита</Badge>
-                          ) : (
-                            wc.departments.map(({ department: dept }) => (
-                              <Badge key={dept.id} variant="secondary">
-                                {dept.name}
-                              </Badge>
-                            ))
-                          )}
-                        </div>
-                        {wc.why && (
+                    {wishlistAccounts.map((a) => (
+                      <div key={a.id} className="flex flex-col gap-1">
+                        <Badge variant="secondary">{a.businessUnit.name}</Badge>
+                        {a.why && (
                           <p className="text-xs text-muted-foreground italic">
-                            {wc.why}
+                            {a.why}
                           </p>
                         )}
                       </div>

@@ -1,7 +1,5 @@
 import { Button } from '@/components/ui/button'
-
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import * as z from 'zod'
@@ -9,30 +7,12 @@ import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
 import { createServerFn } from '@tanstack/react-start'
-import {
-  user,
-  department,
-  company,
-  client,
-  clientManager,
-  wishlistClient,
-} from '@/db/schema'
+import { user, department, company, companyAccount } from '@/db/schema'
 import { db } from '@/db'
 import { and, eq, ne, notInArray } from 'drizzle-orm'
 
 import { Input } from '@/components/ui/input'
 import * as React from 'react'
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxValue,
-} from '@/components/ui/combobox'
 import {
   Select,
   SelectContent,
@@ -43,87 +23,92 @@ import {
 import { Switch } from './ui/switch'
 import { Label } from './ui/label'
 
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
+
 const formSchema = z.object({
+  businessUnitId: z.string().uuid('Выберите бизнес-юнит'),
   companyId: z.string().uuid('Выберите компанию'),
-  departmentId: z.string().uuid('Выберите бизнес-юнит'),
-  target: z.boolean(),
-  lost: z.boolean(),
+  isTarget: z.boolean(),
+  isLost: z.boolean(),
   lostReasons: z.string(),
+  ownerUserId: z.string(),
 })
 
 const addSchema = z.object({
-  companyId: z.string().uuid('Выберите компанию'),
-  departmentId: z.string().uuid('Выберите бизнес-юнит'),
-  target: z.boolean(),
-  lost: z.boolean(),
+  businessUnitId: z.string().uuid(),
+  companyId: z.string().uuid(),
+  isTarget: z.boolean(),
+  isLost: z.boolean(),
   lostReasons: z.string().optional(),
+  ownerUserId: z.string().optional(),
 })
 
 const updateSchema = z.object({
   id: z.string(),
-  companyId: z.string().uuid('Выберите компанию'),
-  departmentId: z.string().uuid('Выберите бизнес-юнит'),
-  target: z.boolean(),
-  lost: z.boolean(),
+  businessUnitId: z.string().uuid(),
+  companyId: z.string().uuid(),
+  isTarget: z.boolean(),
+  isLost: z.boolean(),
   lostReasons: z.string().optional(),
+  ownerUserId: z.string().optional(),
 })
 
-type UserOption = {
-  id: string
-  name: string
-}
+// ---------------------------------------------------------------------------
+// Local types
+// ---------------------------------------------------------------------------
 
-type DepartmentOption = {
-  id: string
-  name: string
-}
+type UserOption = { id: string; name: string }
+type DepartmentOption = { id: string; name: string }
+type CompanyOption = { id: string; name: string }
 
-type CompanyOption = {
-  id: string
-  name: string
-}
+// ---------------------------------------------------------------------------
+// Server fns
+// ---------------------------------------------------------------------------
 
 const getFilteredUsers = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ departmentId: z.string() }))
+  .inputValidator(z.object({ businessUnitId: z.string() }))
   .handler(async ({ data }) => {
-    const users = await db
+    return db
       .select({ id: user.id, name: user.name })
       .from(user)
       .where(
-        and(ne(user.role, 'user'), eq(user.departmentId, data.departmentId)),
+        and(ne(user.role, 'user'), eq(user.departmentId, data.businessUnitId)),
       )
       .orderBy(user.name)
-    return users
   })
 
 const getFilteredCompanies = createServerFn({ method: 'GET' })
   .inputValidator(
     z.object({
-      departmentId: z.string(),
-      excludeClientId: z.string().optional(),
+      businessUnitId: z.string(),
+      excludeAccountId: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    // Companies already assigned as clients to this department, excluding the
-    // client currently being edited so its company remains selectable
+    // Companies already assigned as clients to this business unit (excluding
+    // the account being edited so its company stays selectable)
     const clientCompanyIds = db
-      .select({ id: client.companyId })
-      .from(client)
+      .select({ id: companyAccount.companyId })
+      .from(companyAccount)
       .where(
         and(
-          eq(client.departmentId, data.departmentId),
-          data.excludeClientId
-            ? ne(client.id, data.excludeClientId)
+          eq(companyAccount.businessUnitId, data.businessUnitId),
+          eq(companyAccount.accountType, 'client'),
+          data.excludeAccountId
+            ? ne(companyAccount.id, data.excludeAccountId)
             : undefined,
         ),
       )
 
     // Companies already in wishlist (globally)
     const wishlistCompanyIds = db
-      .select({ id: wishlistClient.companyId })
-      .from(wishlistClient)
+      .select({ id: companyAccount.companyId })
+      .from(companyAccount)
+      .where(eq(companyAccount.accountType, 'wishlist'))
 
-    const companies = await db
+    return db
       .select({ id: company.id, name: company.name })
       .from(company)
       .where(
@@ -133,43 +118,42 @@ const getFilteredCompanies = createServerFn({ method: 'GET' })
         ),
       )
       .orderBy(company.name)
-    return companies
   })
 
 const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
-  const departments = await db
+  return db
     .select({ id: department.id, name: department.name })
     .from(department)
     .orderBy(department.name)
-  return departments
 })
 
 const getFilteredDepartments = createServerFn({ method: 'GET' })
   .inputValidator(
     z.object({
       companyId: z.string(),
-      excludeClientId: z.string().optional(),
+      excludeAccountId: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    // Departments where this company is already a client, excluding the
-    // client currently being edited so its department remains selectable
-    const existingDeptIds = db
-      .select({ id: client.departmentId })
-      .from(client)
+    // Business units where this company already has a client account
+    // (excluding the one being edited so its business unit stays selectable)
+    const existingBusinessUnitIds = db
+      .select({ id: companyAccount.businessUnitId })
+      .from(companyAccount)
       .where(
         and(
-          eq(client.companyId, data.companyId),
-          data.excludeClientId
-            ? ne(client.id, data.excludeClientId)
+          eq(companyAccount.companyId, data.companyId),
+          eq(companyAccount.accountType, 'client'),
+          data.excludeAccountId
+            ? ne(companyAccount.id, data.excludeAccountId)
             : undefined,
         ),
       )
 
-    return await db
+    return db
       .select({ id: department.id, name: department.name })
       .from(department)
-      .where(notInArray(department.id, existingDeptIds))
+      .where(notInArray(department.id, existingBusinessUnitIds))
       .orderBy(department.name)
   })
 
@@ -184,76 +168,58 @@ const getCompanyById = createServerFn({ method: 'GET' })
     return result[0] ?? null
   })
 
-const addClient = createServerFn({ method: 'POST' })
+const addAccount = createServerFn({ method: 'POST' })
   .inputValidator(addSchema)
   .handler(async ({ data }) => {
     const [inserted] = await db
-      .insert(client)
+      .insert(companyAccount)
       .values({
         companyId: data.companyId,
-        departmentId: data.departmentId,
-        target: data.target,
-        lost: data.lost,
-        lostReasons: data.lostReasons ?? '',
+        businessUnitId: data.businessUnitId,
+        accountType: 'client',
+        isTarget: data.isTarget,
+        isLost: data.isLost,
+        lostReasons: data.lostReasons ?? null,
+        ownerUserId: data.ownerUserId ?? null,
       })
-      .returning({ id: client.id })
+      .returning({ id: companyAccount.id })
     return inserted.id
   })
 
-const updateClient = createServerFn({ method: 'POST' })
+const updateAccount = createServerFn({ method: 'POST' })
   .inputValidator(updateSchema)
   .handler(async ({ data }) => {
     await db
-      .update(client)
+      .update(companyAccount)
       .set({
         companyId: data.companyId,
-        departmentId: data.departmentId,
-        target: data.target,
-        lost: data.lost,
-        lostReasons: data.lostReasons ?? '',
+        businessUnitId: data.businessUnitId,
+        isTarget: data.isTarget,
+        isLost: data.isLost,
+        lostReasons: data.lostReasons ?? null,
+        ownerUserId: data.ownerUserId ?? null,
       })
-      .where(eq(client.id, data.id))
+      .where(eq(companyAccount.id, data.id))
   })
 
-const setManagers = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      clientId: z.string(),
-      userIds: z.array(z.string()),
-    }),
-  )
-  .handler(async ({ data }) => {
-    await db
-      .delete(clientManager)
-      .where(eq(clientManager.clientId, data.clientId))
-
-    if (data.userIds.length > 0) {
-      await db.insert(clientManager).values(
-        data.userIds.map((userId) => ({
-          clientId: data.clientId,
-          userId,
-        })),
-      )
-    }
-  })
-
-const getClientManagers = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ clientId: z.string() }))
-  .handler(async ({ data }) => {
-    const rows = await db
-      .select({ id: user.id, name: user.name })
-      .from(clientManager)
-      .innerJoin(user, eq(clientManager.userId, user.id))
-      .where(eq(clientManager.clientId, data.clientId))
-    return rows
-  })
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 const ClientForm = ({
   item,
   initialCompanyId,
   onSuccess,
 }: {
-  item?: any
+  item?: {
+    id: string
+    companyId: string
+    businessUnitId: string
+    isTarget: boolean
+    isLost: boolean
+    lostReasons: string | null
+    ownerUserId: string | null
+  }
   initialCompanyId?: string
   onSuccess?: () => void
 }) => {
@@ -261,18 +227,19 @@ const ClientForm = ({
   const [companies, setCompanies] = React.useState<CompanyOption[]>([])
   const [companiesLoading, setCompaniesLoading] = React.useState(false)
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
-  const [selectedUsers, setSelectedUsers] = React.useState<UserOption[]>([])
-  const [selectedDepartmentId, setSelectedDepartmentId] = React.useState(
-    (item?.departmentId ?? '') as string,
+  const [selectedBusinessUnitId, setSelectedBusinessUnitId] = React.useState(
+    (item?.businessUnitId ?? '') as string,
   )
-  const portalRef = React.useRef<HTMLDivElement>(null)
 
-  // When company is pre-selected: load filtered departments and lock the company
-  // field. Otherwise load all departments normally.
+  // When company is pre-selected: load filtered departments and lock the
+  // company field. Otherwise load all departments normally.
   React.useEffect(() => {
     if (initialCompanyId) {
       getFilteredDepartments({
-        data: { companyId: initialCompanyId, excludeClientId: item?.id },
+        data: {
+          companyId: initialCompanyId,
+          excludeAccountId: item?.id,
+        },
       })
         .then(setDepartments)
         .catch(console.error)
@@ -286,67 +253,56 @@ const ClientForm = ({
     }
   }, [])
 
-  // Refetch filtered companies and managers whenever department changes
+  // Refetch companies and users whenever the selected business unit changes
   React.useEffect(() => {
-    if (!selectedDepartmentId) {
+    if (!selectedBusinessUnitId) {
       if (!initialCompanyId) setCompanies([])
       setUsers([])
       return
     }
-    // When company is pre-fixed, skip company refetch — just load managers
+    // When company is pre-fixed, skip company refetch — just load users
     if (!initialCompanyId) {
       setCompaniesLoading(true)
       getFilteredCompanies({
-        data: { departmentId: selectedDepartmentId, excludeClientId: item?.id },
+        data: {
+          businessUnitId: selectedBusinessUnitId,
+          excludeAccountId: item?.id,
+        },
       })
         .then(setCompanies)
         .catch(console.error)
         .finally(() => setCompaniesLoading(false))
     }
-    getFilteredUsers({ data: { departmentId: selectedDepartmentId } })
+    getFilteredUsers({ data: { businessUnitId: selectedBusinessUnitId } })
       .then(setUsers)
       .catch(console.error)
-  }, [selectedDepartmentId])
-
-  React.useEffect(() => {
-    if (item?.id) {
-      getClientManagers({ data: { clientId: item.id } })
-        .then(setSelectedUsers)
-        .catch(console.error)
-    }
-  }, [item?.id])
+  }, [selectedBusinessUnitId])
 
   const form = useForm({
     defaultValues: {
       companyId: (item?.companyId ?? initialCompanyId ?? '') as string,
-      departmentId: (item?.departmentId ?? '') as string,
-      target: (item?.target ?? false) as boolean,
-      lost: (item?.lost ?? false) as boolean,
+      businessUnitId: (item?.businessUnitId ?? '') as string,
+      isTarget: (item?.isTarget ?? false) as boolean,
+      isLost: (item?.isLost ?? false) as boolean,
       lostReasons: (item?.lostReasons ?? '') as string,
+      ownerUserId: (item?.ownerUserId ?? '') as string,
     },
-    validators: {
-      onSubmit: formSchema,
-    },
+    validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
+      const ownerUserId = value.ownerUserId || undefined
+
       if (!item) {
         try {
-          const clientId = await addClient({
+          await addAccount({
             data: {
               companyId: value.companyId,
-              departmentId: value.departmentId,
-              target: value.target,
-              lost: value.lost,
+              businessUnitId: value.businessUnitId,
+              isTarget: value.isTarget,
+              isLost: value.isLost,
               lostReasons: value.lostReasons,
+              ownerUserId,
             },
           })
-          if (selectedUsers.length > 0) {
-            await setManagers({
-              data: {
-                clientId,
-                userIds: selectedUsers.map((u) => u.id),
-              },
-            })
-          }
           toast.success('Клиент успешно добавлен')
           onSuccess?.()
         } catch (error) {
@@ -356,20 +312,15 @@ const ClientForm = ({
         }
       } else {
         try {
-          await updateClient({
+          await updateAccount({
             data: {
               id: item.id,
               companyId: value.companyId,
-              departmentId: value.departmentId,
-              target: value.target,
-              lost: value.lost,
+              businessUnitId: value.businessUnitId,
+              isTarget: value.isTarget,
+              isLost: value.isLost,
               lostReasons: value.lostReasons,
-            },
-          })
-          await setManagers({
-            data: {
-              clientId: item.id,
-              userIds: selectedUsers.map((u) => u.id),
+              ownerUserId,
             },
           })
           toast.success('Клиент успешно изменён')
@@ -385,7 +336,6 @@ const ClientForm = ({
 
   return (
     <TooltipProvider>
-      <div ref={portalRef} />
       <form
         id="client-form"
         className="flex-1 flex flex-col gap-6 min-h-0"
@@ -395,8 +345,9 @@ const ClientForm = ({
         }}
       >
         <div className="shrink-0 flex flex-col gap-6">
+          {/* Business unit */}
           <form.Field
-            name="departmentId"
+            name="businessUnitId"
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid
@@ -407,10 +358,13 @@ const ClientForm = ({
                     value={field.state.value}
                     onValueChange={(val) => {
                       field.handleChange(val)
-                      setSelectedDepartmentId(val)
-                      // Reset company and managers when department changes
-                      form.setFieldValue('companyId', '')
-                      setSelectedUsers([])
+                      setSelectedBusinessUnitId(val)
+                      // Reset dependent fields when business unit changes.
+                      // Don't reset companyId if it was pre-filled from outside.
+                      if (!initialCompanyId) {
+                        form.setFieldValue('companyId', '')
+                      }
+                      form.setFieldValue('ownerUserId', '')
                     }}
                   >
                     <SelectTrigger
@@ -435,6 +389,7 @@ const ClientForm = ({
             }}
           />
 
+          {/* Company */}
           <form.Field
             name="companyId"
             children={(field) => {
@@ -448,7 +403,7 @@ const ClientForm = ({
                     onValueChange={(val) => field.handleChange(val)}
                     disabled={
                       !!initialCompanyId ||
-                      !selectedDepartmentId ||
+                      !selectedBusinessUnitId ||
                       companiesLoading
                     }
                   >
@@ -462,7 +417,7 @@ const ClientForm = ({
                         placeholder={
                           initialCompanyId
                             ? 'Загрузка…'
-                            : !selectedDepartmentId
+                            : !selectedBusinessUnitId
                               ? 'Сначала выберите бизнес-юнит'
                               : companiesLoading
                                 ? 'Загрузка…'
@@ -484,9 +439,9 @@ const ClientForm = ({
             }}
           />
 
-          {/* target & lost are mutually exclusive */}
+          {/* isTarget & isLost are mutually exclusive */}
           <form.Field
-            name="target"
+            name="isTarget"
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid
@@ -499,7 +454,7 @@ const ClientForm = ({
                       onCheckedChange={(val: boolean) => {
                         field.handleChange(val)
                         if (val) {
-                          form.setFieldValue('lost', false)
+                          form.setFieldValue('isLost', false)
                           form.setFieldValue('lostReasons', '')
                         }
                       }}
@@ -513,7 +468,7 @@ const ClientForm = ({
           />
 
           <form.Field
-            name="lost"
+            name="isLost"
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid
@@ -526,7 +481,7 @@ const ClientForm = ({
                       onCheckedChange={(val: boolean) => {
                         field.handleChange(val)
                         if (val) {
-                          form.setFieldValue('target', false)
+                          form.setFieldValue('isTarget', false)
                         } else {
                           form.setFieldValue('lostReasons', '')
                         }
@@ -540,10 +495,11 @@ const ClientForm = ({
             }}
           />
 
+          {/* Lost reasons — shown only when isLost = true */}
           <form.Subscribe
-            selector={(state) => state.values.lost}
-            children={(lost) =>
-              lost ? (
+            selector={(state) => state.values.isLost}
+            children={(isLost) =>
+              isLost ? (
                 <form.Field
                   name="lostReasons"
                   children={(field) => {
@@ -573,38 +529,44 @@ const ClientForm = ({
             }
           />
 
-          <Field>
-            <FieldLabel>Клиент-менеджеры</FieldLabel>
-            <Combobox
-              items={users}
-              itemToStringValue={(u) => u.name}
-              isItemEqualToValue={(a, b) => a.id === b.id}
-              multiple
-              value={selectedUsers}
-              onValueChange={setSelectedUsers}
-            >
-              <ComboboxChips>
-                <ComboboxValue>
-                  {(value: UserOption[]) =>
-                    value.map((u) => (
-                      <ComboboxChip key={u.id}>{u.name}</ComboboxChip>
-                    ))
+          {/* Owner — single select from users in the selected business unit */}
+          <form.Field
+            name="ownerUserId"
+            children={(field) => (
+              <Field>
+                <FieldLabel htmlFor={field.name}>Ответственный</FieldLabel>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(val) =>
+                    field.handleChange(val === '_none' ? '' : val)
                   }
-                </ComboboxValue>
-                <ComboboxChipsInput placeholder="Добавить ответственного" />
-              </ComboboxChips>
-              <ComboboxContent container={portalRef.current}>
-                <ComboboxEmpty>Пользователи не найдены</ComboboxEmpty>
-                <ComboboxList>
-                  {(u) => (
-                    <ComboboxItem key={u.id} value={u}>
-                      {u.name}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </Field>
+                  disabled={!selectedBusinessUnitId}
+                >
+                  <SelectTrigger
+                    id={field.name}
+                    className="w-full"
+                    onBlur={field.handleBlur}
+                  >
+                    <SelectValue
+                      placeholder={
+                        !selectedBusinessUnitId
+                          ? 'Сначала выберите бизнес-юнит'
+                          : 'Не назначен'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Не назначен</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+          />
 
           <div className="flex justify-end">
             <Button type="submit">{item ? 'Изменить' : 'Создать'}</Button>

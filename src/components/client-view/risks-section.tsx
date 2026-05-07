@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import * as z from 'zod'
 
 import { db } from '@/db'
-import { clientRisk } from '@/db/schema'
+import { accountRisk } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -36,8 +36,8 @@ export const addRisk = createServerFn({ method: 'POST' })
     z.object({ clientId: z.string(), description: z.string().min(1) }),
   )
   .handler(async ({ data }) => {
-    await db.insert(clientRisk).values({
-      clientId: data.clientId,
+    await db.insert(accountRisk).values({
+      companyAccountId: data.clientId,
       description: data.description,
     })
   })
@@ -45,7 +45,7 @@ export const addRisk = createServerFn({ method: 'POST' })
 export const deleteRisk = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await db.delete(clientRisk).where(eq(clientRisk.id, data.id))
+    await db.delete(accountRisk).where(eq(accountRisk.id, data.id))
   })
 
 // ---------------------------------------------------------------------------

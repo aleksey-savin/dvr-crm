@@ -4,24 +4,11 @@ import { Button } from '../ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
-
-// This type is used to define the shape of our data.
-// You can use a Zod schema here if you want.
-export type Client = {
-  id: string
-  name: string
-  department: string
-  forecastCurrentYear: string
-  lostReasons: string
-  upsellingCount: number
-  marketerTodosCount: number
-  managerTodosCount: number
-  managers: string[]
-}
+import type { LostClientAccountRow } from '@/types'
 
 const currentYear = new Date().getFullYear()
 
-export const columns: ColumnDef<Client>[] = [
+export const columns: ColumnDef<LostClientAccountRow>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => {
@@ -37,17 +24,17 @@ export const columns: ColumnDef<Client>[] = [
       )
     },
     cell: ({ row }) => {
-      const client = row.original
+      const account = row.original
       const selectedDepartmentId = useDepartmentStore(
         (s) => s.selectedDepartmentId,
       )
 
       return (
         <div className="flex flex-col">
-          <div> {client.name as any as React.ReactNode}</div>
+          <div>{account.name as any as React.ReactNode}</div>
           {!selectedDepartmentId && (
             <div className="text-xs text-muted-foreground">
-              {client.department as any as React.ReactNode}
+              {account.businessUnit as any as React.ReactNode}
             </div>
           )}
         </div>
@@ -71,7 +58,7 @@ export const columns: ColumnDef<Client>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('potentialNextYear'))
+      const amount = parseFloat(row.getValue('potentialNextYear') ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',
@@ -85,7 +72,7 @@ export const columns: ColumnDef<Client>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + Number(row.getValue('potentialNextYear')),
+          (sum, row) => sum + Number(row.getValue('potentialNextYear') ?? 0),
           0,
         )
       return (
@@ -100,10 +87,14 @@ export const columns: ColumnDef<Client>[] = [
   },
   {
     accessorKey: 'lostReasons',
-    header: 'Статус прекращения взаимодействия',
+    header: 'Причина потери',
     cell: ({ row }) => {
-      const lostReason = row.getValue('lostReasons')
-      return lostReason
+      const value = row.getValue<string | null>('lostReasons')
+      return value ? (
+        <span className="text-sm">{value}</span>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
+      )
     },
   },
   {
@@ -188,18 +179,14 @@ export const columns: ColumnDef<Client>[] = [
     },
   },
   {
-    accessorKey: 'managers',
-    header: 'Менеджеры',
+    accessorKey: 'owner',
+    header: 'Ответственный',
     cell: ({ row }) => {
-      const managers = row.getValue('managers')
-      return (
-        <div className="flex flex-wrap gap-2">
-          {(managers as any[]).map((manager: any) => (
-            <Badge key={manager} variant="secondary">
-              {manager}
-            </Badge>
-          ))}
-        </div>
+      const owner = row.getValue<string | null>('owner')
+      return owner ? (
+        <Badge variant="secondary">{owner}</Badge>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
       )
     },
   },
@@ -207,21 +194,21 @@ export const columns: ColumnDef<Client>[] = [
     id: 'actions',
     header: '',
     cell: ({ row }) => {
-      const client = row.original
+      const account = row.original
       return (
         <div className="flex items-center justify-end gap-1">
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/view" params={{ id: client.id }}>
+            <Link to="/clients/$id/view" params={{ id: account.id }}>
               <EyeIcon />
             </Link>
           </Button>
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/update" params={{ id: client.id }}>
+            <Link to="/clients/$id/update" params={{ id: account.id }}>
               <EditIcon />
             </Link>
           </Button>
           <Button asChild variant="destructiveGhost" size="icon-sm">
-            <Link to="/clients/$id/delete" params={{ id: client.id }}>
+            <Link to="/clients/$id/delete" params={{ id: account.id }}>
               <Trash2Icon />
             </Link>
           </Button>

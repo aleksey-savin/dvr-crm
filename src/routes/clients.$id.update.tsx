@@ -1,7 +1,7 @@
 import ClientForm from '@/components/client-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { db } from '@/db'
-import { client } from '@/db/schema'
+import { companyAccount } from '@/db/schema'
 import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
@@ -9,11 +9,11 @@ import { eq } from 'drizzle-orm'
 const fetchClient = createServerFn({ method: 'GET' })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
-    const task = await db.query.client.findFirst({
-      where: eq(client.id, data.id),
+    const task = await db.query.companyAccount.findFirst({
+      where: eq(companyAccount.id, data.id),
     })
 
-    if (task === null) throw notFound()
+    if (!task) throw notFound()
     return task
   })
 

@@ -5,14 +5,14 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import appCss from '../styles.css?url'
 import { Toaster } from '@/components/ui/sonner'
-import { AppSidebar } from '@/components/app-sidebar'
+import { AppSidebar } from '@/components/layout/app-sidebar'
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { AppBreadcrumb } from '@/components/app-breadcrumb'
+import { AppBreadcrumb } from '@/components/layout/app-breadcrumb'
 
 import { authClient } from 'utils/auth-client'
 import { authMiddleware } from 'utils/middleware'

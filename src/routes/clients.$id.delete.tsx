@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { client } from '@/db/schema'
+import { companyAccount } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -21,8 +21,8 @@ import {
 const fetchClient = createServerFn()
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    return db.query.client.findFirst({
-      where: eq(client.id, id),
+    return db.query.companyAccount.findFirst({
+      where: eq(companyAccount.id, id),
       with: {
         company: { columns: { name: true } },
       },
@@ -32,7 +32,7 @@ const fetchClient = createServerFn()
 const deleteClient = createServerFn({ method: 'POST' })
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
-    await db.delete(client).where(eq(client.id, id))
+    await db.delete(companyAccount).where(eq(companyAccount.id, id))
   })
 
 export const Route = createFileRoute('/clients/$id/delete')({

@@ -72,7 +72,7 @@ const navMain = [
       },
     ],
   },
-  {
+  /* {
     title: 'AI-сервисы',
     url: '#',
     items: [
@@ -89,8 +89,8 @@ const navMain = [
         url: '/tracking-reviews',
       },
     ],
-  },
-  {
+  }, */
+  /* {
     title: 'Моя компания',
     url: '#',
     items: [
@@ -103,7 +103,7 @@ const navMain = [
         url: '/mailing-lists',
       },
     ],
-  },
+  }, */
   {
     title: 'Администрирование',
     url: '#',
@@ -162,7 +162,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     >
       <SidebarHeader>
         <VersionSwitcher departments={departments} />
-        <SearchForm />
+        {/* <SearchForm /> */}
       </SidebarHeader>
       <SidebarContent>
         {navMain.map((item) => (

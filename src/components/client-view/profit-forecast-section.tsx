@@ -11,7 +11,7 @@ import { and, eq } from 'drizzle-orm'
 import * as z from 'zod'
 
 import { db } from '@/db'
-import { clientGrossProfit, clientTargetForecast } from '@/db/schema'
+import { accountGrossProfit, accountTargetForecast } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -48,12 +48,12 @@ export const addGrossProfit = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     const existing = await db
-      .select({ id: clientGrossProfit.id })
-      .from(clientGrossProfit)
+      .select({ id: accountGrossProfit.id })
+      .from(accountGrossProfit)
       .where(
         and(
-          eq(clientGrossProfit.clientId, data.clientId),
-          eq(clientGrossProfit.year, data.year),
+          eq(accountGrossProfit.companyAccountId, data.clientId),
+          eq(accountGrossProfit.year, data.year),
         ),
       )
       .limit(1)
@@ -64,8 +64,8 @@ export const addGrossProfit = createServerFn({ method: 'POST' })
       )
     }
 
-    await db.insert(clientGrossProfit).values({
-      clientId: data.clientId,
+    await db.insert(accountGrossProfit).values({
+      companyAccountId: data.clientId,
       year: data.year,
       value: data.value,
     })
@@ -74,7 +74,9 @@ export const addGrossProfit = createServerFn({ method: 'POST' })
 export const deleteGrossProfit = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await db.delete(clientGrossProfit).where(eq(clientGrossProfit.id, data.id))
+    await db
+      .delete(accountGrossProfit)
+      .where(eq(accountGrossProfit.id, data.id))
   })
 
 export const addTargetForecast = createServerFn({ method: 'POST' })
@@ -87,12 +89,12 @@ export const addTargetForecast = createServerFn({ method: 'POST' })
   )
   .handler(async ({ data }) => {
     const existing = await db
-      .select({ id: clientTargetForecast.id })
-      .from(clientTargetForecast)
+      .select({ id: accountTargetForecast.id })
+      .from(accountTargetForecast)
       .where(
         and(
-          eq(clientTargetForecast.clientId, data.clientId),
-          eq(clientTargetForecast.year, data.year),
+          eq(accountTargetForecast.companyAccountId, data.clientId),
+          eq(accountTargetForecast.year, data.year),
         ),
       )
       .limit(1)
@@ -103,8 +105,8 @@ export const addTargetForecast = createServerFn({ method: 'POST' })
       )
     }
 
-    await db.insert(clientTargetForecast).values({
-      clientId: data.clientId,
+    await db.insert(accountTargetForecast).values({
+      companyAccountId: data.clientId,
       year: data.year,
       value: data.value,
     })
@@ -114,8 +116,8 @@ export const deleteTargetForecast = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     await db
-      .delete(clientTargetForecast)
-      .where(eq(clientTargetForecast.id, data.id))
+      .delete(accountTargetForecast)
+      .where(eq(accountTargetForecast.id, data.id))
   })
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,10 @@ import {
   integer,
 } from 'drizzle-orm/pg-core'
 
+// ---------------------------------------------------------------------------
+// Auth — Better Auth managed tables (do not rename columns)
+// ---------------------------------------------------------------------------
+
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -90,6 +94,305 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 )
 
+// ---------------------------------------------------------------------------
+// Department (semantic: Бизнес-юнит, 1.1.2)
+// ---------------------------------------------------------------------------
+
+export const department = pgTable(
+  'department',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    description: text('description'),
+    accentColor: text('accent_color'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [index('department_name_idx').on(table.name)],
+)
+
+// ---------------------------------------------------------------------------
+// Company (1.1.1)
+// ---------------------------------------------------------------------------
+
+export const company = pgTable('company', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  description: text('description'),
+  regionalMarketPosition: text('regional_market_position'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  industry: text('industry'),
+})
+
+// ---------------------------------------------------------------------------
+// Company Account in Business Unit (1.1.3)
+// Replaces the former `client` and `wishlistClient` tables.
+// ---------------------------------------------------------------------------
+
+export const companyAccount = pgTable(
+  'company_account',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+
+    // Required relations
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    businessUnitId: text('business_unit_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+
+    // Account type: client | wishlist | prospect | lost
+    accountType: text('account_type', {
+      enum: ['client', 'wishlist', 'prospect', 'lost'],
+    })
+      .notNull()
+      .default('client'),
+
+    // Client classification
+    isTarget: boolean('is_target').notNull().default(false),
+
+    // Position in ranked list (primarily for wishlist scenario)
+    position: integer('position'),
+
+    // Loss state
+    isLost: boolean('is_lost').notNull().default(false),
+    lostReasons: text('lost_reasons'),
+
+    // Wishlist-specific state
+    wishlistState: text('wishlist_state', {
+      enum: ['active', 'basement', 'archived'],
+    }),
+
+    // Optional owner / responsible manager
+    ownerUserId: text('owner_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+
+    // Free-form context fields
+    why: text('why'),
+    notes: text('notes'),
+
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('company_account_companyId_idx').on(table.companyId),
+    index('company_account_businessUnitId_idx').on(table.businessUnitId),
+    index('company_account_accountType_idx').on(table.accountType),
+    index('company_account_ownerUserId_idx').on(table.ownerUserId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Account Risks (was: clientRisk)
+// ---------------------------------------------------------------------------
+
+export const accountRisk = pgTable(
+  'account_risks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('account_risks_companyAccountId_idx').on(table.companyAccountId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Account Gross Profit per year (was: clientGrossProfit)
+// ---------------------------------------------------------------------------
+
+export const accountGrossProfit = pgTable(
+  'account_gross_profits',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('account_gross_profits_companyAccountId_idx').on(
+      table.companyAccountId,
+    ),
+    index('account_gross_profits_companyAccountId_year_idx').on(
+      table.companyAccountId,
+      table.year,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Company Revenue per year (unchanged — attached to company, not account)
+// ---------------------------------------------------------------------------
+
+export const companyRevenue = pgTable(
+  'company_revenue',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('company_revenue_companyId_idx').on(table.companyId),
+    index('company_revenue_companyId_year_idx').on(table.companyId, table.year),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Account Hooks — engagement hooks (was: clientHook on wishlistClient)
+// ---------------------------------------------------------------------------
+
+export const accountHook = pgTable(
+  'account_hooks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('account_hooks_companyAccountId_idx').on(table.companyAccountId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Company Contacts (unchanged — contacts belong to the company)
+// ---------------------------------------------------------------------------
+
+export const companyContact = pgTable(
+  'company_contact',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    position: text('position'),
+    description: text('description'),
+    contacts: text('contacts'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index('company_contacts_companyId_idx').on(table.companyId)],
+)
+
+// ---------------------------------------------------------------------------
+// Account Upselling Opportunities (was: clientUpsellingOpportunity)
+// ---------------------------------------------------------------------------
+
+export const accountUpsellingOpportunity = pgTable(
+  'account_upselling_opportunities',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    description: text('description').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('account_upselling_opportunities_companyAccountId_idx').on(
+      table.companyAccountId,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Account Target Forecast per year (was: clientTargetForecast)
+// ---------------------------------------------------------------------------
+
+export const accountTargetForecast = pgTable(
+  'account_target_forecasts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('account_target_forecasts_companyAccountId_idx').on(
+      table.companyAccountId,
+    ),
+    index('account_target_forecasts_companyAccountId_year_idx').on(
+      table.companyAccountId,
+      table.year,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Todos
+// `companyAccountId` replaces the former `clientId` + `wishlistClientId`
+// ---------------------------------------------------------------------------
+
 export const todo = pgTable('todos', {
   id: text('id')
     .primaryKey()
@@ -104,11 +407,8 @@ export const todo = pgTable('todos', {
   departmentId: text('department_id')
     .notNull()
     .references(() => department.id, { onDelete: 'cascade' }),
-  clientId: text('client_id').references(() => client.id, {
-    onDelete: 'cascade',
-  }),
-  wishlistClientId: text('wishlist_client_id').references(
-    () => wishlistClient.id,
+  companyAccountId: text('company_account_id').references(
+    () => companyAccount.id,
     { onDelete: 'cascade' },
   ),
   createdBy: text('user_id')
@@ -144,338 +444,9 @@ export const todoResponsibleUsers = pgTable(
   ],
 )
 
-export const department = pgTable(
-  'department',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    name: text('name').notNull(),
-    description: text('description'),
-    accentColor: text('accent_color'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  },
-  (table) => [index('department_name_idx').on(table.name)],
-)
-
-export const company = pgTable('company', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text('name').notNull(),
-  description: text('description'),
-  regionalMarketPosition: text('regional_market_position'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  industry: text('industry'),
-})
-
-export const client = pgTable(
-  'client',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-
-    companyId: text('company_id')
-      .notNull()
-      .references(() => company.id, { onDelete: 'cascade' }),
-    departmentId: text('department_id')
-      .notNull()
-      .references(() => department.id, { onDelete: 'cascade' }),
-    position: integer('position').notNull().default(0),
-    target: boolean().notNull().default(false),
-    lost: boolean().notNull().default(false),
-    lostReasons: text('lost_reasons').notNull().default(''),
-    why: text('why'),
-  },
-  (table) => [
-    index('client_companyId_idx').on(table.companyId),
-    index('client_departmentId_position_idx').on(
-      table.departmentId,
-      table.position,
-    ),
-  ],
-)
-
-export const wishlistClient = pgTable(
-  'wishlist_client',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    companyId: text('company_id')
-      .notNull()
-      .references(() => company.id, { onDelete: 'cascade' }),
-    position: integer('position').notNull().default(0),
-    why: text('why'),
-  },
-  (table) => [index('wishlist_client_companyId_idx').on(table.companyId)],
-)
-
 // ---------------------------------------------------------------------------
-// Wishlist Client Departments (many-to-many)
-// ---------------------------------------------------------------------------
-
-export const wishlistClientDepartment = pgTable(
-  'wishlist_client_department',
-  {
-    wishlistClientId: text('wishlist_client_id')
-      .notNull()
-      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
-    departmentId: text('department_id')
-      .notNull()
-      .references(() => department.id, { onDelete: 'cascade' }),
-  },
-  (table) => [
-    primaryKey({ columns: [table.wishlistClientId, table.departmentId] }),
-    index('wishlist_client_dept_wishlistClientId_idx').on(
-      table.wishlistClientId,
-    ),
-    index('wishlist_client_dept_departmentId_idx').on(table.departmentId),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Wishlist Client Responsible Users (many-to-many)
-// ---------------------------------------------------------------------------
-
-export const wishlistClientResponsibleUsers = pgTable(
-  'wishlist_client_responsible_users',
-  {
-    wishlistClientId: text('wishlist_client_id')
-      .notNull()
-      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.wishlistClientId, table.userId] }),
-    index('wishlist_client_responsible_wishlistClientId_idx').on(
-      table.wishlistClientId,
-    ),
-    index('wishlist_client_responsible_userId_idx').on(table.userId),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Client Managers (many-to-many)
-// ---------------------------------------------------------------------------
-
-export const clientManager = pgTable(
-  'client_managers',
-  {
-    clientId: text('client_id')
-      .notNull()
-      .references(() => client.id, { onDelete: 'cascade' }),
-    userId: text('user_id')
-      .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
-    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.clientId, table.userId] }),
-    index('client_managers_clientId_idx').on(table.clientId),
-    index('client_managers_userId_idx').on(table.userId),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Client Risks
-// ---------------------------------------------------------------------------
-
-export const clientRisk = pgTable(
-  'client_risks',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => client.id, { onDelete: 'cascade' }),
-    description: text('description').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [index('client_risks_clientId_idx').on(table.clientId)],
-)
-
-// ---------------------------------------------------------------------------
-// Client Gross Profit (per year)
-// ---------------------------------------------------------------------------
-
-export const clientGrossProfit = pgTable(
-  'client_gross_profits',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => client.id, { onDelete: 'cascade' }),
-    year: integer('year').notNull(),
-    value: numeric('value').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('client_gross_profits_clientId_idx').on(table.clientId),
-    index('client_gross_profits_clientId_year_idx').on(
-      table.clientId,
-      table.year,
-    ),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Company Revenue (per company)
-// ---------------------------------------------------------------------------
-
-export const companyRevenue = pgTable(
-  'company_revenue',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    companyId: text('company_id')
-      .notNull()
-      .references(() => company.id, { onDelete: 'cascade' }),
-    year: integer('year').notNull(),
-    value: numeric('value').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('company_revenue_companyId_idx').on(table.companyId),
-    index('company_revenue_companyId_year_idx').on(table.companyId, table.year),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Client Hooks (per wishlist client)
-// ---------------------------------------------------------------------------
-
-export const clientHook = pgTable(
-  'client_hook',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    wishlistClientId: text('wishlist_client_id')
-      .notNull()
-      .references(() => wishlistClient.id, { onDelete: 'cascade' }),
-    description: text('description').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('client_hook_wishlistClientId_idx').on(table.wishlistClientId),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Company Contacts
-// ---------------------------------------------------------------------------
-
-export const companyContact = pgTable(
-  'company_contact',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    companyId: text('company_id')
-      .notNull()
-      .references(() => company.id, { onDelete: 'cascade' }),
-    name: text('name').notNull(),
-    position: text('position'),
-    description: text('description'),
-    contacts: text('contacts'),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [index('company_contacts_companyId_idx').on(table.companyId)],
-)
-
-// ---------------------------------------------------------------------------
-// Client Upselling Opportunities
-// ---------------------------------------------------------------------------
-
-export const clientUpsellingOpportunity = pgTable(
-  'client_upselling_opportunities',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => client.id, { onDelete: 'cascade' }),
-    description: text('description').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('client_upselling_opportunities_clientId_idx').on(table.clientId),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Client Target Forecast (per year)
-// ---------------------------------------------------------------------------
-
-export const clientTargetForecast = pgTable(
-  'client_target_forecasts',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    clientId: text('client_id')
-      .notNull()
-      .references(() => client.id, { onDelete: 'cascade' }),
-    year: integer('year').notNull(),
-    value: numeric('value').notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index('client_target_forecasts_clientId_idx').on(table.clientId),
-    index('client_target_forecasts_clientId_year_idx').on(
-      table.clientId,
-      table.year,
-    ),
-  ],
-)
-
-// ---------------------------------------------------------------------------
-// Comments (entity-agnostic / polymorphic)
-// ---------------------------------------------------------------------------
-// `entityType` holds a string key that identifies the target table, e.g.
-//   'todo' | 'user' | 'company' | …
-// `entityId`   holds the primary-key value of the target row.
-// No database-level foreign key is declared so the table stays generic.
+// Comments (polymorphic, entity-agnostic)
+// `entityType` examples: 'todo' | 'company' | 'companyAccount' | …
 // ---------------------------------------------------------------------------
 
 export const comment = pgTable(
@@ -485,9 +456,7 @@ export const comment = pgTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     content: text('content').notNull(),
-    /** Identifies which table/entity this comment belongs to, e.g. 'todo', 'user', 'company' */
     entityType: text('entity_type').notNull(),
-    /** Primary-key value of the target row */
     entityId: text('entity_id').notNull(),
     authorId: text('author_id')
       .notNull()
@@ -500,15 +469,10 @@ export const comment = pgTable(
       .notNull(),
   },
   (table) => [
-    // Fast lookup of all comments for a given entity
     index('comments_entity_idx').on(table.entityType, table.entityId),
     index('comments_authorId_idx').on(table.authorId),
   ],
 )
-
-// ---------------------------------------------------------------------------
-// Comment Attachments
-// ---------------------------------------------------------------------------
 
 export const commentAttachment = pgTable(
   'comment_attachments',
@@ -519,25 +483,14 @@ export const commentAttachment = pgTable(
     commentId: text('comment_id')
       .notNull()
       .references(() => comment.id, { onDelete: 'cascade' }),
-    /** Public or pre-signed URL of the uploaded file */
     url: text('url').notNull(),
-    /** Original filename, e.g. "report.pdf" */
     name: text('name').notNull(),
-    /** MIME type, e.g. "application/pdf", "image/png" */
     mimeType: text('mime_type'),
-    /** File size in bytes */
     size: text('size'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [index('comment_attachments_commentId_idx').on(table.commentId)],
 )
-
-// ---------------------------------------------------------------------------
-// Comment Reads (read/unread tracking per user)
-// ---------------------------------------------------------------------------
-// A row exists when a user has read a comment.
-// Absence of a row means the comment is unread for that user.
-// ---------------------------------------------------------------------------
 
 export const commentRead = pgTable(
   'comment_reads',
@@ -557,6 +510,10 @@ export const commentRead = pgTable(
   ],
 )
 
+// ---------------------------------------------------------------------------
+// Meeting (linked to company, not to account)
+// ---------------------------------------------------------------------------
+
 export const meeting = pgTable('meeting', {
   id: text('id').notNull().primaryKey(),
   title: text('title').notNull(),
@@ -566,6 +523,10 @@ export const meeting = pgTable('meeting', {
     onDelete: 'cascade',
   }),
 })
+
+// ---------------------------------------------------------------------------
+// API Key
+// ---------------------------------------------------------------------------
 
 export const apiKey = pgTable('api_key', {
   id: text('id')
@@ -583,7 +544,9 @@ export const apiKey = pgTable('api_key', {
     .notNull(),
 })
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// Relations
+// ===========================================================================
 
 export const commentRelations = relations(comment, ({ one, many }) => ({
   author: one(user, {
@@ -618,9 +581,8 @@ export const commentReadRelations = relations(commentRead, ({ one }) => ({
 export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
-  managedClients: many(clientManager),
+  ownedCompanyAccounts: many(companyAccount),
   responsibleTodos: many(todoResponsibleUsers),
-  responsibleWishlistClients: many(wishlistClientResponsibleUsers),
   comments: many(comment),
   commentReads: many(commentRead),
   apiKeys: many(apiKey),
@@ -630,116 +592,76 @@ export const userRelations = relations(user, ({ one, many }) => ({
   }),
 }))
 
-export const clientRelations = relations(client, ({ one, many }) => ({
-  company: one(company, {
-    fields: [client.companyId],
-    references: [company.id],
-  }),
-  department: one(department, {
-    fields: [client.departmentId],
-    references: [department.id],
-  }),
-  managers: many(clientManager),
-  risks: many(clientRisk),
-  grossProfits: many(clientGrossProfit),
-  targetForecasts: many(clientTargetForecast),
-  upsellingOpportunities: many(clientUpsellingOpportunity),
-  meetings: many(meeting),
-}))
-
-export const wishlistClientRelations = relations(
-  wishlistClient,
+export const companyAccountRelations = relations(
+  companyAccount,
   ({ one, many }) => ({
     company: one(company, {
-      fields: [wishlistClient.companyId],
+      fields: [companyAccount.companyId],
       references: [company.id],
     }),
-    departments: many(wishlistClientDepartment),
-    hooks: many(clientHook),
-    todos: many(todo),
-    responsibleUsers: many(wishlistClientResponsibleUsers),
-  }),
-)
-
-export const wishlistClientResponsibleUsersRelations = relations(
-  wishlistClientResponsibleUsers,
-  ({ one }) => ({
-    wishlistClient: one(wishlistClient, {
-      fields: [wishlistClientResponsibleUsers.wishlistClientId],
-      references: [wishlistClient.id],
-    }),
-    user: one(user, {
-      fields: [wishlistClientResponsibleUsers.userId],
-      references: [user.id],
-    }),
-  }),
-)
-
-export const wishlistClientDepartmentRelations = relations(
-  wishlistClientDepartment,
-  ({ one }) => ({
-    wishlistClient: one(wishlistClient, {
-      fields: [wishlistClientDepartment.wishlistClientId],
-      references: [wishlistClient.id],
-    }),
-    department: one(department, {
-      fields: [wishlistClientDepartment.departmentId],
+    businessUnit: one(department, {
+      fields: [companyAccount.businessUnitId],
       references: [department.id],
     }),
+    owner: one(user, {
+      fields: [companyAccount.ownerUserId],
+      references: [user.id],
+    }),
+    risks: many(accountRisk),
+    grossProfits: many(accountGrossProfit),
+    targetForecasts: many(accountTargetForecast),
+    upsellingOpportunities: many(accountUpsellingOpportunity),
+    hooks: many(accountHook),
+    todos: many(todo),
   }),
 )
 
-export const clientManagerRelations = relations(clientManager, ({ one }) => ({
-  client: one(client, {
-    fields: [clientManager.clientId],
-    references: [client.id],
-  }),
-  user: one(user, {
-    fields: [clientManager.userId],
-    references: [user.id],
+export const accountRiskRelations = relations(accountRisk, ({ one }) => ({
+  account: one(companyAccount, {
+    fields: [accountRisk.companyAccountId],
+    references: [companyAccount.id],
   }),
 }))
 
-export const clientRiskRelations = relations(clientRisk, ({ one }) => ({
-  client: one(client, {
-    fields: [clientRisk.clientId],
-    references: [client.id],
+export const accountGrossProfitRelations = relations(
+  accountGrossProfit,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [accountGrossProfit.companyAccountId],
+      references: [companyAccount.id],
+    }),
+  }),
+)
+
+export const accountTargetForecastRelations = relations(
+  accountTargetForecast,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [accountTargetForecast.companyAccountId],
+      references: [companyAccount.id],
+    }),
+  }),
+)
+
+export const accountUpsellingOpportunityRelations = relations(
+  accountUpsellingOpportunity,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [accountUpsellingOpportunity.companyAccountId],
+      references: [companyAccount.id],
+    }),
+  }),
+)
+
+export const accountHookRelations = relations(accountHook, ({ one }) => ({
+  account: one(companyAccount, {
+    fields: [accountHook.companyAccountId],
+    references: [companyAccount.id],
   }),
 }))
-
-export const clientGrossProfitRelations = relations(
-  clientGrossProfit,
-  ({ one }) => ({
-    client: one(client, {
-      fields: [clientGrossProfit.clientId],
-      references: [client.id],
-    }),
-  }),
-)
-
-export const clientTargetForecastRelations = relations(
-  clientTargetForecast,
-  ({ one }) => ({
-    client: one(client, {
-      fields: [clientTargetForecast.clientId],
-      references: [client.id],
-    }),
-  }),
-)
-
-export const clientUpsellingOpportunityRelations = relations(
-  clientUpsellingOpportunity,
-  ({ one }) => ({
-    client: one(client, {
-      fields: [clientUpsellingOpportunity.clientId],
-      references: [client.id],
-    }),
-  }),
-)
 
 export const companyRelations = relations(company, ({ many }) => ({
-  clients: many(client),
-  wishlistClients: many(wishlistClient),
+  accounts: many(companyAccount),
   revenues: many(companyRevenue),
   contacts: many(companyContact),
 }))
@@ -748,13 +670,6 @@ export const companyRevenueRelations = relations(companyRevenue, ({ one }) => ({
   company: one(company, {
     fields: [companyRevenue.companyId],
     references: [company.id],
-  }),
-}))
-
-export const clientHookRelations = relations(clientHook, ({ one }) => ({
-  wishlistClient: one(wishlistClient, {
-    fields: [clientHook.wishlistClientId],
-    references: [wishlistClient.id],
   }),
 }))
 
@@ -767,13 +682,15 @@ export const companyContactRelations = relations(companyContact, ({ one }) => ({
 
 export const departmentRelations = relations(department, ({ many }) => ({
   todos: many(todo),
-  clients: many(client),
-  wishlistClients: many(wishlistClientDepartment),
+  accounts: many(companyAccount),
   users: many(user),
 }))
 
-export const meetingRelations = relations(meeting, ({ many }) => ({
-  clients: many(client),
+export const meetingRelations = relations(meeting, ({ one }) => ({
+  company: one(company, {
+    fields: [meeting.companyId],
+    references: [company.id],
+  }),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({
@@ -785,13 +702,9 @@ export const todoRelations = relations(todo, ({ one, many }) => ({
     fields: [todo.departmentId],
     references: [department.id],
   }),
-  client: one(client, {
-    fields: [todo.clientId],
-    references: [client.id],
-  }),
-  wishlistClient: one(wishlistClient, {
-    fields: [todo.wishlistClientId],
-    references: [wishlistClient.id],
+  companyAccount: one(companyAccount, {
+    fields: [todo.companyAccountId],
+    references: [companyAccount.id],
   }),
   responsibleUsers: many(todoResponsibleUsers),
 }))

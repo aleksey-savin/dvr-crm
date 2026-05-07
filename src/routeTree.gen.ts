@@ -48,6 +48,7 @@ import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.de
 import { Route as ClientsIdViewRouteImport } from './routes/clients_.$id.view'
 import { Route as ClientsIdUpdateRouteImport } from './routes/clients.$id.update'
 import { Route as ClientsIdDeleteRouteImport } from './routes/clients.$id.delete'
+import { Route as ApiPingSplatRouteImport } from './routes/api/ping/$'
 import { Route as ApiMeetingsSplatRouteImport } from './routes/api/meetings/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -246,6 +247,11 @@ const ClientsIdDeleteRoute = ClientsIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => ClientsRoute,
 } as any)
+const ApiPingSplatRoute = ApiPingSplatRouteImport.update({
+  id: '/api/ping/$',
+  path: '/api/ping/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeetingsSplatRoute = ApiMeetingsSplatRouteImport.update({
   id: '/api/meetings/$',
   path: '/api/meetings/$',
@@ -280,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
+  '/api/ping/$': typeof ApiPingSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByTo {
   '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
+  '/api/ping/$': typeof ApiPingSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -367,6 +375,7 @@ export interface FileRoutesById {
   '/wishlist/new': typeof WishlistNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
+  '/api/ping/$': typeof ApiPingSplatRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients_/$id/view': typeof ClientsIdViewRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
+    | '/api/ping/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -455,6 +465,7 @@ export interface FileRouteTypes {
     | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
+    | '/api/ping/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -498,6 +509,7 @@ export interface FileRouteTypes {
     | '/wishlist/new'
     | '/api/auth/$'
     | '/api/meetings/$'
+    | '/api/ping/$'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients_/$id/view'
@@ -536,6 +548,7 @@ export interface RootRouteChildren {
   WishlistRoute: typeof WishlistRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMeetingsSplatRoute: typeof ApiMeetingsSplatRoute
+  ApiPingSplatRoute: typeof ApiPingSplatRoute
   ClientsIdViewRoute: typeof ClientsIdViewRoute
   CompaniesIdViewRoute: typeof CompaniesIdViewRoute
   DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
@@ -818,6 +831,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsIdDeleteRouteImport
       parentRoute: typeof ClientsRoute
     }
+    '/api/ping/$': {
+      id: '/api/ping/$'
+      path: '/api/ping/$'
+      fullPath: '/api/ping/$'
+      preLoaderRoute: typeof ApiPingSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/meetings/$': {
       id: '/api/meetings/$'
       path: '/api/meetings/$'
@@ -947,6 +967,7 @@ const rootRouteChildren: RootRouteChildren = {
   WishlistRoute: WishlistRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMeetingsSplatRoute: ApiMeetingsSplatRoute,
+  ApiPingSplatRoute: ApiPingSplatRoute,
   ClientsIdViewRoute: ClientsIdViewRoute,
   CompaniesIdViewRoute: CompaniesIdViewRoute,
   DepartmentsIdViewRoute: DepartmentsIdViewRoute,

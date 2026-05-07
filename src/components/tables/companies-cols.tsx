@@ -3,26 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpDown, EditIcon, EyeIcon, Trash2Icon } from 'lucide-react'
+import type { CompanyRow, CompanyAccountStatus } from '@/types'
 
-export type ClientStatus = {
-  departmentName: string
-  target: boolean
-  lost: boolean
-}
+export type { CompanyRow, CompanyAccountStatus }
 
-export type Company = {
-  id: string
-  name: string
-  description: string | null
-  regionalMarketPosition: string | null
-  industry: string | null
-  clients: ClientStatus[]
-  isWishlist: boolean
-  revenueLastYear: string | null
-  revenueTwoYearsAgo: string | null
-}
-
-export const columns: ColumnDef<Company>[] = [
+export const columns: ColumnDef<CompanyRow>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => (
@@ -75,14 +60,14 @@ export const columns: ColumnDef<Company>[] = [
         <div className="flex flex-wrap gap-1">
           {isWishlist && <Badge variant="secondary">Вишлист</Badge>}
           {clients.map((c, i) => {
-            if (c.lost) {
+            if (c.isLost) {
               return (
                 <Badge key={i} variant="destructive">
                   {c.departmentName} — Потерянный
                 </Badge>
               )
             }
-            if (c.target) {
+            if (c.isTarget) {
               return (
                 <Badge key={i} variant="success">
                   {c.departmentName} — Целевой

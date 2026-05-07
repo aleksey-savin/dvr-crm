@@ -20,7 +20,7 @@ const fetchTodos = createServerFn().handler(async (): Promise<Todo[]> => {
     with: {
       creator: { columns: { name: true } },
       department: { columns: { name: true } },
-      client: {
+      companyAccount: {
         with: {
           company: { columns: { name: true } },
         },
@@ -36,8 +36,11 @@ const fetchTodos = createServerFn().handler(async (): Promise<Todo[]> => {
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
-    client: row.client
-      ? { id: row.client.id, name: row.client.company?.name ?? row.client.id }
+    client: row.companyAccount
+      ? {
+          id: row.companyAccount.id,
+          name: row.companyAccount.company?.name ?? row.companyAccount.id,
+        }
       : null,
     creator: row.creator.name,
     createdAt: row.createdAt,

@@ -9,28 +9,9 @@ import {
   MessageSquareIcon,
   Trash2Icon,
 } from 'lucide-react'
+import type { WishlistAccountRow, WishlistTodo } from '@/types'
 
-export type WishlistTodo = {
-  id: string
-  name: string
-  status: 'not started' | 'in progress' | 'completed'
-}
-
-export type WishlistClient = {
-  id: string
-  companyId: string
-  companyName: string
-  departments: string[]
-  industry: string | null
-  regionalMarketPosition: string | null
-  revenueLastYear: string | null
-  revenueTwoYearsAgo: string | null
-  why: string | null
-  hooks: string[]
-  todos: WishlistTodo[]
-  commentsCount: number
-  responsibles: string[]
-}
+export type { WishlistAccountRow, WishlistTodo }
 
 const todoStatusVariant: Record<
   WishlistTodo['status'],
@@ -41,7 +22,7 @@ const todoStatusVariant: Record<
   completed: 'success',
 }
 
-export const columns: ColumnDef<WishlistClient>[] = [
+export const columns: ColumnDef<WishlistAccountRow>[] = [
   {
     id: 'companyName',
     accessorKey: 'companyName',
@@ -66,22 +47,12 @@ export const columns: ColumnDef<WishlistClient>[] = [
     ),
   },
   {
-    id: 'departments',
-    accessorFn: (row) => row.departments,
+    id: 'businessUnit',
+    accessorKey: 'businessUnit',
     header: 'Бизнес-юнит',
     cell: ({ row }) => {
-      const { departments } = row.original
-      if (departments.length === 0)
-        return <span className="text-muted-foreground/40 text-sm">—</span>
-      return (
-        <div className="flex flex-wrap gap-1.5">
-          {departments.map((name) => (
-            <Badge key={name} variant="secondary">
-              {name}
-            </Badge>
-          ))}
-        </div>
-      )
+      const name = row.original.businessUnit
+      return <Badge variant="secondary">{name}</Badge>
     },
   },
   {
@@ -220,22 +191,14 @@ export const columns: ColumnDef<WishlistClient>[] = [
     },
   },
   {
-    id: 'responsibles',
-    accessorFn: (row) => row.responsibles,
-    header: 'Ответственные',
+    id: 'responsible',
+    accessorKey: 'responsible',
+    header: 'Ответственный',
     cell: ({ row }) => {
-      const { responsibles } = row.original
-      if (responsibles.length === 0)
+      const name = row.original.responsible
+      if (!name)
         return <span className="text-muted-foreground/40 text-sm">—</span>
-      return (
-        <div className="flex flex-wrap gap-1.5">
-          {responsibles.map((name) => (
-            <Badge key={name} variant="secondary">
-              {name}
-            </Badge>
-          ))}
-        </div>
-      )
+      return <Badge variant="secondary">{name}</Badge>
     },
   },
   {

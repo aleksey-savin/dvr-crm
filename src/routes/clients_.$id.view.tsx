@@ -5,7 +5,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { useRouter } from '@tanstack/react-router'
 import { eq } from 'drizzle-orm'
 import {
-  ArrowLeftIcon,
   EditIcon,
   Trash2Icon,
   TargetIcon,
@@ -14,7 +13,7 @@ import {
 } from 'lucide-react'
 
 import { db } from '@/db'
-import { client, todo } from '@/db/schema'
+import { companyAccount, todo } from '@/db/schema'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,16 +35,12 @@ const fetchClient = createServerFn({ method: 'GET' })
   .inputValidator((data: { id: string }) => data)
   .handler(async ({ data }) => {
     const [row, todos] = await Promise.all([
-      db.query.client.findFirst({
-        where: eq(client.id, data.id),
+      db.query.companyAccount.findFirst({
+        where: eq(companyAccount.id, data.id),
         with: {
           company: true,
-          department: true,
-          managers: {
-            with: {
-              user: { columns: { id: true, name: true, image: true } },
-            },
-          },
+          businessUnit: true,
+          owner: { columns: { id: true, name: true, image: true } },
           risks: true,
           grossProfits: true,
           targetForecasts: true,
@@ -53,7 +48,7 @@ const fetchClient = createServerFn({ method: 'GET' })
         },
       }),
       db.query.todo.findMany({
-        where: eq(todo.clientId, data.id),
+        where: eq(todo.companyAccountId, data.id),
         with: {
           responsibleUsers: {
             with: {
@@ -98,13 +93,13 @@ function RouteComponent() {
           <CardHeader className="border-b shrink-0">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 flex-wrap min-w-0">
-                {item.target && (
+                {item.isTarget && (
                   <Badge variant="success" className="gap-1 shrink-0">
                     <TargetIcon className="size-3" />
                     Целевой
                   </Badge>
                 )}
-                {item.lost && (
+                {item.isLost && (
                   <Badge variant="destructive" className="gap-1 shrink-0">
                     Потерянный
                   </Badge>
@@ -113,7 +108,7 @@ function RouteComponent() {
                   {item.company.name}
                 </h1>
                 <span className="text-sm text-muted-foreground truncate">
-                  — {item.department.name}
+                  — {item.businessUnit.name}
                 </span>
               </div>
 
@@ -141,24 +136,18 @@ function RouteComponent() {
 
           {/* Scrollable body */}
           <CardContent className="flex-1 min-h-0 overflow-y-auto pt-4 flex flex-col gap-6">
-            {/* Managers */}
-            <Section icon={UsersIcon} title="Клиент-менеджеры">
-              {item.managers.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  Менеджеры не назначены
-                </p>
+            {/* Owner */}
+            <Section icon={UsersIcon} title="Ответственный">
+              {item.owner ? (
+                <Badge variant="secondary">{item.owner.name}</Badge>
               ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {item.managers.map(({ user }) => (
-                    <Badge key={user.id} variant="secondary">
-                      {user.name}
-                    </Badge>
-                  ))}
-                </div>
+                <p className="text-sm text-muted-foreground italic">
+                  Ответственный не назначен
+                </p>
               )}
             </Section>
 
-            {item.lost && item.lostReasons && (
+            {item.isLost && item.lostReasons && (
               <Section icon={ShieldAlertIcon} title="Причина потери">
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {item.lostReasons}
@@ -200,7 +189,7 @@ function RouteComponent() {
             <ClientTodosSection
               todos={item.todos}
               clientId={item.id}
-              defaultDepartmentId={item.departmentId}
+              defaultDepartmentId={item.businessUnitId}
               onRefresh={refresh}
             />
           </CardContent>
@@ -210,7 +199,7 @@ function RouteComponent() {
       {/* ------------------------------------------------------------------ */}
       {/* Right column — comments                                              */}
       {/* ------------------------------------------------------------------ */}
-      <TodoComments entityType="client" entityId={item.id} />
+      <TodoComments entityType="companyAccount" entityId={item.id} />
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 import * as z from 'zod'
 
 import { db } from '@/db'
-import { clientUpsellingOpportunity } from '@/db/schema'
+import { accountUpsellingOpportunity } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -36,8 +36,8 @@ export const addUpselling = createServerFn({ method: 'POST' })
     z.object({ clientId: z.string(), description: z.string().min(1) }),
   )
   .handler(async ({ data }) => {
-    await db.insert(clientUpsellingOpportunity).values({
-      clientId: data.clientId,
+    await db.insert(accountUpsellingOpportunity).values({
+      companyAccountId: data.clientId,
       description: data.description,
     })
   })
@@ -46,8 +46,8 @@ export const deleteUpselling = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     await db
-      .delete(clientUpsellingOpportunity)
-      .where(eq(clientUpsellingOpportunity.id, data.id))
+      .delete(accountUpsellingOpportunity)
+      .where(eq(accountUpsellingOpportunity.id, data.id))
   })
 
 // ---------------------------------------------------------------------------

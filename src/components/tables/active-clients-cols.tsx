@@ -4,26 +4,14 @@ import { Button } from '../ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
+import type { ClientAccountRow } from '@/types'
 
-// This type is used to define the shape of our data.
-// You can use a Zod schema here if you want.
-export type Client = {
-  id: string
-  name: string
-  department: string
-  gpLastYear: string
-  forecastCurrentYear: string
-  risksCount: number
-  upsellingCount: number
-  marketerTodosCount: number
-  managerTodosCount: number
-  managers: string[]
-}
+export type { ClientAccountRow }
 
 const currentYear = new Date().getFullYear()
 const lastYear = currentYear - 1
 
-export const columns: ColumnDef<Client>[] = [
+export const columns: ColumnDef<ClientAccountRow>[] = [
   {
     accessorKey: 'name',
     header: ({ column }) => {
@@ -41,7 +29,7 @@ export const columns: ColumnDef<Client>[] = [
       )
     },
     cell: ({ row }) => {
-      const client = row.original
+      const item = row.original
       const selectedDepartmentId = useDepartmentStore(
         (s) => s.selectedDepartmentId,
       )
@@ -49,10 +37,10 @@ export const columns: ColumnDef<Client>[] = [
       return (
         <div className="flex justify-start">
           <div className="flex flex-col">
-            <div> {client.name as any as React.ReactNode}</div>
+            <div>{item.name}</div>
             {!selectedDepartmentId && (
               <div className="text-xs text-muted-foreground">
-                {client.department as any as React.ReactNode}
+                {item.businessUnit}
               </div>
             )}
           </div>
@@ -77,20 +65,23 @@ export const columns: ColumnDef<Client>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('gpLastYear'))
+      const amount = parseFloat(row.getValue('gpLastYear') ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',
             currency: 'RUB',
           }).format(amount)
-        : '-'
+        : '—'
 
       return <div className="font-medium flex justify-center">{formatted}</div>
     },
     footer: ({ table }) => {
       const total = table
         .getFilteredRowModel()
-        .rows.reduce((sum, row) => sum + Number(row.getValue('gpLastYear')), 0)
+        .rows.reduce(
+          (sum, row) => sum + Number(row.getValue('gpLastYear') ?? 0),
+          0,
+        )
       return (
         <div className="font-semibold flex justify-center">
           {new Intl.NumberFormat('ru-RU', {
@@ -106,7 +97,6 @@ export const columns: ColumnDef<Client>[] = [
     header: ({ column }) => {
       return (
         <div className="flex justify-center">
-          {' '}
           <Button
             variant="ghost"
             className="font-semibold"
@@ -119,13 +109,13 @@ export const columns: ColumnDef<Client>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('forecastCurrentYear'))
+      const amount = parseFloat(row.getValue('forecastCurrentYear') ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',
             currency: 'RUB',
           }).format(amount)
-        : '-'
+        : '—'
 
       return <div className="font-medium flex justify-center">{formatted}</div>
     },
@@ -133,7 +123,7 @@ export const columns: ColumnDef<Client>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + Number(row.getValue('forecastCurrentYear')),
+          (sum, row) => sum + Number(row.getValue('forecastCurrentYear') ?? 0),
           0,
         )
       return (
@@ -150,20 +140,17 @@ export const columns: ColumnDef<Client>[] = [
     accessorKey: 'risksCount',
     header: () => <div className="flex justify-center">Риски</div>,
     cell: ({ row }) => {
-      const count = row.getValue('risksCount')
+      const count = row.getValue<number>('risksCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="destructive">{count as React.ReactNode}</Badge>
+          <Badge variant="destructive">{count}</Badge>
         </div>
       )
     },
     footer: ({ table }) => {
       const total = table
         .getFilteredRowModel()
-        .rows.reduce(
-          (sum, row) => sum + (row.getValue('risksCount') as number),
-          0,
-        )
+        .rows.reduce((sum, row) => sum + row.getValue<number>('risksCount'), 0)
       return (
         <div className="flex justify-center">
           <Badge variant="destructive" className="font-semibold">
@@ -177,10 +164,10 @@ export const columns: ColumnDef<Client>[] = [
     accessorKey: 'upsellingCount',
     header: () => <div className="flex justify-center">Апсейл</div>,
     cell: ({ row }) => {
-      const count = row.getValue('upsellingCount')
+      const count = row.getValue<number>('upsellingCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -188,7 +175,7 @@ export const columns: ColumnDef<Client>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('upsellingCount') as number),
+          (sum, row) => sum + row.getValue<number>('upsellingCount'),
           0,
         )
       return (
@@ -204,10 +191,10 @@ export const columns: ColumnDef<Client>[] = [
     accessorKey: 'marketerTodosCount',
     header: () => <div className="flex justify-center">Задачи маркетолога</div>,
     cell: ({ row }) => {
-      const count = row.getValue('marketerTodosCount')
+      const count = row.getValue<number>('marketerTodosCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -215,7 +202,7 @@ export const columns: ColumnDef<Client>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('marketerTodosCount') as number),
+          (sum, row) => sum + row.getValue<number>('marketerTodosCount'),
           0,
         )
       return (
@@ -231,10 +218,10 @@ export const columns: ColumnDef<Client>[] = [
     accessorKey: 'managerTodosCount',
     header: () => <div className="flex justify-center">Задачи менеджера</div>,
     cell: ({ row }) => {
-      const count = row.getValue('managerTodosCount')
+      const count = row.getValue<number>('managerTodosCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -242,7 +229,7 @@ export const columns: ColumnDef<Client>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('managerTodosCount') as number),
+          (sum, row) => sum + row.getValue<number>('managerTodosCount'),
           0,
         )
       return (
@@ -255,18 +242,14 @@ export const columns: ColumnDef<Client>[] = [
     },
   },
   {
-    accessorKey: 'managers',
-    header: 'Менеджеры',
+    accessorKey: 'owner',
+    header: 'Ответственный',
     cell: ({ row }) => {
-      const managers = row.getValue('managers')
-      return (
-        <div className="flex flex-wrap gap-2">
-          {(managers as any[]).map((manager: any) => (
-            <Badge key={manager} variant="secondary">
-              {manager}
-            </Badge>
-          ))}
-        </div>
+      const owner = row.getValue<string | null>('owner')
+      return owner ? (
+        <Badge variant="secondary">{owner}</Badge>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
       )
     },
   },
@@ -274,21 +257,21 @@ export const columns: ColumnDef<Client>[] = [
     id: 'actions',
     header: '',
     cell: ({ row }) => {
-      const client = row.original
+      const item = row.original
       return (
         <div className="flex items-center justify-end gap-1">
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/view" params={{ id: client.id }}>
+            <Link to="/clients/$id/view" params={{ id: item.id }}>
               <EyeIcon />
             </Link>
           </Button>
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/update" params={{ id: client.id }}>
+            <Link to="/clients/$id/update" params={{ id: item.id }}>
               <EditIcon />
             </Link>
           </Button>
           <Button asChild variant="destructiveGhost" size="icon-sm">
-            <Link to="/clients/$id/delete" params={{ id: client.id }}>
+            <Link to="/clients/$id/delete" params={{ id: item.id }}>
               <Trash2Icon />
             </Link>
           </Button>
