@@ -24,33 +24,10 @@ import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 import { authClient } from 'utils/auth-client'
 import { roleLabels, roles } from '@/utils/roleLabels'
-import { createServerFn } from '@tanstack/react-start'
-import { db } from '@/db'
-import { user as userTable, department } from '@/db/schema'
-import { eq } from 'drizzle-orm'
 import { useDepartmentStore } from '@/stores/department-store'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-const fetchDepartments = createServerFn({ method: 'GET' }).handler(async () => {
-  return db
-    .select({ id: department.id, name: department.name })
-    .from(department)
-    .orderBy(department.name)
-})
-
-const setUserDepartment = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({ userId: z.string(), departmentId: z.string().uuid() }),
-  )
-  .handler(async ({ data }) => {
-    await db
-      .update(userTable)
-      .set({ departmentId: data.departmentId })
-      .where(eq(userTable.id, data.userId))
-  })
+import { fetchDepartmentOptions } from '@/components/departments/actions'
+import { setUserDepartment } from '@/components/users/actions'
+import type { UserFormUser } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -81,7 +58,7 @@ const UserForm = ({
   departmentId: initialDepartmentId,
   onSuccess,
 }: {
-  user?: any
+  user?: UserFormUser
   departmentId?: string
   onSuccess?: () => void
 }) => {
@@ -95,7 +72,7 @@ const UserForm = ({
     if (storeDepartments.length > 0) {
       setDepartments(storeDepartments)
     } else {
-      fetchDepartments().then(setDepartments).catch(console.error)
+      fetchDepartmentOptions().then(setDepartments).catch(console.error)
     }
   }, [storeDepartments])
 
@@ -109,7 +86,7 @@ const UserForm = ({
       image: user?.image ?? '',
       role: user?.role ?? 'user',
       password: '',
-      departmentId: defaultDepartmentId as string,
+      departmentId: defaultDepartmentId,
     },
     validators: {
       onSubmit: user ? editUserSchema : createUserSchema,
@@ -119,9 +96,9 @@ const UserForm = ({
         // --- CREATE ---
         const { data, error } = await authClient.admin.createUser({
           email: value.email,
-          password: value.password!,
+          password: value.password,
           name: value.name,
-          role: value.role,
+          role: value.role as 'user' | 'admin' | 'manager',
         })
         if (error) {
           toast.error(error.message)
@@ -138,7 +115,7 @@ const UserForm = ({
           userId: user.id,
           data: {
             name: value.name,
-            role: value.role,
+            role: value.role as 'user' | 'admin' | 'manager',
             image: value.image,
             email: value.email,
           },
@@ -251,7 +228,7 @@ const UserForm = ({
                   <SelectContent position="item-aligned">
                     {roles.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {roleLabels[role ?? 'user']}
+                        {roleLabels[role]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -311,7 +288,7 @@ const UserForm = ({
                   <Input
                     id={field.name}
                     name={field.name}
-                    value={field.state.value ?? ''}
+                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                     aria-invalid={isInvalid}

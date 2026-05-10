@@ -1,11 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/db'
-import { companyAccount } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -17,26 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-
-const fetchClient = createServerFn()
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    return db.query.companyAccount.findFirst({
-      where: eq(companyAccount.id, id),
-      with: {
-        company: { columns: { name: true } },
-      },
-    })
-  })
-
-const deleteClient = createServerFn({ method: 'POST' })
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    await db.delete(companyAccount).where(eq(companyAccount.id, id))
-  })
+import { deleteClient, fetchClient } from '@/components/accounts/actions'
 
 export const Route = createFileRoute('/clients/$id/delete')({
-  loader: ({ params }) => fetchClient({ data: params.id }),
+  loader: ({ params }) => fetchClient({ data: params }),
   component: RouteComponent,
 })
 
@@ -50,7 +29,6 @@ function RouteComponent() {
   }
 
   const handleConfirm = async () => {
-    if (!clientData) return
     setIsLoading(true)
     try {
       await deleteClient({ data: clientData.id })
@@ -75,7 +53,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить клиента?</AlertDialogTitle>
           <AlertDialogDescription>
-            Клиент «{clientData?.company.name}» будет удалён без возможности
+            Клиент «{clientData.company.name}» будет удалён без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>

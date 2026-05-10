@@ -1,6 +1,6 @@
 import { DepartmentCard } from './department-card'
 import { buildDepartmentTree } from './tree-utils'
-import type { DepartmentNode, DepartmentRow } from './types'
+import type { DepartmentNode, DepartmentRow } from '@/types'
 
 export function DepartmentTree({
   departments,
@@ -49,5 +49,3 @@ function DepartmentTreeItem({
     </li>
   )
 }
-
-export type { DepartmentRow }

@@ -1,21 +1,7 @@
 import ClientForm from '@/components/client-form'
+import { fetchClient } from '@/components/accounts/actions'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-import { db } from '@/db'
-import { companyAccount } from '@/db/schema'
-import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-
-const fetchClient = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const task = await db.query.companyAccount.findFirst({
-      where: eq(companyAccount.id, data.id),
-    })
-
-    if (!task) throw notFound()
-    return task
-  })
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/clients/$id/update')({
   component: RouteComponent,

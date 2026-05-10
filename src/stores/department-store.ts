@@ -1,17 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-
-export interface Department {
-  id: string
-  name: string
-  accentColor?: string | null
-}
+import type { DepartmentOption } from '@/types'
 
 interface DepartmentStore {
-  departments: Department[]
+  departments: DepartmentOption[]
   selectedDepartmentId: string | null
   selectedAccentColor: string | null
-  setDepartments: (departments: Department[]) => void
+  setDepartments: (departments: DepartmentOption[]) => void
   setSelectedDepartmentId: (id: string | null) => void
 }
 

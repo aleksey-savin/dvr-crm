@@ -6,11 +6,6 @@ import * as z from 'zod'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
-import { createServerFn } from '@tanstack/react-start'
-import { user, department, company, companyAccount } from '@/db/schema'
-import { db } from '@/db'
-import { and, eq, ne, notInArray } from 'drizzle-orm'
-
 import { Input } from '@/components/ui/input'
 import * as React from 'react'
 import {
@@ -22,6 +17,17 @@ import {
 } from '@/components/ui/select'
 import { Switch } from './ui/switch'
 import { Label } from './ui/label'
+import {
+  addAccount,
+  getCompanyById,
+  getFilteredCompanies,
+  getFilteredDepartments,
+  getFilteredUsers,
+  updateAccount,
+} from '@/components/accounts/actions'
+import { fetchDepartmentOptions } from '@/components/departments/actions'
+import type { SelectCompanyAccount } from '@/db/types'
+import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -36,172 +42,6 @@ const formSchema = z.object({
   ownerUserId: z.string(),
 })
 
-const addSchema = z.object({
-  businessUnitId: z.string().uuid(),
-  companyId: z.string().uuid(),
-  isTarget: z.boolean(),
-  isLost: z.boolean(),
-  lostReasons: z.string().optional(),
-  ownerUserId: z.string().optional(),
-})
-
-const updateSchema = z.object({
-  id: z.string(),
-  businessUnitId: z.string().uuid(),
-  companyId: z.string().uuid(),
-  isTarget: z.boolean(),
-  isLost: z.boolean(),
-  lostReasons: z.string().optional(),
-  ownerUserId: z.string().optional(),
-})
-
-// ---------------------------------------------------------------------------
-// Local types
-// ---------------------------------------------------------------------------
-
-type UserOption = { id: string; name: string }
-type DepartmentOption = { id: string; name: string }
-type CompanyOption = { id: string; name: string }
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-const getFilteredUsers = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ businessUnitId: z.string() }))
-  .handler(async ({ data }) => {
-    return db
-      .select({ id: user.id, name: user.name })
-      .from(user)
-      .where(
-        and(ne(user.role, 'user'), eq(user.departmentId, data.businessUnitId)),
-      )
-      .orderBy(user.name)
-  })
-
-const getFilteredCompanies = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      businessUnitId: z.string(),
-      excludeAccountId: z.string().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    // Companies already assigned as clients to this business unit (excluding
-    // the account being edited so its company stays selectable)
-    const clientCompanyIds = db
-      .select({ id: companyAccount.companyId })
-      .from(companyAccount)
-      .where(
-        and(
-          eq(companyAccount.businessUnitId, data.businessUnitId),
-          eq(companyAccount.accountType, 'client'),
-          data.excludeAccountId
-            ? ne(companyAccount.id, data.excludeAccountId)
-            : undefined,
-        ),
-      )
-
-    // Companies already in wishlist (globally)
-    const wishlistCompanyIds = db
-      .select({ id: companyAccount.companyId })
-      .from(companyAccount)
-      .where(eq(companyAccount.accountType, 'wishlist'))
-
-    return db
-      .select({ id: company.id, name: company.name })
-      .from(company)
-      .where(
-        and(
-          notInArray(company.id, clientCompanyIds),
-          notInArray(company.id, wishlistCompanyIds),
-        ),
-      )
-      .orderBy(company.name)
-  })
-
-const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
-  return db
-    .select({ id: department.id, name: department.name })
-    .from(department)
-    .orderBy(department.name)
-})
-
-const getFilteredDepartments = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      companyId: z.string(),
-      excludeAccountId: z.string().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    // Business units where this company already has a client account
-    // (excluding the one being edited so its business unit stays selectable)
-    const existingBusinessUnitIds = db
-      .select({ id: companyAccount.businessUnitId })
-      .from(companyAccount)
-      .where(
-        and(
-          eq(companyAccount.companyId, data.companyId),
-          eq(companyAccount.accountType, 'client'),
-          data.excludeAccountId
-            ? ne(companyAccount.id, data.excludeAccountId)
-            : undefined,
-        ),
-      )
-
-    return db
-      .select({ id: department.id, name: department.name })
-      .from(department)
-      .where(notInArray(department.id, existingBusinessUnitIds))
-      .orderBy(department.name)
-  })
-
-const getCompanyById = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    const result = await db
-      .select({ id: company.id, name: company.name })
-      .from(company)
-      .where(eq(company.id, data.id))
-      .limit(1)
-    return result[0] ?? null
-  })
-
-const addAccount = createServerFn({ method: 'POST' })
-  .inputValidator(addSchema)
-  .handler(async ({ data }) => {
-    const [inserted] = await db
-      .insert(companyAccount)
-      .values({
-        companyId: data.companyId,
-        businessUnitId: data.businessUnitId,
-        accountType: 'client',
-        isTarget: data.isTarget,
-        isLost: data.isLost,
-        lostReasons: data.lostReasons ?? null,
-        ownerUserId: data.ownerUserId ?? null,
-      })
-      .returning({ id: companyAccount.id })
-    return inserted.id
-  })
-
-const updateAccount = createServerFn({ method: 'POST' })
-  .inputValidator(updateSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(companyAccount)
-      .set({
-        companyId: data.companyId,
-        businessUnitId: data.businessUnitId,
-        isTarget: data.isTarget,
-        isLost: data.isLost,
-        lostReasons: data.lostReasons ?? null,
-        ownerUserId: data.ownerUserId ?? null,
-      })
-      .where(eq(companyAccount.id, data.id))
-  })
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -211,15 +51,7 @@ const ClientForm = ({
   initialCompanyId,
   onSuccess,
 }: {
-  item?: {
-    id: string
-    companyId: string
-    businessUnitId: string
-    isTarget: boolean
-    isLost: boolean
-    lostReasons: string | null
-    ownerUserId: string | null
-  }
+  item?: SelectCompanyAccount
   initialCompanyId?: string
   onSuccess?: () => void
 }) => {
@@ -249,7 +81,7 @@ const ClientForm = ({
         })
         .catch(console.error)
     } else {
-      getDepartments().then(setDepartments).catch(console.error)
+      fetchDepartmentOptions().then(setDepartments).catch(console.error)
     }
   }, [])
 

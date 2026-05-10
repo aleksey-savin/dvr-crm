@@ -1,4 +1,4 @@
-import type { DepartmentNode, DepartmentRow } from './types'
+import type { DepartmentNode, DepartmentRow } from '@/types'
 
 export function buildDepartmentTree(departments: DepartmentRow[]) {
   const nodesById = new Map<string, DepartmentNode>()

@@ -10,6 +10,43 @@ export type AccountType = 'client' | 'wishlist' | 'prospect' | 'lost'
 
 export type WishlistState = 'active' | 'basement' | 'archived'
 
+// ─── Shared picked option types ─────────────────────────────────────────────
+
+export type DepartmentOption = {
+  id: string
+  name: string
+  accentColor?: string | null
+}
+
+export type ParentDepartmentRow = {
+  id: string
+  name: string
+  parentId: string | null
+}
+
+export type ParentDepartmentOption = ParentDepartmentRow & {
+  depth: number
+}
+
+export type UserOption = {
+  id: string
+  name: string
+}
+
+export type UserRoleOption = UserOption & {
+  role: string
+}
+
+export type CompanyOption = {
+  id: string
+  name: string
+}
+
+export type CompanyAccountOption = {
+  id: string
+  companyName: string | null
+}
+
 // ─── Table row types (used in DataTable columns) ─────────────────────────────
 
 /** Row shape for the active (non-lost) clients DataTable */
@@ -93,4 +130,117 @@ export type CompanyRow = {
   isWishlist: boolean
   revenueLastYear: string | null
   revenueTwoYearsAgo: string | null
+}
+
+export type Todo = {
+  id: string
+  name: string
+  client: { id: string; name: string; accountType: AccountType } | null
+  creator: string
+  createdAt: Date
+  responsibles: string[]
+  deadline: Date | null
+  status: TodoStatus
+  completedAt: Date | null
+  departmentId: string | null
+  department: string | null
+}
+
+// ─── My company view types ──────────────────────────────────────────────────
+
+export type DepartmentUser = {
+  id: string
+  name: string
+  role: string
+  image: string | null
+}
+
+export type DepartmentRow = {
+  id: string
+  name: string
+  description: string | null
+  accentColor: string | null
+  headUserId: string | null
+  head: DepartmentUser | null
+  parentId: string | null
+  users: DepartmentUser[]
+}
+
+export type DepartmentNode = DepartmentRow & {
+  children: DepartmentNode[]
+}
+
+export type EmployeeRow = {
+  id: string
+  name: string
+  email: string
+  mobileNumber: string | null
+  lastActivityAt: Date | string | null
+}
+
+// ─── Detail view embedded item types ────────────────────────────────────────
+
+export type YearValue = {
+  id: string
+  year: number
+  value: string
+  createdAt: Date
+}
+
+export type Revenue = YearValue
+
+export type GrossProfit = YearValue
+
+export type TargetForecast = YearValue
+
+export type TextEntry = {
+  id: string
+  description: string
+  createdAt: Date
+}
+
+export type Risk = TextEntry
+
+export type Upselling = TextEntry
+
+export type Hook = TextEntry
+
+export type Contact = {
+  id: string
+  name: string
+  position: string | null
+  description: string | null
+  contacts: string | null
+}
+
+export type AccountTodoItem = {
+  id: string
+  name: string
+  status: TodoStatus
+  deadline: Date
+  completedAt: Date | null
+  archivedAt: Date | null
+  createdAt: Date
+  responsibleUsers: Array<{
+    user: UserOption
+  }>
+}
+
+export type TodoActionItem = {
+  id: string
+  status: TodoStatus
+  completedAt: Date | null
+  archivedAt: Date | null
+  responsibleUsers: Array<{
+    user: { id: string }
+  }>
+}
+
+export type UserFormUser = {
+  id: string
+  name: string
+  email: string
+  image?: string | null
+  role?: string | null
+  departmentId?: string | null
 }

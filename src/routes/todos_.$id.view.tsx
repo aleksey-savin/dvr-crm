@@ -3,7 +3,6 @@ import { TodoActions } from '@/components/todo-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -12,13 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { db } from '@/db'
-import { todo } from '@/db/schema'
-import { createFileRoute, Link, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  ArrowLeftIcon,
   CalendarIcon,
   CheckCircle2Icon,
   CircleDashedIcon,
@@ -27,29 +21,7 @@ import {
   Trash2Icon,
 } from 'lucide-react'
 import { TodoComments } from '@/components/todo-comments'
-
-const fetchTodo = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const task = await db.query.todo.findFirst({
-      where: eq(todo.id, data.id),
-      with: {
-        creator: {
-          columns: { name: true, image: true },
-        },
-        responsibleUsers: {
-          with: {
-            user: {
-              columns: { name: true, image: true, id: true },
-            },
-          },
-        },
-      },
-    })
-
-    if (!task) throw notFound()
-    return task
-  })
+import { fetchTodo } from '@/components/todos/actions'
 
 export const Route = createFileRoute('/todos_/$id/view')({
   component: RouteComponent,
@@ -77,11 +49,10 @@ const statusConfig = {
 function RouteComponent() {
   const item = Route.useLoaderData()
 
-  const status = statusConfig[item.status] ?? statusConfig['not started']
+  const status = statusConfig[item.status]
   const StatusIcon = status.icon
 
-  const isOverdue =
-    item.deadline && !item.completedAt && new Date(item.deadline) < new Date()
+  const isOverdue = !item.completedAt && new Date(item.deadline) < new Date()
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
@@ -178,43 +149,37 @@ function RouteComponent() {
                   <TableCell>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CalendarIcon className="size-4 shrink-0" />
-                      {item.deadline ? (
-                        <span
-                          className={
-                            isOverdue ? 'text-destructive font-medium' : ''
-                          }
-                        >
-                          {new Date(item.deadline).toLocaleDateString('ru-RU', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                          {isOverdue && ' — просрочена'}
-                        </span>
-                      ) : (
-                        <span className="italic">Срок не указан</span>
-                      )}
+                      <span
+                        className={
+                          isOverdue ? 'text-destructive font-medium' : ''
+                        }
+                      >
+                        {new Date(item.deadline).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                        {isOverdue && ' — просрочена'}
+                      </span>
                     </div>
                   </TableCell>
                   {item.completedAt && (
                     <TableCell>
-                      {item.completedAt && (
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
-                          <span className="text-emerald-500 font-medium">
-                            {new Date(item.completedAt).toLocaleDateString(
-                              'ru-RU',
-                              {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              },
-                            )}
-                          </span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2Icon className="size-4 shrink-0 text-emerald-500" />
+                        <span className="text-emerald-500 font-medium">
+                          {new Date(item.completedAt).toLocaleDateString(
+                            'ru-RU',
+                            {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            },
+                          )}
+                        </span>
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>

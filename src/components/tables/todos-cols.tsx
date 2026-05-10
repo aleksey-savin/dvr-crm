@@ -5,20 +5,9 @@ import { Link } from '@tanstack/react-router'
 import { ArrowUpDown, EditIcon, EyeIcon, Trash2Icon } from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
 import { cn } from '@/lib/utils'
+import type { Todo } from '@/types'
 
-export type Todo = {
-  id: string
-  name: string
-  client: { id: string; name: string } | null
-  creator: string
-  createdAt: Date
-  responsibles: string[]
-  deadline: Date | null
-  status: 'not started' | 'in progress' | 'completed'
-  completedAt: Date | null
-  departmentId: string | null
-  department: string | null
-}
+export type { Todo }
 
 const statusOptions: Record<
   Todo['status'],
@@ -74,9 +63,13 @@ export const columns: ColumnDef<Todo>[] = [
       const todo = row.original
       if (!todo.client)
         return <span className="text-muted-foreground text-sm">—</span>
+      const to =
+        todo.client.accountType === 'wishlist'
+          ? '/wishlist/$id/view'
+          : '/clients/$id/view'
       return (
         <Link
-          to="/clients/$id/view"
+          to={to}
           params={{ id: todo.client.id }}
           className="text-sm hover:underline"
         >

@@ -1,11 +1,5 @@
 import { toast } from 'sonner'
 import { ShieldAlertIcon, PlusIcon, Settings2Icon } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-import * as z from 'zod'
-
-import { db } from '@/db'
-import { accountRisk } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,37 +20,8 @@ import {
 } from '@/components/ui/table'
 
 import { Section, TextEntryDialog, DeleteRowButton } from './shared'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-export const addRisk = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({ clientId: z.string(), description: z.string().min(1) }),
-  )
-  .handler(async ({ data }) => {
-    await db.insert(accountRisk).values({
-      companyAccountId: data.clientId,
-      description: data.description,
-    })
-  })
-
-export const deleteRisk = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db.delete(accountRisk).where(eq(accountRisk.id, data.id))
-  })
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type Risk = {
-  id: string
-  description: string
-  createdAt: Date
-}
+import { addRisk, deleteRisk } from '@/components/accounts/actions'
+import type { Risk } from '@/types'
 
 type Props = {
   risks: Risk[]

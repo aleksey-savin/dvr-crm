@@ -1,10 +1,6 @@
 import * as React from 'react'
-import { createServerFn } from '@tanstack/react-start'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { db } from '@/db'
-import { comment, commentRead } from '@/db/schema'
 
-import * as z from 'zod'
 import { authClient } from 'utils/auth-client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -21,67 +17,11 @@ import {
   SendHorizontalIcon,
   RefreshCwIcon,
 } from 'lucide-react'
-
-// ---------------------------------------------------------------------------
-// Server functions
-// ---------------------------------------------------------------------------
-
-const fetchComments = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ entityType: z.string(), entityId: z.string() }))
-  .handler(async ({ data }) => {
-    return db.query.comment.findMany({
-      where: (c, { and, eq }) =>
-        and(eq(c.entityType, data.entityType), eq(c.entityId, data.entityId)),
-      with: {
-        author: { columns: { id: true, name: true, image: true } },
-        attachments: true,
-        reads: { columns: { userId: true, readAt: true, commentId: true } },
-      },
-      orderBy: (c, { asc }) => [asc(c.createdAt)],
-    })
-  })
-
-const addComment = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      entityType: z.string(),
-      entityId: z.string(),
-      content: z.string().min(1, 'Комментарий не может быть пустым'),
-      authorId: z.string(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const [inserted] = await db
-      .insert(comment)
-      .values({
-        content: data.content,
-        entityType: data.entityType,
-        entityId: data.entityId,
-        authorId: data.authorId,
-      })
-      .returning()
-    return inserted
-  })
-
-const markCommentsRead = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      commentIds: z.array(z.string()),
-      userId: z.string(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    if (data.commentIds.length === 0) return
-    await db
-      .insert(commentRead)
-      .values(
-        data.commentIds.map((id) => ({
-          commentId: id,
-          userId: data.userId,
-        })),
-      )
-      .onConflictDoNothing()
-  })
+import {
+  addComment,
+  fetchComments,
+  markCommentsRead,
+} from '@/components/comments/actions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -270,7 +210,7 @@ interface TodoCommentsProps {
 export function TodoComments({ entityType, entityId }: TodoCommentsProps) {
   const { data: session } = authClient.useSession()
   const queryClient = useQueryClient()
-  const userId = session?.user?.id
+  const userId = session?.user.id
 
   const [content, setContent] = React.useState('')
   const bottomRef = React.useRef<HTMLDivElement>(null)

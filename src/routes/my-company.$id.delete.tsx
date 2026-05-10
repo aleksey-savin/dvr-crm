@@ -1,11 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/db'
-import { department } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -17,30 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-
-const fetchDepartment = createServerFn()
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    return db.query.department.findFirst({ where: eq(department.id, id) })
-  })
-
-const deleteDepartment = createServerFn({ method: 'POST' })
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    const child = await db.query.department.findFirst({
-      columns: { id: true },
-      where: eq(department.parentId, id),
-    })
-
-    if (child) {
-      throw new Error('Сначала перенесите или удалите дочерние подразделения')
-    }
-
-    await db.delete(department).where(eq(department.id, id))
-  })
+import {
+  deleteDepartment,
+  fetchDepartment,
+} from '@/components/departments/actions'
 
 export const Route = createFileRoute('/my-company/$id/delete')({
-  loader: ({ params }) => fetchDepartment({ data: params.id }),
+  loader: ({ params }) => fetchDepartment({ data: params }),
   component: RouteComponent,
 })
 
@@ -54,7 +32,6 @@ function RouteComponent() {
   }
 
   const handleConfirm = async () => {
-    if (!departmentItem) return
     setIsLoading(true)
     try {
       await deleteDepartment({ data: departmentItem.id })
@@ -79,7 +56,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить подразделение?</AlertDialogTitle>
           <AlertDialogDescription>
-            Подразделение «{departmentItem?.name}» будет удалено без возможности
+            Подразделение «{departmentItem.name}» будет удалено без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>

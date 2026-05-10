@@ -1,12 +1,5 @@
-import * as React from 'react'
 import { toast } from 'sonner'
 import { TrendingUpIcon, PlusIcon, Settings2Icon } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
-import * as z from 'zod'
-
-import { db } from '@/db'
-import { companyRevenue } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -31,60 +24,8 @@ import {
   YearValueDialog,
   DeleteRowButton,
 } from '@/components/client-view/shared'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-export const addRevenue = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      companyId: z.string(),
-      year: z.number().int().min(2000).max(2100),
-      value: z.string().min(1),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const existing = await db
-      .select({ id: companyRevenue.id })
-      .from(companyRevenue)
-      .where(
-        and(
-          eq(companyRevenue.companyId, data.companyId),
-          eq(companyRevenue.year, data.year),
-        ),
-      )
-      .limit(1)
-
-    if (existing.length > 0) {
-      throw new Error(
-        `Выручка за ${data.year} год уже добавлена для этой компании`,
-      )
-    }
-
-    await db.insert(companyRevenue).values({
-      companyId: data.companyId,
-      year: data.year,
-      value: data.value,
-    })
-  })
-
-export const deleteRevenue = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db.delete(companyRevenue).where(eq(companyRevenue.id, data.id))
-  })
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type Revenue = {
-  id: string
-  year: number
-  value: string
-  createdAt: Date
-}
+import { addRevenue, deleteRevenue } from '@/components/companies/actions'
+import type { Revenue } from '@/types'
 
 type Props = {
   revenues: Revenue[]

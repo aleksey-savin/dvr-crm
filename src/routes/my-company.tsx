@@ -1,5 +1,5 @@
-import type { DepartmentRow } from '@/components/departments/department-tree'
 import { DepartmentTree } from '@/components/departments/department-tree'
+import { fetchMyCompanyData } from '@/components/departments/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -17,72 +17,17 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { db } from '@/db'
 import {
   createFileRoute,
   Link,
   Outlet,
   useRouter,
 } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { ListTodoIcon, Plus, UsersIcon } from 'lucide-react'
+import type { DepartmentRow, EmployeeRow } from '@/types'
 
 const myCompanyTabs = ['employees', 'structure'] as const
 type MyCompanyTab = (typeof myCompanyTabs)[number]
-
-const fetchMyCompanyData = createServerFn().handler(async () => {
-  const [departments, users] = await Promise.all([
-    db.query.department.findMany({
-      with: {
-        head: {
-          columns: {
-            id: true,
-            name: true,
-            role: true,
-            image: true,
-          },
-        },
-        users: {
-          columns: {
-            id: true,
-            name: true,
-            role: true,
-            image: true,
-          },
-        },
-      },
-      orderBy: (department, { asc }) => [asc(department.name)],
-    }),
-    db.query.user.findMany({
-      columns: {
-        id: true,
-        name: true,
-        email: true,
-      },
-      with: {
-        sessions: {
-          columns: {
-            updatedAt: true,
-          },
-          orderBy: (session, { desc }) => [desc(session.updatedAt)],
-          limit: 1,
-        },
-      },
-      orderBy: (user, { asc }) => [asc(user.name)],
-    }),
-  ])
-
-  return {
-    departments,
-    users: users.map((user) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      mobileNumber: null,
-      lastActivityAt: user.sessions.at(0)?.updatedAt ?? null,
-    })),
-  }
-})
 
 export const Route = createFileRoute('/my-company')({
   validateSearch: (search: Record<string, unknown>): { tab?: MyCompanyTab } => {
@@ -164,14 +109,6 @@ function RouteComponent() {
       <Outlet />
     </>
   )
-}
-
-type EmployeeRow = {
-  id: string
-  name: string
-  email: string
-  mobileNumber: string | null
-  lastActivityAt: Date | string | null
 }
 
 function EmployeesTable({ users }: { users: EmployeeRow[] }) {

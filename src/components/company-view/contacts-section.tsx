@@ -1,12 +1,6 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { UsersRoundIcon, PlusIcon, Settings2Icon, XIcon } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-import * as z from 'zod'
-
-import { db } from '@/db'
-import { companyContact } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,70 +25,12 @@ import {
 } from '@/components/ui/table'
 
 import { Section } from '@/components/client-view/shared'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-const addContactSchema = z.object({
-  companyId: z.string(),
-  name: z.string().min(1),
-  position: z.string().optional(),
-  description: z.string().optional(),
-  contacts: z.string().optional(),
-})
-
-const updateContactSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1),
-  position: z.string().optional(),
-  description: z.string().optional(),
-  contacts: z.string().optional(),
-})
-
-export const addCompanyContact = createServerFn({ method: 'POST' })
-  .inputValidator(addContactSchema)
-  .handler(async ({ data }) => {
-    await db.insert(companyContact).values({
-      companyId: data.companyId,
-      name: data.name,
-      position: data.position ?? null,
-      description: data.description ?? null,
-      contacts: data.contacts ?? null,
-    })
-  })
-
-export const updateCompanyContact = createServerFn({ method: 'POST' })
-  .inputValidator(updateContactSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(companyContact)
-      .set({
-        name: data.name,
-        position: data.position ?? null,
-        description: data.description ?? null,
-        contacts: data.contacts ?? null,
-      })
-      .where(eq(companyContact.id, data.id))
-  })
-
-export const deleteCompanyContact = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db.delete(companyContact).where(eq(companyContact.id, data.id))
-  })
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type Contact = {
-  id: string
-  name: string
-  position: string | null
-  description: string | null
-  contacts: string | null
-}
+import {
+  addCompanyContact,
+  deleteCompanyContact,
+  updateCompanyContact,
+} from '@/components/companies/actions'
+import type { Contact } from '@/types'
 
 type Props = {
   contacts: Contact[]
@@ -154,9 +90,10 @@ function ContactFormDialog({
     }
   }, [open, existing])
 
-  const set = (key: keyof ContactFormState) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  const set =
+    (key: keyof ContactFormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -401,7 +338,10 @@ export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
                     {c.name}
                   </span>
                   {c.position && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] h-4 px-1.5"
+                    >
                       {c.position}
                     </Badge>
                   )}

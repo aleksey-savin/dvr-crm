@@ -1,9 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { authClient } from 'utils/auth-client'
-import { createServerFn } from '@tanstack/react-start'
-import { db } from '@/db'
-import { apiKey } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
 import * as z from 'zod'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
@@ -18,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -44,77 +39,33 @@ import {
   EyeOffIcon,
   CopyIcon,
   CheckIcon,
-  InfoIcon,
 } from 'lucide-react'
+import {
+  addApiKey,
+  deleteApiKey,
+  getApiKeys,
+} from '@/components/preferences/actions'
+import type { SelectApiKey } from '@/db/types'
 
 export const Route = createFileRoute('/preferences')({
   component: RouteComponent,
 })
 
-const addApiKeySchema = z.object({
-  name: z.string().min(2, 'Название должно содержать минимум 2 символа'),
-  userId: z.string(),
-})
-
-const deleteApiKeySchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-})
-
-const getApiKeysSchema = z.object({
-  userId: z.string(),
-})
-
-const addApiKey = createServerFn({ method: 'POST' })
-  .inputValidator(addApiKeySchema)
-  .handler(async ({ data }) => {
-    // Generate a random API key
-    const generatedKey = `sk-${crypto.randomUUID().replace(/-/g, '')}${crypto.randomUUID().replace(/-/g, '').substring(0, 16)}`
-
-    const [inserted] = await db
-      .insert(apiKey)
-      .values({
-        name: data.name,
-        key: generatedKey,
-        userId: data.userId,
-      })
-      .returning()
-    return inserted
-  })
-
-const deleteApiKey = createServerFn({ method: 'POST' })
-  .inputValidator(deleteApiKeySchema)
-  .handler(async ({ data }) => {
-    await db
-      .delete(apiKey)
-      .where(and(eq(apiKey.id, data.id), eq(apiKey.userId, data.userId)))
-  })
-
-const getApiKeys = createServerFn({ method: 'POST' })
-  .inputValidator(getApiKeysSchema)
-  .handler(async ({ data }) => {
-    const keys = await db
-      .select()
-      .from(apiKey)
-      .where(eq(apiKey.userId, data.userId))
-      .orderBy(apiKey.createdAt)
-    return keys
-  })
-
 function RouteComponent() {
   const { data: session } = authClient.useSession()
-  const [apiKeys, setApiKeys] = useState<any[]>([])
+  const [apiKeys, setApiKeys] = useState<SelectApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [keyToDelete, setKeyToDelete] = useState<string | null>(null)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
   const [copiedKeys, setCopiedKeys] = useState<Set<string>>(new Set())
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null)
+  const userId = session?.user.id
 
   const loadApiKeys = async () => {
-    if (!session?.user?.id) return
+    if (!userId) return
     try {
-      const keys = await getApiKeys({ data: { userId: session.user.id } })
+      const keys = await getApiKeys({ data: { userId } })
       setApiKeys(keys)
     } catch (error) {
       toast.error('Не удалось загрузить API ключи')
@@ -125,7 +76,7 @@ function RouteComponent() {
 
   useEffect(() => {
     loadApiKeys()
-  }, [session?.user?.id])
+  }, [userId])
 
   const form = useForm({
     defaultValues: {
@@ -137,7 +88,7 @@ function RouteComponent() {
       }),
     },
     onSubmit: async ({ value }) => {
-      if (!session?.user?.id) {
+      if (!userId) {
         toast.error('Необходима авторизация')
         return
       }
@@ -145,7 +96,7 @@ function RouteComponent() {
         const newKey = await addApiKey({
           data: {
             name: value.name,
-            userId: session.user.id,
+            userId,
           },
         })
         toast.success('API ключ успешно создан')
@@ -165,12 +116,12 @@ function RouteComponent() {
   })
 
   const handleDelete = async () => {
-    if (!keyToDelete || !session?.user?.id) return
+    if (!keyToDelete || !userId) return
     try {
       await deleteApiKey({
         data: {
           id: keyToDelete,
-          userId: session.user.id,
+          userId,
         },
       })
       toast.success('API ключ успешно удален')

@@ -7,20 +7,7 @@ import { toast } from 'sonner'
 import { RichTextEditor } from '@/components/tiptap/rich-text-editor'
 import { Badge } from '@/components/ui/badge'
 import { roleLabels } from '@/utils/roleLabels'
-import { createServerFn } from '@tanstack/react-start'
 import { useDepartmentStore } from '@/stores/department-store'
-import {
-  todo,
-  todoResponsibleUsers,
-  user,
-  department,
-  client,
-  company,
-  clientManager,
-  wishlistClientResponsibleUsers,
-} from '@/db/schema'
-import { db } from '@/db'
-import { asc, eq } from 'drizzle-orm'
 import { authClient } from 'utils/auth-client'
 import { Input } from '@/components/ui/input'
 import * as React from 'react'
@@ -42,6 +29,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  addTodo,
+  getClients,
+  getDepartments,
+  getEntityManagers,
+  getTodoResponsibles,
+  getUsers,
+  setResponsibleUsers,
+  updateTodo,
+} from '@/components/todos/actions'
+import type { SelectTodo } from '@/db/types'
+import type {
+  CompanyAccountOption,
+  DepartmentOption,
+  UserRoleOption,
+} from '@/types'
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -59,206 +62,6 @@ const formSchema = z.object({
   wishlistClientId: z.string(),
 })
 
-const addSchema = z.object({
-  name: z.string().min(2, 'Задача должна содержать минимум 2 символа'),
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  departmentId: z.string().uuid(),
-  responsibles: z.array(z.string()).optional(),
-  createdBy: z.string(),
-  deadline: z.string().optional(),
-  clientId: z.string().optional(),
-  wishlistClientId: z.string().optional(),
-})
-
-const updateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(2, 'Задача должна содержать минимум 2 символа'),
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  departmentId: z.string().uuid(),
-  responsibles: z.array(z.string()).optional(),
-  createdBy: z.string(),
-  deadline: z.string().optional(),
-  clientId: z.string().optional(),
-  wishlistClientId: z.string().optional(),
-})
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type UserOption = {
-  id: string
-  name: string
-  role: string
-}
-
-type DepartmentOption = {
-  id: string
-  name: string
-}
-
-type ClientOption = {
-  id: string
-  companyName: string | null
-}
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-// Returns the user IDs of managers explicitly assigned to a client or
-// wishlist client. Used to highlight only relevant managers in the
-// responsibles combobox.
-const getEntityManagers = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      clientId: z.string().optional(),
-      wishlistClientId: z.string().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const ids: string[] = []
-
-    if (data.clientId) {
-      const rows = await db
-        .select({ userId: clientManager.userId })
-        .from(clientManager)
-        .where(eq(clientManager.clientId, data.clientId))
-      ids.push(...rows.map((r) => r.userId))
-    }
-
-    if (data.wishlistClientId) {
-      const rows = await db
-        .select({ userId: wishlistClientResponsibleUsers.userId })
-        .from(wishlistClientResponsibleUsers)
-        .where(
-          eq(
-            wishlistClientResponsibleUsers.wishlistClientId,
-            data.wishlistClientId,
-          ),
-        )
-      ids.push(...rows.map((r) => r.userId))
-    }
-
-    return ids
-  })
-
-const getUsers = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ departmentId: z.string() }))
-  .handler(async ({ data }) => {
-    const users = await db
-      .select({ id: user.id, name: user.name, role: user.role })
-      .from(user)
-      .where(eq(user.departmentId, data.departmentId))
-      .orderBy(user.name)
-    return users
-  })
-
-const getDepartments = createServerFn({ method: 'GET' }).handler(async () => {
-  const departments = await db
-    .select({ id: department.id, name: department.name })
-    .from(department)
-    .orderBy(department.name)
-  return departments
-})
-
-const getClients = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ departmentId: z.string().optional() }))
-  .handler(async ({ data }) => {
-    const rows = await db
-      .select({
-        id: client.id,
-        companyName: company.name,
-      })
-      .from(client)
-      .leftJoin(company, eq(client.companyId, company.id))
-      .where(
-        data.departmentId
-          ? eq(client.departmentId, data.departmentId)
-          : undefined,
-      )
-      .orderBy(asc(company.name))
-    return rows
-  })
-
-const addTodo = createServerFn({ method: 'POST' })
-  .inputValidator(addSchema)
-  .handler(async ({ data }) => {
-    const [inserted] = await db
-      .insert(todo)
-      .values({
-        name: data.name,
-        description: data.description,
-        createdBy: data.createdBy,
-        departmentId: data.departmentId,
-        ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
-        ...(data.clientId ? { clientId: data.clientId } : {}),
-        ...(data.wishlistClientId
-          ? { wishlistClientId: data.wishlistClientId }
-          : {}),
-      })
-      .returning({ id: todo.id })
-    return inserted.id
-  })
-
-const updateTodo = createServerFn({ method: 'POST' })
-  .inputValidator(updateSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(todo)
-      .set({
-        name: data.name,
-        description: data.description,
-        createdBy: data.createdBy,
-        departmentId: data.departmentId,
-        ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
-        ...(data.clientId ? { clientId: data.clientId } : { clientId: null }),
-        ...(data.wishlistClientId
-          ? { wishlistClientId: data.wishlistClientId }
-          : { wishlistClientId: null }),
-      })
-      .where(eq(todo.id, data.id))
-  })
-
-const setResponsibleUsers = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      todoId: z.string(),
-      userIds: z.array(z.string()),
-    }),
-  )
-  .handler(async ({ data }) => {
-    await db
-      .delete(todoResponsibleUsers)
-      .where(eq(todoResponsibleUsers.todoId, data.todoId))
-
-    if (data.userIds.length > 0) {
-      await db.insert(todoResponsibleUsers).values(
-        data.userIds.map((userId) => ({
-          todoId: data.todoId,
-          userId,
-        })),
-      )
-    }
-  })
-
-const getTodoResponsibles = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ todoId: z.string() }))
-  .handler(async ({ data }) => {
-    const rows = await db
-      .select({ id: user.id, name: user.name, role: user.role })
-      .from(todoResponsibleUsers)
-      .innerJoin(user, eq(todoResponsibleUsers.userId, user.id))
-      .where(eq(todoResponsibleUsers.todoId, data.todoId))
-    return rows
-  })
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -266,7 +69,10 @@ const getTodoResponsibles = createServerFn({ method: 'GET' })
 // A user is highlighted in the responsibles combobox when:
 //   - they are a marketer (department-level, always relevant), OR
 //   - they are explicitly a manager of the selected client/wishlistClient
-function isHighlighted(u: UserOption, entityManagerIds: Set<string>): boolean {
+function isHighlighted(
+  u: UserRoleOption,
+  entityManagerIds: Set<string>,
+): boolean {
   if (u.role === 'marketer') return true
   if (entityManagerIds.size > 0 && entityManagerIds.has(u.id)) return true
   return false
@@ -284,7 +90,7 @@ const TodoForm = ({
   wishlistClientLabel,
   defaultDepartmentId,
 }: {
-  item?: any
+  item?: SelectTodo
   onSuccess?: () => void
   /** Pre-selected client when opening from the client view page */
   clientId?: string
@@ -298,10 +104,10 @@ const TodoForm = ({
   const storeDepartments = useDepartmentStore((s) => s.departments)
   const globalDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
 
-  const [users, setUsers] = React.useState<UserOption[]>([])
+  const [users, setUsers] = React.useState<UserRoleOption[]>([])
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
-  const [clients, setClients] = React.useState<ClientOption[]>([])
-  const [selectedUsers, setSelectedUsers] = React.useState<UserOption[]>([])
+  const [clients, setClients] = React.useState<CompanyAccountOption[]>([])
+  const [selectedUsers, setSelectedUsers] = React.useState<UserRoleOption[]>([])
   const [entityManagerIds, setEntityManagerIds] = React.useState<Set<string>>(
     new Set(),
   )
@@ -329,8 +135,8 @@ const TodoForm = ({
 
   // Pre-load manager IDs for a locked client/wishlistClient (prop-driven, never changes)
   React.useEffect(() => {
-    const clientId = item?.clientId ?? defaultClientId
-    const wishlistClientId = item?.wishlistClientId ?? defaultWishlistClientId
+    const clientId = item?.companyAccountId ?? defaultClientId
+    const wishlistClientId = defaultWishlistClientId
     if (!clientId && !wishlistClientId) return
     getEntityManagers({ data: { clientId, wishlistClientId } })
       .then((ids) => setEntityManagerIds(new Set(ids)))
@@ -343,27 +149,26 @@ const TodoForm = ({
 
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? '') as string,
+      name: (item?.name ?? ''),
       description: item?.description as string | undefined,
       deadline: defaultDeadline as string | undefined,
       departmentId: (item?.departmentId ??
         defaultDepartmentId ??
         globalDepartmentId ??
-        '') as string,
-      clientId: (item?.clientId ?? defaultClientId ?? '') as string,
-      wishlistClientId: (item?.wishlistClientId ??
-        defaultWishlistClientId ??
-        '') as string,
+        ''),
+      clientId: (defaultWishlistClientId
+        ? ''
+        : (item?.companyAccountId ?? defaultClientId ?? '')),
+      wishlistClientId: (defaultWishlistClientId ?? ''),
     },
     validators: {
       onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
-      const userId = session?.user?.id ?? ''
+      const userId = session?.user.id ?? ''
       // Treat empty string as "no client"
-      const resolvedClientId = value.clientId?.trim() || undefined
-      const resolvedWishlistClientId =
-        value.wishlistClientId?.trim() || undefined
+      const resolvedClientId = value.clientId.trim() || undefined
+      const resolvedWishlistClientId = value.wishlistClientId.trim() || undefined
 
       if (!item) {
         try {
@@ -573,7 +378,7 @@ const TodoForm = ({
                       </span>
                     </FieldLabel>
                     <Select
-                      value={field.state.value ?? ''}
+                      value={field.state.value}
                       onValueChange={(val) => {
                         const newVal = val === '__none__' ? '' : val
                         field.handleChange(newVal)
@@ -661,7 +466,7 @@ const TodoForm = ({
             >
               <ComboboxChips>
                 <ComboboxValue>
-                  {(value: UserOption[]) =>
+                  {(value: UserRoleOption[]) =>
                     value.map((u) => (
                       <ComboboxChip key={u.id}>{u.name}</ComboboxChip>
                     ))
@@ -685,7 +490,7 @@ const TodoForm = ({
                             }
                             className="ml-auto h-4 px-1.5 text-[10px] leading-none shrink-0"
                           >
-                            {roleLabels[u.role] ?? u.role}
+                            {roleLabels[u.role]}
                           </Badge>
                         )}
                       </span>

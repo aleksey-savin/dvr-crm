@@ -1,11 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/db'
-import { todo } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -17,21 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-
-const fetchTodo = createServerFn()
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    return db.query.todo.findFirst({ where: eq(todo.id, id) })
-  })
-
-const deleteTodo = createServerFn({ method: 'POST' })
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    await db.delete(todo).where(eq(todo.id, id))
-  })
+import { deleteTodo, fetchTodo } from '@/components/todos/actions'
 
 export const Route = createFileRoute('/todos/$id/delete')({
-  loader: ({ params }) => fetchTodo({ data: params.id }),
+  loader: ({ params }) => fetchTodo({ data: params }),
   component: RouteComponent,
 })
 
@@ -45,7 +29,6 @@ function RouteComponent() {
   }
 
   const handleConfirm = async () => {
-    if (!todo) return
     setIsLoading(true)
     try {
       await deleteTodo({ data: todo.id })
@@ -70,7 +53,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить задачу?</AlertDialogTitle>
           <AlertDialogDescription>
-            Задача «{todo?.name}» будет удалена без возможности восстановления.
+            Задача «{todo.name}» будет удалена без возможности восстановления.
             Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>

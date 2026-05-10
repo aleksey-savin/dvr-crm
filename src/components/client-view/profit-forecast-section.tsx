@@ -6,12 +6,6 @@ import {
   PlusIcon,
   Settings2Icon,
 } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
-import * as z from 'zod'
-
-import { db } from '@/db'
-import { accountGrossProfit, accountTargetForecast } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -33,110 +27,13 @@ import {
 } from '@/components/ui/table'
 
 import { Section, YearValueDialog, DeleteRowButton } from './shared'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-export const addGrossProfit = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      clientId: z.string(),
-      year: z.number().int().min(2000).max(2100),
-      value: z.string().min(1),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const existing = await db
-      .select({ id: accountGrossProfit.id })
-      .from(accountGrossProfit)
-      .where(
-        and(
-          eq(accountGrossProfit.companyAccountId, data.clientId),
-          eq(accountGrossProfit.year, data.year),
-        ),
-      )
-      .limit(1)
-
-    if (existing.length > 0) {
-      throw new Error(
-        `Запись ВП за ${data.year} год уже существует для этого клиента`,
-      )
-    }
-
-    await db.insert(accountGrossProfit).values({
-      companyAccountId: data.clientId,
-      year: data.year,
-      value: data.value,
-    })
-  })
-
-export const deleteGrossProfit = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db
-      .delete(accountGrossProfit)
-      .where(eq(accountGrossProfit.id, data.id))
-  })
-
-export const addTargetForecast = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      clientId: z.string(),
-      year: z.number().int().min(2000).max(2100),
-      value: z.string().min(1),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const existing = await db
-      .select({ id: accountTargetForecast.id })
-      .from(accountTargetForecast)
-      .where(
-        and(
-          eq(accountTargetForecast.companyAccountId, data.clientId),
-          eq(accountTargetForecast.year, data.year),
-        ),
-      )
-      .limit(1)
-
-    if (existing.length > 0) {
-      throw new Error(
-        `Прогноз за ${data.year} год уже существует для этого клиента`,
-      )
-    }
-
-    await db.insert(accountTargetForecast).values({
-      companyAccountId: data.clientId,
-      year: data.year,
-      value: data.value,
-    })
-  })
-
-export const deleteTargetForecast = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db
-      .delete(accountTargetForecast)
-      .where(eq(accountTargetForecast.id, data.id))
-  })
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type GrossProfit = {
-  id: string
-  year: number
-  value: string
-  createdAt: Date
-}
-
-type TargetForecast = {
-  id: string
-  year: number
-  value: string
-  createdAt: Date
-}
+import {
+  addGrossProfit,
+  addTargetForecast,
+  deleteGrossProfit,
+  deleteTargetForecast,
+} from '@/components/accounts/actions'
+import type { GrossProfit, TargetForecast } from '@/types'
 
 type Props = {
   grossProfits: GrossProfit[]

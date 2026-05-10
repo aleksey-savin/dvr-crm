@@ -1,9 +1,6 @@
 import '@/components/tiptap/tiptap.css'
 
-import { createFileRoute, Link, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { useRouter } from '@tanstack/react-router'
-import { eq } from 'drizzle-orm'
+import { createFileRoute, Link, useRouter  } from '@tanstack/react-router'
 import {
   EditIcon,
   Trash2Icon,
@@ -11,9 +8,6 @@ import {
   ShieldAlertIcon,
   UsersIcon,
 } from 'lucide-react'
-
-import { db } from '@/db'
-import { companyAccount, todo } from '@/db/schema'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,42 +20,7 @@ import { RisksSection } from '@/components/client-view/risks-section'
 import { UpsellingSection } from '@/components/client-view/upselling-section'
 import { ClientTodosSection } from '@/components/client-view/client-todos-section'
 import { Section } from '@/components/client-view/shared'
-
-// ---------------------------------------------------------------------------
-// Server fn — fetch
-// ---------------------------------------------------------------------------
-
-const fetchClient = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const [row, todos] = await Promise.all([
-      db.query.companyAccount.findFirst({
-        where: eq(companyAccount.id, data.id),
-        with: {
-          company: true,
-          businessUnit: true,
-          owner: { columns: { id: true, name: true, image: true } },
-          risks: true,
-          grossProfits: true,
-          targetForecasts: true,
-          upsellingOpportunities: true,
-        },
-      }),
-      db.query.todo.findMany({
-        where: eq(todo.companyAccountId, data.id),
-        with: {
-          responsibleUsers: {
-            with: {
-              user: { columns: { id: true, name: true } },
-            },
-          },
-        },
-      }),
-    ])
-
-    if (!row) throw notFound()
-    return { ...row, todos }
-  })
+import { fetchClient } from '@/components/accounts/actions'
 
 // ---------------------------------------------------------------------------
 // Route

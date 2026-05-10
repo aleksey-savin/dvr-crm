@@ -21,28 +21,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import TodoForm from '@/components/todo-form'
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type TodoStatus = 'not started' | 'in progress' | 'completed'
-
-type TodoItem = {
-  id: string
-  name: string
-  status: TodoStatus
-  deadline: Date
-  completedAt: Date | null
-  archivedAt: Date | null
-  createdAt: Date
-  responsibleUsers: Array<{
-    user: { id: string; name: string }
-  }>
-}
+import type { AccountTodoItem, TodoStatus } from '@/types'
 
 type Props = {
-  todos: TodoItem[]
+  todos: AccountTodoItem[]
   wishlistClientId: string
   companyName?: string
   defaultDepartmentId?: string
@@ -135,8 +117,8 @@ function AddTodoDialog({
 // Single todo row
 // ---------------------------------------------------------------------------
 
-function TodoRow({ todo }: { todo: TodoItem }) {
-  const cfg = statusConfig[todo.status] ?? statusConfig['not started']
+function TodoRow({ todo }: { todo: AccountTodoItem }) {
+  const cfg = statusConfig[todo.status]
   const StatusIcon = cfg.icon
   const overdue = isOverdue(todo.deadline, todo.status)
 

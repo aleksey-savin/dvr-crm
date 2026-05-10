@@ -10,12 +10,9 @@ import { toast } from 'sonner'
 
 import { RichTextEditor } from '@/components/tiptap/rich-text-editor'
 
-import { createServerFn } from '@tanstack/react-start'
-import { company } from '@/db/schema'
-import { db } from '@/db'
-import { eq } from 'drizzle-orm'
-
 import { Input } from '@/components/ui/input'
+import { addCompany, updateCompany } from '@/components/companies/actions'
+import type { SelectCompany } from '@/db/types'
 
 const formSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
@@ -27,66 +24,16 @@ const formSchema = z.object({
   industry: z.union([z.string(), z.undefined()]),
 })
 
-const addSchema = z.object({
-  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  regionalMarketPosition: z.string().optional(),
-  industry: z.string().optional(),
-})
-
-const updateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  regionalMarketPosition: z.string().optional(),
-  industry: z.string().optional(),
-})
-
-const addCompany = createServerFn({ method: 'POST' })
-  .inputValidator(addSchema)
-  .handler(async ({ data }) => {
-    const [inserted] = await db
-      .insert(company)
-      .values({
-        name: data.name,
-        description: data.description,
-        regionalMarketPosition: data.regionalMarketPosition,
-        industry: data.industry,
-      })
-      .returning({ id: company.id })
-    return inserted.id
-  })
-
-const updateCompany = createServerFn({ method: 'POST' })
-  .inputValidator(updateSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(company)
-      .set({
-        name: data.name,
-        description: data.description,
-        regionalMarketPosition: data.regionalMarketPosition,
-        industry: data.industry,
-      })
-      .where(eq(company.id, data.id))
-  })
-
 const CompanyForm = ({
   item,
   onSuccess,
 }: {
-  item?: any
+  item?: SelectCompany
   onSuccess?: () => void
 }) => {
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? '') as string,
+      name: (item?.name ?? ''),
       description: item?.description as string | undefined,
       regionalMarketPosition: item?.regionalMarketPosition as
         | string

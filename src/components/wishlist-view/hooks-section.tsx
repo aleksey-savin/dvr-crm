@@ -1,11 +1,5 @@
 import { toast } from 'sonner'
 import { LinkIcon, PlusIcon, Settings2Icon } from 'lucide-react'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-import * as z from 'zod'
-
-import { db } from '@/db'
-import { clientHook } from '@/db/schema'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,38 +19,13 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { Section, TextEntryDialog, DeleteRowButton } from '@/components/client-view/shared'
-
-// ---------------------------------------------------------------------------
-// Server fns
-// ---------------------------------------------------------------------------
-
-export const addHook = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({ wishlistClientId: z.string(), description: z.string().min(1) }),
-  )
-  .handler(async ({ data }) => {
-    await db.insert(clientHook).values({
-      wishlistClientId: data.wishlistClientId,
-      description: data.description,
-    })
-  })
-
-export const deleteHook = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    await db.delete(clientHook).where(eq(clientHook.id, data.id))
-  })
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-export type Hook = {
-  id: string
-  description: string
-  createdAt: Date
-}
+import {
+  Section,
+  TextEntryDialog,
+  DeleteRowButton,
+} from '@/components/client-view/shared'
+import { addHook, deleteHook } from '@/components/accounts/actions'
+import type { Hook } from '@/types'
 
 type Props = {
   hooks: Hook[]

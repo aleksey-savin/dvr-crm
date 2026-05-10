@@ -1,9 +1,6 @@
 import '@/components/tiptap/tiptap.css'
 
-import { createFileRoute, Link, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { useRouter } from '@tanstack/react-router'
-import { eq } from 'drizzle-orm'
+import { createFileRoute, Link, useRouter  } from '@tanstack/react-router'
 import {
   ArrowLeftIcon,
   EditIcon,
@@ -15,9 +12,6 @@ import {
   BookmarkIcon,
 } from 'lucide-react'
 
-import { db } from '@/db'
-import { company } from '@/db/schema'
-
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -26,37 +20,7 @@ import { TodoComments } from '@/components/todo-comments'
 import { Section } from '@/components/client-view/shared'
 import { ContactsSection } from '@/components/company-view/contacts-section'
 import { RevenueSection } from '@/components/company-view/revenue-section'
-
-// ---------------------------------------------------------------------------
-// Server fn — fetch
-// ---------------------------------------------------------------------------
-
-const fetchCompany = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const row = await db.query.company.findFirst({
-      where: eq(company.id, data.id),
-      with: {
-        contacts: true,
-        revenues: true,
-        accounts: {
-          columns: {
-            id: true,
-            accountType: true,
-            isTarget: true,
-            isLost: true,
-            why: true,
-          },
-          with: {
-            businessUnit: { columns: { id: true, name: true } },
-          },
-        },
-      },
-    })
-
-    if (!row) throw notFound()
-    return row
-  })
+import { fetchCompany } from '@/components/companies/actions'
 
 // ---------------------------------------------------------------------------
 // Route

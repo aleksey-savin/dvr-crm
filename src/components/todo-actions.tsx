@@ -1,54 +1,30 @@
 import { useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import z from 'zod'
 
-import { db } from '@/db'
-import { todo } from '@/db/schema'
+import { updateTodoStatus } from '@/components/todos/actions'
+import type { TodoActionItem, TodoStatus } from '@/types'
 import { authClient } from 'utils/auth-client'
 
 import { Button } from './ui/button'
 
-const updateTodoStatusFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      id: z.string().min(1),
-      status: z.enum(['not started', 'in progress', 'completed']),
-      completedAt: z.date().nullable(),
-      archivedAt: z.date().nullable(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    await db
-      .update(todo)
-      .set({
-        status: data.status,
-        completedAt: data.completedAt,
-        archivedAt: data.archivedAt,
-      })
-      .where(eq(todo.id, data.id))
-  })
-
 type StatusAction = 'accept' | 'complete' | 'reopen' | 'archive'
 
-export const TodoActions = ({ item }: { item: any }) => {
+export const TodoActions = ({ item }: { item: TodoActionItem }) => {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { data: session } = authClient.useSession()
 
-  const isResponsible = item.responsibleUsers?.some(
-    ({ user }: { user: { id: string } }) => user.id === session?.user?.id,
+  const isResponsible = item.responsibleUsers.some(
+    ({ user }) => user.id === session?.user.id,
   )
 
   if (!isResponsible) return null
 
   const handleUpdateStatus = async (action: StatusAction) => {
-    if (!item) return
     setIsLoading(true)
     try {
-      let newStatus: 'not started' | 'in progress' | 'completed' = item.status
+      let newStatus: TodoStatus = item.status
       let completedAt: Date | null = item.completedAt ?? null
       let archivedAt: Date | null = item.archivedAt ?? null
 
@@ -70,7 +46,7 @@ export const TodoActions = ({ item }: { item: any }) => {
           break
       }
 
-      await updateTodoStatusFn({
+      await updateTodoStatus({
         data: { id: item.id, status: newStatus, completedAt, archivedAt },
       })
       toast.success('Статус обновлён')

@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { roleLabels } from '@/utils/roleLabels'
 import { Link } from '@tanstack/react-router'
 import {
@@ -11,13 +10,12 @@ import {
   Trash2Icon,
   UsersIcon,
 } from 'lucide-react'
-import type { DepartmentNode } from './types'
-import { formatRuCount, getDescriptionPreview, getInitials } from './text-utils'
+import type { DepartmentNode } from '@/types'
+import { formatRuCount, getInitials } from './text-utils'
 
 export function DepartmentCard({ node }: { node: DepartmentNode }) {
   const accentColor = node.accentColor?.trim()
   const head = node.head
-  const description = getDescriptionPreview(node.description)
   const style: CSSProperties | undefined = accentColor
     ? { borderTopColor: accentColor }
     : undefined
@@ -25,7 +23,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
   return (
     <div className="department-node-card">
       <div
-        className="flex h-[11.5rem] w-72 flex-col gap-3 rounded-lg border border-t-4 bg-card p-3 text-left shadow-sm transition-shadow hover:shadow-md"
+        className="flex h-46 w-72 flex-col gap-3 rounded-lg border border-t-4 bg-card p-3 text-left shadow-sm transition-shadow hover:shadow-md"
         style={style}
       >
         <div className="flex items-start justify-between gap-2">

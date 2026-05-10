@@ -11,7 +11,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useDepartmentStore, type Department } from '@/stores/department-store'
+import { useDepartmentStore } from '@/stores/department-store'
+import type { DepartmentOption } from '@/types'
 
 function ColorDot({ color, size = 8 }: { color: string; size?: number }) {
   return (
@@ -25,7 +26,7 @@ function ColorDot({ color, size = 8 }: { color: string; size?: number }) {
 export function VersionSwitcher({
   departments,
 }: {
-  departments: Department[]
+  departments: DepartmentOption[]
 }) {
   const { selectedDepartmentId, setSelectedDepartmentId } = useDepartmentStore()
 

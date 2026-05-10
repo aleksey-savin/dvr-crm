@@ -1,11 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/db'
-import { wishlistClient } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -17,24 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-
-const fetchWishlistClient = createServerFn()
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    return db.query.wishlistClient.findFirst({
-      where: eq(wishlistClient.id, id),
-      with: { company: { columns: { name: true } } },
-    })
-  })
-
-const deleteWishlistClient = createServerFn({ method: 'POST' })
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    await db.delete(wishlistClient).where(eq(wishlistClient.id, id))
-  })
+import {
+  deleteWishlistClient,
+  fetchWishlistClient,
+} from '@/components/accounts/actions'
 
 export const Route = createFileRoute('/wishlist/$id/delete')({
-  loader: ({ params }) => fetchWishlistClient({ data: params.id }),
+  loader: ({ params }) => fetchWishlistClient({ data: params }),
   component: RouteComponent,
 })
 
@@ -48,7 +32,6 @@ function RouteComponent() {
   }
 
   const handleConfirm = async () => {
-    if (!item) return
     setIsLoading(true)
     try {
       await deleteWishlistClient({ data: item.id })
@@ -73,7 +56,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить из вишлиста?</AlertDialogTitle>
           <AlertDialogDescription>
-            Компания «{item?.company.name}» будет удалена из вишлиста без
+            Компания «{item.company.name}» будет удалена из вишлиста без
             возможности восстановления. Все связанные данные (хуки, задачи,
             комментарии) также будут удалены.
           </AlertDialogDescription>

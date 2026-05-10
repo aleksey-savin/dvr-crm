@@ -1,21 +1,7 @@
 import CompanyForm from '@/components/company-form'
+import { fetchCompany } from '@/components/companies/actions'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-import { db } from '@/db'
-import { company } from '@/db/schema'
-import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-
-const fetchCompany = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const task = await db.query.company.findFirst({
-      where: eq(company.id, data.id),
-    })
-
-    if (task === null) throw notFound()
-    return task
-  })
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/companies/$id/update')({
   component: RouteComponent,

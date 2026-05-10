@@ -17,21 +17,9 @@ import {
 import { NavUser } from './nav-user'
 import { authClient } from 'utils/auth-client'
 import { Link } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useQuery } from '@tanstack/react-query'
-import { db } from '@/db'
 import { useDepartmentStore } from '@/stores/department-store'
-
-// ---------------------------------------------------------------------------
-// Server function
-// ---------------------------------------------------------------------------
-
-const fetchDepartments = createServerFn({ method: 'GET' }).handler(async () => {
-  return db.query.department.findMany({
-    columns: { id: true, name: true, accentColor: true },
-    orderBy: (d, { asc }) => [asc(d.name)],
-  })
-})
+import { fetchSidebarDepartments } from '@/components/departments/actions'
 
 // ---------------------------------------------------------------------------
 // Nav data
@@ -45,6 +33,10 @@ const navMain = [
       {
         title: 'Дашборд',
         url: '/dashboard',
+      },
+      {
+        title: 'Моя компания',
+        url: '/my-company',
       },
     ],
   },
@@ -112,10 +104,6 @@ const navMain = [
         url: '/users',
       },
       {
-        title: 'Моя компания',
-        url: '/my-company',
-      },
-      {
         title: 'Настройки',
         url: '/preferences',
       },
@@ -134,7 +122,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
-    queryFn: () => fetchDepartments(),
+    queryFn: () => fetchSidebarDepartments(),
     staleTime: 60_000,
   })
 

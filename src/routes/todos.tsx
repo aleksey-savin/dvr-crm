@@ -1,9 +1,7 @@
-import { db } from '@/db'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useDepartmentStore } from '@/stores/department-store'
 import { DataTable } from '@/components/tables/data-table'
-import { columns, type Todo } from '@/components/tables/todos-cols'
+import { columns } from '@/components/tables/todos-cols'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,44 +12,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import { ListTodoIcon, Plus } from 'lucide-react'
-
-const fetchTodos = createServerFn().handler(async (): Promise<Todo[]> => {
-  const rows = await db.query.todo.findMany({
-    with: {
-      creator: { columns: { name: true } },
-      department: { columns: { name: true } },
-      companyAccount: {
-        with: {
-          company: { columns: { name: true } },
-        },
-      },
-      responsibleUsers: {
-        with: {
-          user: { columns: { name: true } },
-        },
-      },
-    },
-  })
-
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    client: row.companyAccount
-      ? {
-          id: row.companyAccount.id,
-          name: row.companyAccount.company?.name ?? row.companyAccount.id,
-        }
-      : null,
-    creator: row.creator.name,
-    createdAt: row.createdAt,
-    responsibles: row.responsibleUsers.map(({ user }) => user.name),
-    deadline: row.deadline ?? null,
-    status: row.status as Todo['status'],
-    completedAt: row.completedAt ?? null,
-    departmentId: row.departmentId ?? null,
-    department: row.department?.name ?? null,
-  }))
-})
+import { fetchTodos } from '@/components/todos/actions'
 
 export const Route = createFileRoute('/todos')({
   component: RouteComponent,

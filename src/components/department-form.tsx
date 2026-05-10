@@ -16,15 +16,17 @@ import * as React from 'react'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
-import { RichTextEditor } from '@/components/tiptap/rich-text-editor'
-
-import { createServerFn } from '@tanstack/react-start'
-import { department, user } from '@/db/schema'
-import { db } from '@/db'
-import { eq } from 'drizzle-orm'
 import { roleLabels } from '@/utils/roleLabels'
 
 import { Input } from '@/components/ui/input'
+import {
+  addDepartment,
+  fetchHeadUserOptions,
+  fetchParentDepartmentOptions,
+  updateDepartment,
+} from '@/components/departments/actions'
+import type { SelectDepartment } from '@/db/types'
+import type { ParentDepartmentOption, UserRoleOption } from '@/types'
 
 const ROOT_PARENT_VALUE = '__root__'
 const NO_HEAD_USER_VALUE = '__no_head__'
@@ -46,107 +48,6 @@ const formSchema = z.object({
   accentColor: accentColorSchema,
   parentId: parentIdSchema,
 })
-
-const addSchema = z.object({
-  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  headUserId: headUserIdSchema,
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  accentColor: accentColorSchema,
-  parentId: parentIdSchema,
-})
-
-const updateSchema = z.object({
-  id: z.string(),
-  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  headUserId: headUserIdSchema,
-  description: z
-    .string()
-    .min(2, 'Описание должно содержать минимум 2 символа')
-    .optional(),
-  accentColor: accentColorSchema,
-  parentId: parentIdSchema,
-})
-
-type ParentDepartmentRow = {
-  id: string
-  name: string
-  parentId: string | null
-}
-
-type ParentDepartmentOption = ParentDepartmentRow & {
-  depth: number
-}
-
-type HeadUserOption = {
-  id: string
-  name: string
-  role: string
-}
-
-function getExcludedDepartmentIds(
-  rows: ParentDepartmentRow[],
-  excludeId?: string,
-) {
-  const excludedIds = new Set<string>()
-  if (!excludeId) return excludedIds
-
-  const childrenByParentId = new Map<string, ParentDepartmentRow[]>()
-  for (const row of rows) {
-    if (!row.parentId) continue
-    const siblings = childrenByParentId.get(row.parentId) ?? []
-    siblings.push(row)
-    childrenByParentId.set(row.parentId, siblings)
-  }
-
-  const stack = [excludeId]
-  while (stack.length > 0) {
-    const id = stack.pop()
-    if (!id || excludedIds.has(id)) continue
-
-    excludedIds.add(id)
-    for (const child of childrenByParentId.get(id) ?? []) {
-      stack.push(child.id)
-    }
-  }
-
-  return excludedIds
-}
-
-function buildParentDepartmentOptions(
-  rows: ParentDepartmentRow[],
-  excludeId?: string,
-) {
-  const excludedIds = getExcludedDepartmentIds(rows, excludeId)
-  const allowedRows = rows.filter((row) => !excludedIds.has(row.id))
-  const allowedIds = new Set(allowedRows.map((row) => row.id))
-  const childrenByParentId = new Map<string | null, ParentDepartmentRow[]>()
-
-  for (const row of allowedRows) {
-    const parentId =
-      row.parentId && allowedIds.has(row.parentId) ? row.parentId : null
-    const siblings = childrenByParentId.get(parentId) ?? []
-    siblings.push(row)
-    childrenByParentId.set(parentId, siblings)
-  }
-
-  for (const siblings of childrenByParentId.values()) {
-    siblings.sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-  }
-
-  const options: ParentDepartmentOption[] = []
-  const appendOptions = (items: ParentDepartmentRow[], depth: number) => {
-    for (const item of items) {
-      options.push({ ...item, depth })
-      appendOptions(childrenByParentId.get(item.id) ?? [], depth + 1)
-    }
-  }
-
-  appendOptions(childrenByParentId.get(null) ?? [], 0)
-  return options
-}
 
 function normalizeHexColor(value: string) {
   const rawValue = value.trim()
@@ -176,137 +77,12 @@ function getColorPickerValue(value: string) {
     : DEFAULT_ACCENT_COLOR.toLowerCase()
 }
 
-async function validateDepartmentParent(
-  parentId?: string,
-  departmentId?: string,
-) {
-  if (!parentId) return null
-
-  if (departmentId && parentId === departmentId) {
-    throw new Error('Подразделение не может быть родителем самого себя')
-  }
-
-  const rows = await db
-    .select({
-      id: department.id,
-      name: department.name,
-      parentId: department.parentId,
-    })
-    .from(department)
-    .orderBy(department.name)
-
-  const byId = new Map(rows.map((row) => [row.id, row]))
-  if (!byId.has(parentId)) {
-    throw new Error('Родительское подразделение не найден')
-  }
-
-  const visitedIds = new Set<string>()
-  let currentParentId: string | null = parentId
-
-  while (currentParentId) {
-    if (departmentId && currentParentId === departmentId) {
-      throw new Error(
-        'Нельзя перенести подразделение внутрь его дочернего подразделения',
-      )
-    }
-
-    if (visitedIds.has(currentParentId)) {
-      throw new Error('В иерархии подразделений обнаружен цикл')
-    }
-
-    visitedIds.add(currentParentId)
-    currentParentId = byId.get(currentParentId)?.parentId ?? null
-  }
-
-  return parentId
-}
-
-async function validateDepartmentHead(headUserId?: string) {
-  if (!headUserId) return null
-
-  const head = await db.query.user.findFirst({
-    columns: { id: true },
-    where: eq(user.id, headUserId),
-  })
-
-  if (!head) {
-    throw new Error('Руководитель не найден')
-  }
-
-  return headUserId
-}
-
-const fetchParentDepartmentOptions = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ excludeId: z.string().optional() }))
-  .handler(async ({ data }) => {
-    const rows = await db
-      .select({
-        id: department.id,
-        name: department.name,
-        parentId: department.parentId,
-      })
-      .from(department)
-      .orderBy(department.name)
-
-    return buildParentDepartmentOptions(rows, data.excludeId)
-  })
-
-const fetchHeadUserOptions = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return await db
-      .select({
-        id: user.id,
-        name: user.name,
-        role: user.role,
-      })
-      .from(user)
-      .orderBy(user.name)
-  },
-)
-
-const addDepartment = createServerFn({ method: 'POST' })
-  .inputValidator(addSchema)
-  .handler(async ({ data }) => {
-    const parentId = await validateDepartmentParent(data.parentId)
-    const headUserId = await validateDepartmentHead(data.headUserId)
-
-    const [inserted] = await db
-      .insert(department)
-      .values({
-        name: data.name,
-        headUserId,
-        description: data.description,
-        accentColor: data.accentColor,
-        parentId,
-      })
-      .returning({ id: department.id })
-    return inserted.id
-  })
-
-const updateDepartment = createServerFn({ method: 'POST' })
-  .inputValidator(updateSchema)
-  .handler(async ({ data }) => {
-    const parentId = await validateDepartmentParent(data.parentId, data.id)
-    const headUserId = await validateDepartmentHead(data.headUserId)
-
-    await db
-      .update(department)
-      .set({
-        name: data.name,
-        headUserId,
-        description: data.description,
-        accentColor: data.accentColor,
-        parentId,
-      })
-      .where(eq(department.id, data.id))
-  })
-
 const DepartmentForm = ({
   item,
   initialParentId,
   onSuccess,
 }: {
-  item?: any
+  item?: SelectDepartment
   initialParentId?: string
   onSuccess?: () => void
 }) => {
@@ -314,7 +90,7 @@ const DepartmentForm = ({
     ParentDepartmentOption[]
   >([])
   const [headUserOptions, setHeadUserOptions] = React.useState<
-    HeadUserOption[]
+    UserRoleOption[]
   >([])
 
   React.useEffect(() => {
@@ -345,13 +121,13 @@ const DepartmentForm = ({
 
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? '') as string,
-      headUserId: (item?.headUserId ?? undefined) as string | undefined,
+      name: (item?.name ?? ''),
+      headUserId: (item?.headUserId ?? undefined),
       description: item?.description as string | undefined,
       accentColor: normalizeHexColor(
-        (item?.accentColor ?? DEFAULT_ACCENT_COLOR) as string,
+        (item?.accentColor ?? DEFAULT_ACCENT_COLOR),
       ),
-      parentId: (item?.parentId ?? initialParentId) as string | undefined,
+      parentId: (item?.parentId ?? initialParentId),
     },
     validators: {
       onSubmit: formSchema,

@@ -1,21 +1,7 @@
 import TodoForm from '@/components/todo-form'
+import { fetchTodo } from '@/components/todos/actions'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-import { db } from '@/db'
-import { todo } from '@/db/schema'
-import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
-
-const fetchTodo = createServerFn({ method: 'GET' })
-  .inputValidator((data: { id: string }) => data)
-  .handler(async ({ data }) => {
-    const task = await db.query.todo.findFirst({
-      where: eq(todo.id, data.id),
-    })
-
-    if (task === null) throw notFound()
-    return task
-  })
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/todos/$id/update')({
   component: RouteComponent,

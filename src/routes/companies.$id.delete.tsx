@@ -1,11 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { eq } from 'drizzle-orm'
-
-import { db } from '@/db'
-import { company } from '@/db/schema'
 
 import {
   AlertDialog,
@@ -17,21 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-
-const fetchCompany = createServerFn()
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    return db.query.company.findFirst({ where: eq(company.id, id) })
-  })
-
-const deleteCompany = createServerFn({ method: 'POST' })
-  .inputValidator((id: string) => id)
-  .handler(async ({ data: id }) => {
-    await db.delete(company).where(eq(company.id, id))
-  })
+import { deleteCompany, fetchCompany } from '@/components/companies/actions'
 
 export const Route = createFileRoute('/companies/$id/delete')({
-  loader: ({ params }) => fetchCompany({ data: params.id }),
+  loader: ({ params }) => fetchCompany({ data: params }),
   component: RouteComponent,
 })
 
@@ -45,7 +29,6 @@ function RouteComponent() {
   }
 
   const handleConfirm = async () => {
-    if (!company) return
     setIsLoading(true)
     try {
       await deleteCompany({ data: company.id })
@@ -70,7 +53,7 @@ function RouteComponent() {
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить подразделение?</AlertDialogTitle>
           <AlertDialogDescription>
-            Подразделение «{company?.name}» будет удалено без возможности
+            Подразделение «{company.name}» будет удалено без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>
