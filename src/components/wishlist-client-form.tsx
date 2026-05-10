@@ -59,7 +59,7 @@ const addSchema = z.object({
   companyId: z.string().min(1, 'Выберите компанию'),
   departmentIds: z
     .array(z.string())
-    .min(1, 'Выберите хотя бы один бизнес-юнит'),
+    .min(1, 'Выберите хотя бы одно подразделение'),
   why: z.string().optional(),
 })
 
@@ -67,7 +67,7 @@ const updateSchema = z.object({
   id: z.string(),
   departmentIds: z
     .array(z.string())
-    .min(1, 'Выберите хотя бы один бизнес-юнит'),
+    .min(1, 'Выберите хотя бы одно подразделение'),
   why: z.string().optional(),
 })
 
@@ -257,7 +257,7 @@ const WishlistClientForm = ({
       const departmentIds = selectedDepartments.map((d) => d.id)
 
       if (departmentIds.length === 0) {
-        toast.error('Выберите хотя бы один бизнес-юнит')
+        toast.error('Выберите хотя бы одно подразделение')
         return
       }
 
@@ -301,7 +301,7 @@ const WishlistClientForm = ({
       >
         {/* Departments multi-select — drives company filtering */}
         <div className="flex flex-col gap-1.5">
-          <Label>Бизнес-юниты *</Label>
+          <Label>Подразделение *</Label>
           <Combobox
             items={departments}
             itemToStringValue={(d) => d.name}
@@ -320,10 +320,10 @@ const WishlistClientForm = ({
                   ))
                 }
               </ComboboxValue>
-              <ComboboxChipsInput placeholder="Добавить бизнес-юнит" />
+              <ComboboxChipsInput placeholder="Добавить подразделение" />
             </ComboboxChips>
             <ComboboxContent container={portalRef.current}>
-              <ComboboxEmpty>Бизнес-юниты не найдены</ComboboxEmpty>
+              <ComboboxEmpty>Подразделения не найдены</ComboboxEmpty>
               <ComboboxList>
                 {(d) => (
                   <ComboboxItem key={d.id} value={d}>

@@ -14,11 +14,11 @@ import { Route as UsersRouteImport } from './routes/users'
 import { Route as TodosRouteImport } from './routes/todos'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PreferencesRouteImport } from './routes/preferences'
+import { Route as MyCompanyRouteImport } from './routes/my-company'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as MeetingRoomBookingRouteImport } from './routes/meeting-room-booking'
 import { Route as MailingListsRouteImport } from './routes/mailing-lists'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as DepartmentsRouteImport } from './routes/departments'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
@@ -26,7 +26,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WishlistNewRouteImport } from './routes/wishlist.new'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
-import { Route as DepartmentsNewRouteImport } from './routes/departments.new'
+import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as WishlistIdViewRouteImport } from './routes/wishlist_.$id.view'
@@ -39,9 +39,9 @@ import { Route as UsersIdBanRouteImport } from './routes/users.$id.ban'
 import { Route as TodosIdViewRouteImport } from './routes/todos_.$id.view'
 import { Route as TodosIdUpdateRouteImport } from './routes/todos.$id.update'
 import { Route as TodosIdDeleteRouteImport } from './routes/todos.$id.delete'
-import { Route as DepartmentsIdViewRouteImport } from './routes/departments_.$id.view'
-import { Route as DepartmentsIdUpdateRouteImport } from './routes/departments.$id.update'
-import { Route as DepartmentsIdDeleteRouteImport } from './routes/departments.$id.delete'
+import { Route as MyCompanyIdViewRouteImport } from './routes/my-company_.$id.view'
+import { Route as MyCompanyIdUpdateRouteImport } from './routes/my-company.$id.update'
+import { Route as MyCompanyIdDeleteRouteImport } from './routes/my-company.$id.delete'
 import { Route as CompaniesIdViewRouteImport } from './routes/companies_.$id.view'
 import { Route as CompaniesIdUpdateRouteImport } from './routes/companies.$id.update'
 import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.delete'
@@ -77,6 +77,11 @@ const PreferencesRoute = PreferencesRouteImport.update({
   path: '/preferences',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyCompanyRoute = MyCompanyRouteImport.update({
+  id: '/my-company',
+  path: '/my-company',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeetingsRoute = MeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -95,11 +100,6 @@ const MailingListsRoute = MailingListsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DepartmentsRoute = DepartmentsRouteImport.update({
-  id: '/departments',
-  path: '/departments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -137,10 +137,10 @@ const TodosNewRoute = TodosNewRouteImport.update({
   path: '/new',
   getParentRoute: () => TodosRoute,
 } as any)
-const DepartmentsNewRoute = DepartmentsNewRouteImport.update({
+const MyCompanyNewRoute = MyCompanyNewRouteImport.update({
   id: '/new',
   path: '/new',
-  getParentRoute: () => DepartmentsRoute,
+  getParentRoute: () => MyCompanyRoute,
 } as any)
 const CompaniesNewRoute = CompaniesNewRouteImport.update({
   id: '/new',
@@ -202,20 +202,20 @@ const TodosIdDeleteRoute = TodosIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => TodosRoute,
 } as any)
-const DepartmentsIdViewRoute = DepartmentsIdViewRouteImport.update({
-  id: '/departments_/$id/view',
-  path: '/departments/$id/view',
+const MyCompanyIdViewRoute = MyCompanyIdViewRouteImport.update({
+  id: '/my-company_/$id/view',
+  path: '/my-company/$id/view',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DepartmentsIdUpdateRoute = DepartmentsIdUpdateRouteImport.update({
+const MyCompanyIdUpdateRoute = MyCompanyIdUpdateRouteImport.update({
   id: '/$id/update',
   path: '/$id/update',
-  getParentRoute: () => DepartmentsRoute,
+  getParentRoute: () => MyCompanyRoute,
 } as any)
-const DepartmentsIdDeleteRoute = DepartmentsIdDeleteRouteImport.update({
+const MyCompanyIdDeleteRoute = MyCompanyIdDeleteRouteImport.update({
   id: '/$id/delete',
   path: '/$id/delete',
-  getParentRoute: () => DepartmentsRoute,
+  getParentRoute: () => MyCompanyRoute,
 } as any)
 const CompaniesIdViewRoute = CompaniesIdViewRouteImport.update({
   id: '/companies_/$id/view',
@@ -268,11 +268,11 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
+  '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -280,7 +280,7 @@ export interface FileRoutesByFullPath {
   '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
-  '/departments/new': typeof DepartmentsNewRoute
+  '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -293,9 +293,9 @@ export interface FileRoutesByFullPath {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies/$id/view': typeof CompaniesIdViewRoute
-  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
-  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
-  '/departments/$id/view': typeof DepartmentsIdViewRoute
+  '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
+  '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
+  '/my-company/$id/view': typeof MyCompanyIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -312,11 +312,11 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
+  '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -324,7 +324,7 @@ export interface FileRoutesByTo {
   '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
-  '/departments/new': typeof DepartmentsNewRoute
+  '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -337,9 +337,9 @@ export interface FileRoutesByTo {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies/$id/view': typeof CompaniesIdViewRoute
-  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
-  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
-  '/departments/$id/view': typeof DepartmentsIdViewRoute
+  '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
+  '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
+  '/my-company/$id/view': typeof MyCompanyIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -357,11 +357,11 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
-  '/departments': typeof DepartmentsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
+  '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
   '/signup': typeof SignupRoute
   '/todos': typeof TodosRouteWithChildren
@@ -369,7 +369,7 @@ export interface FileRoutesById {
   '/wishlist': typeof WishlistRouteWithChildren
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
-  '/departments/new': typeof DepartmentsNewRoute
+  '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -382,9 +382,9 @@ export interface FileRoutesById {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies_/$id/view': typeof CompaniesIdViewRoute
-  '/departments/$id/delete': typeof DepartmentsIdDeleteRoute
-  '/departments/$id/update': typeof DepartmentsIdUpdateRoute
-  '/departments_/$id/view': typeof DepartmentsIdViewRoute
+  '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
+  '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
+  '/my-company_/$id/view': typeof MyCompanyIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos_/$id/view': typeof TodosIdViewRoute
@@ -403,11 +403,11 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
-    | '/departments'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
+    | '/my-company'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -415,7 +415,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/clients/new'
     | '/companies/new'
-    | '/departments/new'
+    | '/my-company/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -428,9 +428,9 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies/$id/view'
-    | '/departments/$id/delete'
-    | '/departments/$id/update'
-    | '/departments/$id/view'
+    | '/my-company/$id/delete'
+    | '/my-company/$id/update'
+    | '/my-company/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -447,11 +447,11 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
-    | '/departments'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
+    | '/my-company'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -459,7 +459,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/clients/new'
     | '/companies/new'
-    | '/departments/new'
+    | '/my-company/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -472,9 +472,9 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies/$id/view'
-    | '/departments/$id/delete'
-    | '/departments/$id/update'
-    | '/departments/$id/view'
+    | '/my-company/$id/delete'
+    | '/my-company/$id/update'
+    | '/my-company/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -491,11 +491,11 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
-    | '/departments'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
+    | '/my-company'
     | '/preferences'
     | '/signup'
     | '/todos'
@@ -503,7 +503,7 @@ export interface FileRouteTypes {
     | '/wishlist'
     | '/clients/new'
     | '/companies/new'
-    | '/departments/new'
+    | '/my-company/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -516,9 +516,9 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies_/$id/view'
-    | '/departments/$id/delete'
-    | '/departments/$id/update'
-    | '/departments_/$id/view'
+    | '/my-company/$id/delete'
+    | '/my-company/$id/update'
+    | '/my-company_/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos_/$id/view'
@@ -536,11 +536,11 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRouteWithChildren
   CompaniesRoute: typeof CompaniesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
-  DepartmentsRoute: typeof DepartmentsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MailingListsRoute: typeof MailingListsRoute
   MeetingRoomBookingRoute: typeof MeetingRoomBookingRoute
   MeetingsRoute: typeof MeetingsRoute
+  MyCompanyRoute: typeof MyCompanyRouteWithChildren
   PreferencesRoute: typeof PreferencesRoute
   SignupRoute: typeof SignupRoute
   TodosRoute: typeof TodosRouteWithChildren
@@ -551,7 +551,7 @@ export interface RootRouteChildren {
   ApiPingSplatRoute: typeof ApiPingSplatRoute
   ClientsIdViewRoute: typeof ClientsIdViewRoute
   CompaniesIdViewRoute: typeof CompaniesIdViewRoute
-  DepartmentsIdViewRoute: typeof DepartmentsIdViewRoute
+  MyCompanyIdViewRoute: typeof MyCompanyIdViewRoute
   TodosIdViewRoute: typeof TodosIdViewRoute
   WishlistIdViewRoute: typeof WishlistIdViewRoute
 }
@@ -593,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-company': {
+      id: '/my-company'
+      path: '/my-company'
+      fullPath: '/my-company'
+      preLoaderRoute: typeof MyCompanyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/meetings': {
       id: '/meetings'
       path: '/meetings'
@@ -619,13 +626,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/departments': {
-      id: '/departments'
-      path: '/departments'
-      fullPath: '/departments'
-      preLoaderRoute: typeof DepartmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -677,12 +677,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosNewRouteImport
       parentRoute: typeof TodosRoute
     }
-    '/departments/new': {
-      id: '/departments/new'
+    '/my-company/new': {
+      id: '/my-company/new'
       path: '/new'
-      fullPath: '/departments/new'
-      preLoaderRoute: typeof DepartmentsNewRouteImport
-      parentRoute: typeof DepartmentsRoute
+      fullPath: '/my-company/new'
+      preLoaderRoute: typeof MyCompanyNewRouteImport
+      parentRoute: typeof MyCompanyRoute
     }
     '/companies/new': {
       id: '/companies/new'
@@ -768,26 +768,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosIdDeleteRouteImport
       parentRoute: typeof TodosRoute
     }
-    '/departments_/$id/view': {
-      id: '/departments_/$id/view'
-      path: '/departments/$id/view'
-      fullPath: '/departments/$id/view'
-      preLoaderRoute: typeof DepartmentsIdViewRouteImport
+    '/my-company_/$id/view': {
+      id: '/my-company_/$id/view'
+      path: '/my-company/$id/view'
+      fullPath: '/my-company/$id/view'
+      preLoaderRoute: typeof MyCompanyIdViewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/departments/$id/update': {
-      id: '/departments/$id/update'
+    '/my-company/$id/update': {
+      id: '/my-company/$id/update'
       path: '/$id/update'
-      fullPath: '/departments/$id/update'
-      preLoaderRoute: typeof DepartmentsIdUpdateRouteImport
-      parentRoute: typeof DepartmentsRoute
+      fullPath: '/my-company/$id/update'
+      preLoaderRoute: typeof MyCompanyIdUpdateRouteImport
+      parentRoute: typeof MyCompanyRoute
     }
-    '/departments/$id/delete': {
-      id: '/departments/$id/delete'
+    '/my-company/$id/delete': {
+      id: '/my-company/$id/delete'
       path: '/$id/delete'
-      fullPath: '/departments/$id/delete'
-      preLoaderRoute: typeof DepartmentsIdDeleteRouteImport
-      parentRoute: typeof DepartmentsRoute
+      fullPath: '/my-company/$id/delete'
+      preLoaderRoute: typeof MyCompanyIdDeleteRouteImport
+      parentRoute: typeof MyCompanyRoute
     }
     '/companies_/$id/view': {
       id: '/companies_/$id/view'
@@ -886,20 +886,20 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
   CompaniesRouteChildren,
 )
 
-interface DepartmentsRouteChildren {
-  DepartmentsNewRoute: typeof DepartmentsNewRoute
-  DepartmentsIdDeleteRoute: typeof DepartmentsIdDeleteRoute
-  DepartmentsIdUpdateRoute: typeof DepartmentsIdUpdateRoute
+interface MyCompanyRouteChildren {
+  MyCompanyNewRoute: typeof MyCompanyNewRoute
+  MyCompanyIdDeleteRoute: typeof MyCompanyIdDeleteRoute
+  MyCompanyIdUpdateRoute: typeof MyCompanyIdUpdateRoute
 }
 
-const DepartmentsRouteChildren: DepartmentsRouteChildren = {
-  DepartmentsNewRoute: DepartmentsNewRoute,
-  DepartmentsIdDeleteRoute: DepartmentsIdDeleteRoute,
-  DepartmentsIdUpdateRoute: DepartmentsIdUpdateRoute,
+const MyCompanyRouteChildren: MyCompanyRouteChildren = {
+  MyCompanyNewRoute: MyCompanyNewRoute,
+  MyCompanyIdDeleteRoute: MyCompanyIdDeleteRoute,
+  MyCompanyIdUpdateRoute: MyCompanyIdUpdateRoute,
 }
 
-const DepartmentsRouteWithChildren = DepartmentsRoute._addFileChildren(
-  DepartmentsRouteChildren,
+const MyCompanyRouteWithChildren = MyCompanyRoute._addFileChildren(
+  MyCompanyRouteChildren,
 )
 
 interface TodosRouteChildren {
@@ -955,11 +955,11 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRouteWithChildren,
   CompaniesRoute: CompaniesRouteWithChildren,
   DashboardRoute: DashboardRoute,
-  DepartmentsRoute: DepartmentsRouteWithChildren,
   LoginRoute: LoginRoute,
   MailingListsRoute: MailingListsRoute,
   MeetingRoomBookingRoute: MeetingRoomBookingRoute,
   MeetingsRoute: MeetingsRoute,
+  MyCompanyRoute: MyCompanyRouteWithChildren,
   PreferencesRoute: PreferencesRoute,
   SignupRoute: SignupRoute,
   TodosRoute: TodosRouteWithChildren,
@@ -970,7 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPingSplatRoute: ApiPingSplatRoute,
   ClientsIdViewRoute: ClientsIdViewRoute,
   CompaniesIdViewRoute: CompaniesIdViewRoute,
-  DepartmentsIdViewRoute: DepartmentsIdViewRoute,
+  MyCompanyIdViewRoute: MyCompanyIdViewRoute,
   TodosIdViewRoute: TodosIdViewRoute,
   WishlistIdViewRoute: WishlistIdViewRoute,
 }

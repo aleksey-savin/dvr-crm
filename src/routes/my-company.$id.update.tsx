@@ -13,11 +13,11 @@ const fetchDepartment = createServerFn({ method: 'GET' })
       where: eq(department.id, data.id),
     })
 
-    if (task === null) throw notFound()
+    if (!task) throw notFound()
     return task
   })
 
-export const Route = createFileRoute('/departments/$id/update')({
+export const Route = createFileRoute('/my-company/$id/update')({
   component: RouteComponent,
   loader: async ({ params }) => fetchDepartment({ data: params }),
 })
@@ -25,15 +25,15 @@ export const Route = createFileRoute('/departments/$id/update')({
 function RouteComponent() {
   const router = useRouter()
 
-  const department = Route.useLoaderData()
+  const departmentItem = Route.useLoaderData()
 
   const handleClose = () => {
-    router.history.back()
+    router.navigate({ to: '/my-company', search: { tab: 'structure' } })
   }
 
   const handleSuccess = () => {
     router.invalidate()
-    router.history.back()
+    router.navigate({ to: '/my-company', search: { tab: 'structure' } })
   }
 
   return (
@@ -42,10 +42,10 @@ function RouteComponent() {
       onOpenChange={(open) => {
         if (!open) handleClose()
       }}
-      title="Изменить бизнес-юнит"
-      description="Изменение бизнес-юнита"
+      title="Изменить подразделение"
+      description="Изменение подразделение"
     >
-      <DepartmentForm onSuccess={handleSuccess} item={department} />
+      <DepartmentForm onSuccess={handleSuccess} item={departmentItem} />
     </ResponsiveDialog>
   )
 }

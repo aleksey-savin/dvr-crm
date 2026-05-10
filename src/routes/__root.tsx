@@ -93,7 +93,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                     </div>
                     <ModeToggle />
                   </header>
-                  <div className="p-8">{children}</div>
+                  <div className="flex min-h-0 flex-1 flex-col p-4">
+                    {children}
+                  </div>
                 </SidebarInset>
               </SidebarProvider>
             ) : (

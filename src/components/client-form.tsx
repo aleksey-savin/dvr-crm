@@ -28,7 +28,7 @@ import { Label } from './ui/label'
 // ---------------------------------------------------------------------------
 
 const formSchema = z.object({
-  businessUnitId: z.string().uuid('Выберите бизнес-юнит'),
+  businessUnitId: z.string().uuid('Выберите подразделение'),
   companyId: z.string().uuid('Выберите компанию'),
   isTarget: z.boolean(),
   isLost: z.boolean(),
@@ -353,7 +353,7 @@ const ClientForm = ({
                 field.state.meta.isTouched && !field.state.meta.isValid
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Бизнес-юнит</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Подразделение</FieldLabel>
                   <Select
                     value={field.state.value}
                     onValueChange={(val) => {
@@ -373,7 +373,7 @@ const ClientForm = ({
                       className="w-full"
                       onBlur={field.handleBlur}
                     >
-                      <SelectValue placeholder="Выберите бизнес-юнит" />
+                      <SelectValue placeholder="Выберите подразделение" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((d) => (
@@ -418,7 +418,7 @@ const ClientForm = ({
                           initialCompanyId
                             ? 'Загрузка…'
                             : !selectedBusinessUnitId
-                              ? 'Сначала выберите бизнес-юнит'
+                              ? 'Сначала выберите подразделение'
                               : companiesLoading
                                 ? 'Загрузка…'
                                 : 'Выберите компанию'
@@ -550,7 +550,7 @@ const ClientForm = ({
                     <SelectValue
                       placeholder={
                         !selectedBusinessUnitId
-                          ? 'Сначала выберите бизнес-юнит'
+                          ? 'Сначала выберите подразделение'
                           : 'Не назначен'
                       }
                     />

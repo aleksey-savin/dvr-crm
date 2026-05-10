@@ -68,9 +68,9 @@ function RouteComponent() {
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Удалить бизнес-юнит?</AlertDialogTitle>
+          <AlertDialogTitle>Удалить подразделение?</AlertDialogTitle>
           <AlertDialogDescription>
-            Бизнес-юнит «{company?.name}» будет удален без возможности
+            Подразделение «{company?.name}» будет удалено без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>

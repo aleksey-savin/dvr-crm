@@ -49,7 +49,7 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
   {
     id: 'businessUnit',
     accessorKey: 'businessUnit',
-    header: 'Бизнес-юнит',
+    header: 'Подразделение',
     cell: ({ row }) => {
       const name = row.original.businessUnit
       return <Badge variant="secondary">{name}</Badge>

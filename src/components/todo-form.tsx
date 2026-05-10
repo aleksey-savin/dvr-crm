@@ -54,7 +54,7 @@ const formSchema = z.object({
     z.undefined(),
   ]),
   deadline: z.union([z.string(), z.undefined()]),
-  departmentId: z.string().uuid('Выберите бизнес-юнит'),
+  departmentId: z.string().uuid('Выберите подразделение'),
   clientId: z.string(),
   wishlistClientId: z.string(),
 })
@@ -512,7 +512,7 @@ const TodoForm = ({
                 field.state.meta.isTouched && !field.state.meta.isValid
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Бизнес-юнит</FieldLabel>
+                  <FieldLabel htmlFor={field.name}>Подразделение</FieldLabel>
                   <Select
                     value={field.state.value}
                     onValueChange={(val) => {
@@ -532,7 +532,7 @@ const TodoForm = ({
                       className="w-full"
                       onBlur={field.handleBlur}
                     >
-                      <SelectValue placeholder="Выберите бизнес-юнит" />
+                      <SelectValue placeholder="Выберите подразделение" />
                     </SelectTrigger>
                     <SelectContent>
                       {visibleDepartments.map((dept) => (

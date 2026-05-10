@@ -253,6 +253,13 @@
       "when": 1773205149304,
       "tag": "0035_rich_energizer",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1778145178786,
+      "tag": "0036_early_prodigy",
+      "breakpoints": true
     }
   ]
 }

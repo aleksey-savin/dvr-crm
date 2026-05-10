@@ -27,31 +27,40 @@ const fetchDepartment = createServerFn()
 const deleteDepartment = createServerFn({ method: 'POST' })
   .inputValidator((id: string) => id)
   .handler(async ({ data: id }) => {
+    const child = await db.query.department.findFirst({
+      columns: { id: true },
+      where: eq(department.parentId, id),
+    })
+
+    if (child) {
+      throw new Error('Сначала перенесите или удалите дочерние подразделения')
+    }
+
     await db.delete(department).where(eq(department.id, id))
   })
 
-export const Route = createFileRoute('/departments/$id/delete')({
+export const Route = createFileRoute('/my-company/$id/delete')({
   loader: ({ params }) => fetchDepartment({ data: params.id }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
-  const department = Route.useLoaderData()
+  const departmentItem = Route.useLoaderData()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
   const handleClose = () => {
-    router.navigate({ to: '/departments' })
+    router.navigate({ to: '/my-company', search: { tab: 'structure' } })
   }
 
   const handleConfirm = async () => {
-    if (!department) return
+    if (!departmentItem) return
     setIsLoading(true)
     try {
-      await deleteDepartment({ data: department.id })
-      toast.success('Задача удалена')
+      await deleteDepartment({ data: departmentItem.id })
+      toast.success('Подразделение удалено')
       router.invalidate()
-      router.navigate({ to: '/departments' })
+      router.navigate({ to: '/my-company', search: { tab: 'structure' } })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {
@@ -68,9 +77,9 @@ function RouteComponent() {
     >
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Удалить бизнес-юнит?</AlertDialogTitle>
+          <AlertDialogTitle>Удалить подразделение?</AlertDialogTitle>
           <AlertDialogDescription>
-            Бизнес-юнит «{department?.name}» будет удален без возможности
+            Подразделение «{departmentItem?.name}» будет удалено без возможности
             восстановления. Это действие необратимо.
           </AlertDialogDescription>
         </AlertDialogHeader>

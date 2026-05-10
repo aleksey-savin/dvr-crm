@@ -1,6 +1,5 @@
 import * as React from 'react'
 
-import { SearchForm } from '@/components/search-form'
 import { VersionSwitcher } from '@/components/version-switcher'
 import {
   Sidebar,
@@ -113,8 +112,8 @@ const navMain = [
         url: '/users',
       },
       {
-        title: 'Бизнес-юниты',
-        url: '/departments',
+        title: 'Моя компания',
+        url: '/my-company',
       },
       {
         title: 'Настройки',

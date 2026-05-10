@@ -1,4 +1,5 @@
 import { relations } from 'drizzle-orm'
+import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import {
   pgTable,
   text,
@@ -21,9 +22,12 @@ export const user = pgTable('user', {
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
   role: text('role').notNull().default('user'),
-  departmentId: text('department_id').references(() => department.id, {
-    onDelete: 'set null',
-  }),
+  departmentId: text('department_id').references(
+    (): AnyPgColumn => department.id,
+    {
+      onDelete: 'set null',
+    },
+  ),
   banned: boolean('banned').default(false).notNull(),
   banReason: text('ban_reason'),
   banExpires: timestamp('ban_expires'),
@@ -107,10 +111,21 @@ export const department = pgTable(
     name: text('name').notNull(),
     description: text('description'),
     accentColor: text('accent_color'),
+    headUserId: text('head_user_id').references((): AnyPgColumn => user.id, {
+      onDelete: 'restrict',
+    }),
+    parentId: text('parent_department_id').references(
+      (): AnyPgColumn => department.id,
+      { onDelete: 'restrict' },
+    ),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
-  (table) => [index('department_name_idx').on(table.name)],
+  (table) => [
+    index('department_name_idx').on(table.name),
+    index('department_head_user_id_idx').on(table.headUserId),
+    index('department_parent_id_idx').on(table.parentId),
+  ],
 )
 
 // ---------------------------------------------------------------------------
@@ -582,6 +597,9 @@ export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
   ownedCompanyAccounts: many(companyAccount),
+  headedDepartments: many(department, {
+    relationName: 'departmentHead',
+  }),
   responsibleTodos: many(todoResponsibleUsers),
   comments: many(comment),
   commentReads: many(commentRead),
@@ -589,6 +607,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   department: one(department, {
     fields: [user.departmentId],
     references: [department.id],
+    relationName: 'departmentUsers',
   }),
 }))
 
@@ -680,10 +699,25 @@ export const companyContactRelations = relations(companyContact, ({ one }) => ({
   }),
 }))
 
-export const departmentRelations = relations(department, ({ many }) => ({
+export const departmentRelations = relations(department, ({ one, many }) => ({
+  head: one(user, {
+    fields: [department.headUserId],
+    references: [user.id],
+    relationName: 'departmentHead',
+  }),
+  parent: one(department, {
+    fields: [department.parentId],
+    references: [department.id],
+    relationName: 'departmentHierarchy',
+  }),
+  children: many(department, {
+    relationName: 'departmentHierarchy',
+  }),
   todos: many(todo),
   accounts: many(companyAccount),
-  users: many(user),
+  users: many(user, {
+    relationName: 'departmentUsers',
+  }),
 }))
 
 export const meetingRelations = relations(meeting, ({ one }) => ({
