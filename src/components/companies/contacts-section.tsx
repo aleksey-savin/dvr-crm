@@ -24,7 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { Section } from '@/components/client-view/shared'
+import { Section } from '@/components/companyAccounts/client-view/shared'
 import {
   addCompanyContact,
   deleteCompanyContact,

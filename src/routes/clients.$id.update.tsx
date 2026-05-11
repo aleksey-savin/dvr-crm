@@ -1,5 +1,5 @@
-import ClientForm from '@/components/client-form'
-import { fetchClient } from '@/components/accounts/actions'
+import ClientForm from '@/components/companyAccounts/client-form'
+import { fetchClient } from '@/components/companyAccounts/actions'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 

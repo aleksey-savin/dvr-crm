@@ -32,7 +32,7 @@ import {
   addTargetForecast,
   deleteGrossProfit,
   deleteTargetForecast,
-} from '@/components/accounts/actions'
+} from '@/components/companyAccounts/actions'
 import type { GrossProfit, TargetForecast } from '@/types'
 
 type Props = {

@@ -20,14 +20,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import TodoForm from '@/components/todo-form'
+import TodoForm from '@/components/todos/todo-form'
 import type { AccountTodoItem, TodoStatus } from '@/types'
 
 type Props = {
   todos: AccountTodoItem[]
-  wishlistClientId: string
-  companyName?: string
-  defaultDepartmentId?: string
+  clientId: string
+  defaultDepartmentId: string
   onRefresh: () => void
 }
 
@@ -73,14 +72,12 @@ const isOverdue = (deadline: Date | string, status: TodoStatus) => {
 // ---------------------------------------------------------------------------
 
 function AddTodoDialog({
-  wishlistClientId,
-  companyName,
+  clientId,
   defaultDepartmentId,
   onSuccess,
 }: {
-  wishlistClientId: string
-  companyName?: string
-  defaultDepartmentId?: string
+  clientId: string
+  defaultDepartmentId: string
   onSuccess: () => void
 }) {
   const [open, setOpen] = React.useState(false)
@@ -99,8 +96,7 @@ function AddTodoDialog({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <TodoForm
-            wishlistClientId={wishlistClientId}
-            wishlistClientLabel={companyName}
+            clientId={clientId}
             defaultDepartmentId={defaultDepartmentId}
             onSuccess={() => {
               setOpen(false)
@@ -174,13 +170,13 @@ function TodoRow({ todo }: { todo: AccountTodoItem }) {
 // Main export
 // ---------------------------------------------------------------------------
 
-export function WishlistTodosSection({
+export function ClientTodosSection({
   todos,
-  wishlistClientId,
-  companyName,
+  clientId,
   defaultDepartmentId,
   onRefresh,
 }: Props) {
+  // Filter out archived, split active vs completed
   const active = todos.filter((t) => !t.archivedAt && t.status !== 'completed')
   const completed = todos.filter(
     (t) => !t.archivedAt && t.status === 'completed',
@@ -201,8 +197,7 @@ export function WishlistTodosSection({
           )}
         </div>
         <AddTodoDialog
-          wishlistClientId={wishlistClientId}
-          companyName={companyName}
+          clientId={clientId}
           defaultDepartmentId={defaultDepartmentId}
           onSuccess={onRefresh}
         />

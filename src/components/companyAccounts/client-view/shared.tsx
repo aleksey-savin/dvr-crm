@@ -48,7 +48,11 @@ export function Section({
 // Inline delete button
 // ---------------------------------------------------------------------------
 
-export function DeleteRowButton({ onDelete }: { onDelete: () => Promise<void> }) {
+export function DeleteRowButton({
+  onDelete,
+}: {
+  onDelete: () => Promise<void>
+}) {
   const [loading, setLoading] = React.useState(false)
 
   const handle = async () => {
@@ -128,7 +132,11 @@ export function TextEntryDialog({
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Отмена
             </Button>
             <Button type="submit" disabled={loading || !value.trim()}>
@@ -206,7 +214,11 @@ export function YearValueDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Отмена
             </Button>
             <Button type="submit" disabled={loading || !value.trim()}>

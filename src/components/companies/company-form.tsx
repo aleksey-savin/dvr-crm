@@ -33,7 +33,7 @@ const CompanyForm = ({
 }) => {
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? ''),
+      name: item?.name ?? '',
       description: item?.description as string | undefined,
       regionalMarketPosition: item?.regionalMarketPosition as
         | string

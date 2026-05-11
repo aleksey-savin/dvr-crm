@@ -1,6 +1,6 @@
 import '@/components/tiptap/tiptap.css'
 
-import { createFileRoute, Link, useRouter  } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import {
   ArrowLeftIcon,
   EditIcon,
@@ -16,10 +16,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TodoComments } from '@/components/todo-comments'
-import { Section } from '@/components/client-view/shared'
-import { ContactsSection } from '@/components/company-view/contacts-section'
-import { RevenueSection } from '@/components/company-view/revenue-section'
+import { TodoComments } from '@/components/todos/todo-comments'
+import { Section } from '@/components/companyAccounts/client-view/shared'
+import { ContactsSection } from '@/components/companies/contacts-section'
+import { RevenueSection } from '@/components/companies/revenue-section'
 import { fetchCompany } from '@/components/companies/actions'
 
 // ---------------------------------------------------------------------------

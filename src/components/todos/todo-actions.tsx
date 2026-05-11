@@ -6,7 +6,7 @@ import { updateTodoStatus } from '@/components/todos/actions'
 import type { TodoActionItem, TodoStatus } from '@/types'
 import { authClient } from 'utils/auth-client'
 
-import { Button } from './ui/button'
+import { Button } from '@/components/ui/button'
 
 type StatusAction = 'accept' | 'complete' | 'reopen' | 'archive'
 

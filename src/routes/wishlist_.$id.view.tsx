@@ -13,12 +13,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TodoComments } from '@/components/todo-comments'
-import { Section } from '@/components/client-view/shared'
-import { RevenueSection } from '@/components/company-view/revenue-section'
-import { HooksSection } from '@/components/wishlist-view/hooks-section'
-import { WishlistTodosSection } from '@/components/wishlist-view/wishlist-todos-section'
-import { fetchWishlistClient } from '@/components/accounts/actions'
+import { TodoComments } from '@/components/todos/todo-comments'
+import { Section } from '@/components/companyAccounts/client-view/shared'
+import { RevenueSection } from '@/components/companies/revenue-section'
+import { HooksSection } from '@/components/companyAccounts/wishlist-view/hooks-section'
+import { WishlistTodosSection } from '@/components/companyAccounts/wishlist-view/wishlist-todos-section'
+import { fetchWishlistClient } from '@/components/companyAccounts/actions'
 
 // ---------------------------------------------------------------------------
 // Route

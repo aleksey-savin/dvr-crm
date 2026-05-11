@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from './ui/switch'
-import { Label } from './ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   addAccount,
   getCompanyById,
@@ -24,7 +24,7 @@ import {
   getFilteredDepartments,
   getFilteredUsers,
   updateAccount,
-} from '@/components/accounts/actions'
+} from '@/components/companyAccounts/actions'
 import { fetchDepartmentOptions } from '@/components/departments/actions'
 import type { SelectCompanyAccount } from '@/db/types'
 import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
@@ -60,7 +60,7 @@ const ClientForm = ({
   const [companiesLoading, setCompaniesLoading] = React.useState(false)
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [selectedBusinessUnitId, setSelectedBusinessUnitId] = React.useState(
-    (item?.businessUnitId ?? '') as string,
+    item?.businessUnitId ?? '',
   )
 
   // When company is pre-selected: load filtered departments and lock the
@@ -76,9 +76,7 @@ const ClientForm = ({
         .then(setDepartments)
         .catch(console.error)
       getCompanyById({ data: { id: initialCompanyId } })
-        .then((c) => {
-          if (c) setCompanies([c])
-        })
+        .then((company) => setCompanies([company]))
         .catch(console.error)
     } else {
       fetchDepartmentOptions().then(setDepartments).catch(console.error)
@@ -112,12 +110,12 @@ const ClientForm = ({
 
   const form = useForm({
     defaultValues: {
-      companyId: (item?.companyId ?? initialCompanyId ?? '') as string,
-      businessUnitId: (item?.businessUnitId ?? '') as string,
-      isTarget: (item?.isTarget ?? false) as boolean,
-      isLost: (item?.isLost ?? false) as boolean,
-      lostReasons: (item?.lostReasons ?? '') as string,
-      ownerUserId: (item?.ownerUserId ?? '') as string,
+      companyId: item?.companyId ?? initialCompanyId ?? '',
+      businessUnitId: item?.businessUnitId ?? '',
+      isTarget: item?.isTarget ?? false,
+      isLost: item?.isLost ?? false,
+      lostReasons: item?.lostReasons ?? '',
+      ownerUserId: item?.ownerUserId ?? '',
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {

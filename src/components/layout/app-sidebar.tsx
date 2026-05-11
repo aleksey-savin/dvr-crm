@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { VersionSwitcher } from '@/components/version-switcher'
+import { VersionSwitcher } from '@/components/layout/version-switcher'
 import {
   Sidebar,
   SidebarContent,

@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/empty'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/tables/data-table'
-import { columns } from '@/components/tables/companies-cols'
+import { columns } from '@/components/companies/companies-cols'
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { ListTodoIcon, Plus } from 'lucide-react'
 import { fetchCompanies } from '@/components/companies/actions'

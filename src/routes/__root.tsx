@@ -16,8 +16,8 @@ import { AppBreadcrumb } from '@/components/layout/app-breadcrumb'
 
 import { authClient } from 'utils/auth-client'
 import { authMiddleware } from 'utils/middleware'
-import { ThemeProvider } from '@/components/theme-provider'
-import { ModeToggle } from '@/components/mode-toggle'
+import { ThemeProvider } from '@/components/layout/theme-provider'
+import { ModeToggle } from '@/components/layout/mode-toggle'
 import { useDepartmentStore } from '@/stores/department-store'
 
 const queryClient = new QueryClient({

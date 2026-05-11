@@ -12,11 +12,11 @@ import {
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { ListTodoIcon, Plus } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
-import { columns as activeClientsColumns } from '@/components/tables/active-clients-cols'
-import { columns as lostClientsColumns } from '@/components/tables/lost-clients-cols'
+import { columns as activeClientsColumns } from '@/components/companyAccounts/active-clients-cols'
+import { columns as lostClientsColumns } from '@/components/companyAccounts/lost-clients-cols'
 import { useDepartmentStore } from '@/stores/department-store'
 import type { ClientAccountRow, LostClientAccountRow } from '@/types'
-import { fetchClients } from '@/components/accounts/actions'
+import { fetchClients } from '@/components/companyAccounts/actions'
 
 export const Route = createFileRoute('/clients')({
   component: RouteComponent,

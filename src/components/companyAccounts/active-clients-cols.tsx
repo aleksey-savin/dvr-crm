@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
@@ -65,7 +65,7 @@ export const columns: ColumnDef<ClientAccountRow>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('gpLastYear') ?? '0')
+      const amount = parseFloat(row.original.gpLastYear ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',
@@ -109,7 +109,7 @@ export const columns: ColumnDef<ClientAccountRow>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('forecastCurrentYear') ?? '0')
+      const amount = parseFloat(row.original.forecastCurrentYear ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',

@@ -149,17 +149,15 @@ const TodoForm = ({
 
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? ''),
+      name: item?.name ?? '',
       description: item?.description as string | undefined,
       deadline: defaultDeadline as string | undefined,
-      departmentId: (item?.departmentId ??
-        defaultDepartmentId ??
-        globalDepartmentId ??
-        ''),
-      clientId: (defaultWishlistClientId
+      departmentId:
+        item?.departmentId ?? defaultDepartmentId ?? globalDepartmentId ?? '',
+      clientId: defaultWishlistClientId
         ? ''
-        : (item?.companyAccountId ?? defaultClientId ?? '')),
-      wishlistClientId: (defaultWishlistClientId ?? ''),
+        : (item?.companyAccountId ?? defaultClientId ?? ''),
+      wishlistClientId: defaultWishlistClientId ?? '',
     },
     validators: {
       onSubmit: formSchema,
@@ -168,7 +166,8 @@ const TodoForm = ({
       const userId = session?.user.id ?? ''
       // Treat empty string as "no client"
       const resolvedClientId = value.clientId.trim() || undefined
-      const resolvedWishlistClientId = value.wishlistClientId.trim() || undefined
+      const resolvedWishlistClientId =
+        value.wishlistClientId.trim() || undefined
 
       if (!item) {
         try {

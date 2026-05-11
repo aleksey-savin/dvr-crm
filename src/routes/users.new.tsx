@@ -1,7 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-import UserForm from '@/components/user-form'
+import UserForm from '@/components/users/user-form'
 
 export const Route = createFileRoute('/users/new')({
   component: RouteComponent,

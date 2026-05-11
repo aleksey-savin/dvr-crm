@@ -20,13 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import TodoForm from '@/components/todo-form'
+import TodoForm from '@/components/todos/todo-form'
 import type { AccountTodoItem, TodoStatus } from '@/types'
 
 type Props = {
   todos: AccountTodoItem[]
-  clientId: string
-  defaultDepartmentId: string
+  wishlistClientId: string
+  companyName?: string
+  defaultDepartmentId?: string
   onRefresh: () => void
 }
 
@@ -72,12 +73,14 @@ const isOverdue = (deadline: Date | string, status: TodoStatus) => {
 // ---------------------------------------------------------------------------
 
 function AddTodoDialog({
-  clientId,
+  wishlistClientId,
+  companyName,
   defaultDepartmentId,
   onSuccess,
 }: {
-  clientId: string
-  defaultDepartmentId: string
+  wishlistClientId: string
+  companyName?: string
+  defaultDepartmentId?: string
   onSuccess: () => void
 }) {
   const [open, setOpen] = React.useState(false)
@@ -96,7 +99,8 @@ function AddTodoDialog({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto">
           <TodoForm
-            clientId={clientId}
+            wishlistClientId={wishlistClientId}
+            wishlistClientLabel={companyName}
             defaultDepartmentId={defaultDepartmentId}
             onSuccess={() => {
               setOpen(false)
@@ -114,7 +118,7 @@ function AddTodoDialog({
 // ---------------------------------------------------------------------------
 
 function TodoRow({ todo }: { todo: AccountTodoItem }) {
-  const cfg = statusConfig[todo.status] ?? statusConfig['not started']
+  const cfg = statusConfig[todo.status]
   const StatusIcon = cfg.icon
   const overdue = isOverdue(todo.deadline, todo.status)
 
@@ -170,13 +174,13 @@ function TodoRow({ todo }: { todo: AccountTodoItem }) {
 // Main export
 // ---------------------------------------------------------------------------
 
-export function ClientTodosSection({
+export function WishlistTodosSection({
   todos,
-  clientId,
+  wishlistClientId,
+  companyName,
   defaultDepartmentId,
   onRefresh,
 }: Props) {
-  // Filter out archived, split active vs completed
   const active = todos.filter((t) => !t.archivedAt && t.status !== 'completed')
   const completed = todos.filter(
     (t) => !t.archivedAt && t.status === 'completed',
@@ -197,7 +201,8 @@ export function ClientTodosSection({
           )}
         </div>
         <AddTodoDialog
-          clientId={clientId}
+          wishlistClientId={wishlistClientId}
+          companyName={companyName}
           defaultDepartmentId={defaultDepartmentId}
           onSuccess={onRefresh}
         />

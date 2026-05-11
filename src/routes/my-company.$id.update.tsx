@@ -1,4 +1,4 @@
-import DepartmentForm from '@/components/department-form'
+import DepartmentForm from '@/components/departments/department-form'
 import { fetchDepartment } from '@/components/departments/actions'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'

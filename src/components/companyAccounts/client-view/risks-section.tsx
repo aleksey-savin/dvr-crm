@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { SparklesIcon, PlusIcon, Settings2Icon } from 'lucide-react'
+import { ShieldAlertIcon, PlusIcon, Settings2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,11 +20,11 @@ import {
 } from '@/components/ui/table'
 
 import { Section, TextEntryDialog, DeleteRowButton } from './shared'
-import { addUpselling, deleteUpselling } from '@/components/accounts/actions'
-import type { Upselling } from '@/types'
+import { addRisk, deleteRisk } from '@/components/companyAccounts/actions'
+import type { Risk } from '@/types'
 
 type Props = {
-  upsellingOpportunities: Upselling[]
+  risks: Risk[]
   clientId: string
   onRefresh: () => void
 }
@@ -44,24 +44,24 @@ const fmtDate = (d: Date | string) =>
 // Manage dialog content
 // ---------------------------------------------------------------------------
 
-function ManageDialog({ upsellingOpportunities, clientId, onRefresh }: Props) {
+function ManageDialog({ risks, clientId, onRefresh }: Props) {
   return (
     <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
       <DialogHeader>
-        <DialogTitle>Управление апсейлом</DialogTitle>
+        <DialogTitle>Управление рисками</DialogTitle>
       </DialogHeader>
 
       <div className="flex-1 overflow-y-auto pr-1">
         <Section
-          icon={SparklesIcon}
-          title="Возможности апсейла"
+          icon={ShieldAlertIcon}
+          title="Риски"
           action={
             <TextEntryDialog
-              title="Добавить возможность апсейла"
-              label="Описание"
+              title="Добавить риск"
+              label="Описание риска"
               onAdd={async (description) => {
-                await addUpselling({ data: { clientId, description } })
-                toast.success('Запись добавлена')
+                await addRisk({ data: { clientId, description } })
+                toast.success('Риск добавлен')
                 onRefresh()
               }}
             >
@@ -72,9 +72,9 @@ function ManageDialog({ upsellingOpportunities, clientId, onRefresh }: Props) {
             </TextEntryDialog>
           }
         >
-          {upsellingOpportunities.length === 0 ? (
+          {risks.length === 0 ? (
             <p className="text-sm text-muted-foreground italic py-2">
-              Возможностей не добавлено
+              Рисков не добавлено
             </p>
           ) : (
             <Table>
@@ -86,19 +86,19 @@ function ManageDialog({ upsellingOpportunities, clientId, onRefresh }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {upsellingOpportunities.map((u) => (
-                  <TableRow key={u.id}>
+                {risks.map((r) => (
+                  <TableRow key={r.id}>
                     <TableCell className="whitespace-pre-wrap">
-                      {u.description}
+                      {r.description}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {fmtDate(u.createdAt)}
+                      {fmtDate(r.createdAt)}
                     </TableCell>
                     <TableCell>
                       <DeleteRowButton
                         onDelete={async () => {
-                          await deleteUpselling({ data: { id: u.id } })
-                          toast.success('Запись удалена')
+                          await deleteRisk({ data: { id: r.id } })
+                          toast.success('Риск удалён')
                           onRefresh()
                         }}
                       />
@@ -118,38 +118,34 @@ function ManageDialog({ upsellingOpportunities, clientId, onRefresh }: Props) {
 // Main export
 // ---------------------------------------------------------------------------
 
-export function UpsellingSection({
-  upsellingOpportunities,
-  clientId,
-  onRefresh,
-}: Props) {
+export function RisksSection({ risks, clientId, onRefresh }: Props) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex-1 flex flex-col gap-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <SparklesIcon className="size-4 text-muted-foreground" />
-          Апсейл
-          {upsellingOpportunities.length > 0 && (
+          <ShieldAlertIcon className="size-4 text-muted-foreground" />
+          Риски
+          {risks.length > 0 && (
             <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-              {upsellingOpportunities.length}
+              {risks.length}
             </Badge>
           )}
         </div>
 
-        {upsellingOpportunities.length === 0 ? (
+        {risks.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">
-            Возможностей не добавлено
+            Рисков не добавлено
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {upsellingOpportunities.map((u) => (
+            {risks.map((r) => (
               <li
-                key={u.id}
+                key={r.id}
                 className="flex items-start gap-2 text-sm text-foreground"
               >
-                <span className="mt-1.5 size-1.5 rounded-full bg-primary shrink-0" />
+                <span className="mt-1.5 size-1.5 rounded-full bg-destructive shrink-0" />
                 <span className="whitespace-pre-wrap leading-snug">
-                  {u.description}
+                  {r.description}
                 </span>
               </li>
             ))}
@@ -169,11 +165,7 @@ export function UpsellingSection({
             Управлять
           </Button>
         </DialogTrigger>
-        <ManageDialog
-          upsellingOpportunities={upsellingOpportunities}
-          clientId={clientId}
-          onRefresh={onRefresh}
-        />
+        <ManageDialog risks={risks} clientId={clientId} onRefresh={onRefresh} />
       </Dialog>
     </div>
   )

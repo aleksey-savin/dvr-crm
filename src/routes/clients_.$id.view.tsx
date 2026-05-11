@@ -1,6 +1,6 @@
 import '@/components/tiptap/tiptap.css'
 
-import { createFileRoute, Link, useRouter  } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import {
   EditIcon,
   Trash2Icon,
@@ -13,14 +13,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { TodoComments } from '@/components/todo-comments'
+import { TodoComments } from '@/components/todos/todo-comments'
 
-import { ProfitForecastSection } from '@/components/client-view/profit-forecast-section'
-import { RisksSection } from '@/components/client-view/risks-section'
-import { UpsellingSection } from '@/components/client-view/upselling-section'
-import { ClientTodosSection } from '@/components/client-view/client-todos-section'
-import { Section } from '@/components/client-view/shared'
-import { fetchClient } from '@/components/accounts/actions'
+import { ProfitForecastSection } from '@/components/companyAccounts/client-view/profit-forecast-section'
+import { RisksSection } from '@/components/companyAccounts/client-view/risks-section'
+import { UpsellingSection } from '@/components/companyAccounts/client-view/upselling-section'
+import { ClientTodosSection } from '@/components/companyAccounts/client-view/client-todos-section'
+import { Section } from '@/components/companyAccounts/client-view/shared'
+import { fetchClient } from '@/components/companyAccounts/actions'
 
 // ---------------------------------------------------------------------------
 // Route

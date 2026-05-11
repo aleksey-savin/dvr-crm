@@ -121,13 +121,11 @@ const DepartmentForm = ({
 
   const form = useForm({
     defaultValues: {
-      name: (item?.name ?? ''),
-      headUserId: (item?.headUserId ?? undefined),
+      name: item?.name ?? '',
+      headUserId: item?.headUserId ?? undefined,
       description: item?.description as string | undefined,
-      accentColor: normalizeHexColor(
-        (item?.accentColor ?? DEFAULT_ACCENT_COLOR),
-      ),
-      parentId: (item?.parentId ?? initialParentId),
+      accentColor: normalizeHexColor(item?.accentColor ?? DEFAULT_ACCENT_COLOR),
+      parentId: item?.parentId ?? initialParentId,
     },
     validators: {
       onSubmit: formSchema,

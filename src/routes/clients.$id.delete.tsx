@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { deleteClient, fetchClient } from '@/components/accounts/actions'
+import { deleteClient, fetchClient } from '@/components/companyAccounts/actions'
 
 export const Route = createFileRoute('/clients/$id/delete')({
   loader: ({ params }) => fetchClient({ data: params }),

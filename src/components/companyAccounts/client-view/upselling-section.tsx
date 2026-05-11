@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { LinkIcon, PlusIcon, Settings2Icon } from 'lucide-react'
+import { SparklesIcon, PlusIcon, Settings2Icon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,17 +19,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+import { Section, TextEntryDialog, DeleteRowButton } from './shared'
 import {
-  Section,
-  TextEntryDialog,
-  DeleteRowButton,
-} from '@/components/client-view/shared'
-import { addHook, deleteHook } from '@/components/accounts/actions'
-import type { Hook } from '@/types'
+  addUpselling,
+  deleteUpselling,
+} from '@/components/companyAccounts/actions'
+import type { Upselling } from '@/types'
 
 type Props = {
-  hooks: Hook[]
-  wishlistClientId: string
+  upsellingOpportunities: Upselling[]
+  clientId: string
   onRefresh: () => void
 }
 
@@ -48,24 +47,24 @@ const fmtDate = (d: Date | string) =>
 // Manage dialog content
 // ---------------------------------------------------------------------------
 
-function ManageDialog({ hooks, wishlistClientId, onRefresh }: Props) {
+function ManageDialog({ upsellingOpportunities, clientId, onRefresh }: Props) {
   return (
     <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
       <DialogHeader>
-        <DialogTitle>Управление хуками</DialogTitle>
+        <DialogTitle>Управление апсейлом</DialogTitle>
       </DialogHeader>
 
       <div className="flex-1 overflow-y-auto pr-1">
         <Section
-          icon={LinkIcon}
-          title="Хуки"
+          icon={SparklesIcon}
+          title="Возможности апсейла"
           action={
             <TextEntryDialog
-              title="Добавить хук"
-              label="Описание хука"
+              title="Добавить возможность апсейла"
+              label="Описание"
               onAdd={async (description) => {
-                await addHook({ data: { wishlistClientId, description } })
-                toast.success('Хук добавлен')
+                await addUpselling({ data: { clientId, description } })
+                toast.success('Запись добавлена')
                 onRefresh()
               }}
             >
@@ -76,9 +75,9 @@ function ManageDialog({ hooks, wishlistClientId, onRefresh }: Props) {
             </TextEntryDialog>
           }
         >
-          {hooks.length === 0 ? (
+          {upsellingOpportunities.length === 0 ? (
             <p className="text-sm text-muted-foreground italic py-2">
-              Хуков не добавлено
+              Возможностей не добавлено
             </p>
           ) : (
             <Table>
@@ -90,19 +89,19 @@ function ManageDialog({ hooks, wishlistClientId, onRefresh }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {hooks.map((h) => (
-                  <TableRow key={h.id}>
+                {upsellingOpportunities.map((u) => (
+                  <TableRow key={u.id}>
                     <TableCell className="whitespace-pre-wrap">
-                      {h.description}
+                      {u.description}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {fmtDate(h.createdAt)}
+                      {fmtDate(u.createdAt)}
                     </TableCell>
                     <TableCell>
                       <DeleteRowButton
                         onDelete={async () => {
-                          await deleteHook({ data: { id: h.id } })
-                          toast.success('Хук удалён')
+                          await deleteUpselling({ data: { id: u.id } })
+                          toast.success('Запись удалена')
                           onRefresh()
                         }}
                       />
@@ -122,34 +121,38 @@ function ManageDialog({ hooks, wishlistClientId, onRefresh }: Props) {
 // Main export
 // ---------------------------------------------------------------------------
 
-export function HooksSection({ hooks, wishlistClientId, onRefresh }: Props) {
+export function UpsellingSection({
+  upsellingOpportunities,
+  clientId,
+  onRefresh,
+}: Props) {
   return (
     <div className="flex items-start gap-3">
       <div className="flex-1 flex flex-col gap-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <LinkIcon className="size-4 text-muted-foreground" />
-          Хуки
-          {hooks.length > 0 && (
+          <SparklesIcon className="size-4 text-muted-foreground" />
+          Апсейл
+          {upsellingOpportunities.length > 0 && (
             <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-              {hooks.length}
+              {upsellingOpportunities.length}
             </Badge>
           )}
         </div>
 
-        {hooks.length === 0 ? (
+        {upsellingOpportunities.length === 0 ? (
           <p className="text-sm text-muted-foreground italic">
-            Хуков не добавлено
+            Возможностей не добавлено
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {hooks.map((h) => (
+            {upsellingOpportunities.map((u) => (
               <li
-                key={h.id}
+                key={u.id}
                 className="flex items-start gap-2 text-sm text-foreground"
               >
                 <span className="mt-1.5 size-1.5 rounded-full bg-primary shrink-0" />
                 <span className="whitespace-pre-wrap leading-snug">
-                  {h.description}
+                  {u.description}
                 </span>
               </li>
             ))}
@@ -157,6 +160,7 @@ export function HooksSection({ hooks, wishlistClientId, onRefresh }: Props) {
         )}
       </div>
 
+      {/* Manage button */}
       <Dialog>
         <DialogTrigger asChild>
           <Button
@@ -169,8 +173,8 @@ export function HooksSection({ hooks, wishlistClientId, onRefresh }: Props) {
           </Button>
         </DialogTrigger>
         <ManageDialog
-          hooks={hooks}
-          wishlistClientId={wishlistClientId}
+          upsellingOpportunities={upsellingOpportunities}
+          clientId={clientId}
           onRefresh={onRefresh}
         />
       </Dialog>

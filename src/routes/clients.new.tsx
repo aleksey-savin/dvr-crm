@@ -1,4 +1,4 @@
-import ClientForm from '@/components/client-form'
+import ClientForm from '@/components/companyAccounts/client-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import * as z from 'zod'

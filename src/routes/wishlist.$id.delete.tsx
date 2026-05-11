@@ -15,7 +15,7 @@ import {
 import {
   deleteWishlistClient,
   fetchWishlistClient,
-} from '@/components/accounts/actions'
+} from '@/components/companyAccounts/actions'
 
 export const Route = createFileRoute('/wishlist/$id/delete')({
   loader: ({ params }) => fetchWishlistClient({ data: params }),

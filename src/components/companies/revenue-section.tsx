@@ -23,7 +23,7 @@ import {
   Section,
   YearValueDialog,
   DeleteRowButton,
-} from '@/components/client-view/shared'
+} from '@/components/companyAccounts/client-view/shared'
 import { addRevenue, deleteRevenue } from '@/components/companies/actions'
 import type { Revenue } from '@/types'
 

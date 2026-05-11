@@ -8,7 +8,7 @@ import {
   getCompanyById,
   getFilteredWishlistCompanies,
   updateWishlistClient,
-} from '@/components/accounts/actions'
+} from '@/components/companyAccounts/actions'
 import { fetchDepartmentOptions } from '@/components/departments/actions'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
@@ -70,9 +70,9 @@ const WishlistClientForm = ({
 
   const form = useForm({
     defaultValues: {
-      companyId: (item?.companyId ?? initialCompanyId ?? ''),
-      businessUnitId: (item?.businessUnitId ?? ''),
-      why: (item?.why ?? undefined),
+      companyId: item?.companyId ?? initialCompanyId ?? '',
+      businessUnitId: item?.businessUnitId ?? '',
+      why: item?.why ?? undefined,
     },
     validators: {
       onSubmit: formSchema,

@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
@@ -58,7 +58,7 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
       )
     },
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('potentialNextYear') ?? '0')
+      const amount = parseFloat(row.original.potentialNextYear ?? '0')
       const formatted = amount
         ? new Intl.NumberFormat('ru-RU', {
             style: 'currency',
@@ -101,10 +101,10 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
     accessorKey: 'upsellingCount',
     header: () => <div className="flex justify-center">Апсейл</div>,
     cell: ({ row }) => {
-      const count = row.getValue('upsellingCount')
+      const count = row.getValue<number>('upsellingCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -112,7 +112,7 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('upsellingCount') as number),
+          (sum, row) => sum + row.getValue<number>('upsellingCount'),
           0,
         )
       return (
@@ -128,10 +128,10 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
     accessorKey: 'marketerTodosCount',
     header: () => <div className="flex justify-center">Задачи маркетолога</div>,
     cell: ({ row }) => {
-      const count = row.getValue('marketerTodosCount')
+      const count = row.getValue<number>('marketerTodosCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -139,7 +139,7 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('marketerTodosCount') as number),
+          (sum, row) => sum + row.getValue<number>('marketerTodosCount'),
           0,
         )
       return (
@@ -155,10 +155,10 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
     accessorKey: 'managerTodosCount',
     header: () => <div className="flex justify-center">Задачи менеджера</div>,
     cell: ({ row }) => {
-      const count = row.getValue('managerTodosCount')
+      const count = row.getValue<number>('managerTodosCount')
       return (
         <div className="flex justify-center">
-          <Badge variant="secondary">{count as React.ReactNode}</Badge>
+          <Badge variant="secondary">{count}</Badge>
         </div>
       )
     },
@@ -166,7 +166,7 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
       const total = table
         .getFilteredRowModel()
         .rows.reduce(
-          (sum, row) => sum + (row.getValue('managerTodosCount') as number),
+          (sum, row) => sum + row.getValue<number>('managerTodosCount'),
           0,
         )
       return (

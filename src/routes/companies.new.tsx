@@ -1,4 +1,4 @@
-import CompanyForm from '@/components/company-form'
+import CompanyForm from '@/components/companies/company-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 

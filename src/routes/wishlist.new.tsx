@@ -1,4 +1,4 @@
-import WishlistClientForm from '@/components/wishlist-client-form'
+import WishlistClientForm from '@/components/companyAccounts/wishlist-client-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import * as z from 'zod'

@@ -1,5 +1,5 @@
 import '@/components/tiptap/tiptap.css'
-import { TodoActions } from '@/components/todo-actions'
+import { TodoActions } from '@/components/todos/todo-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -20,7 +20,7 @@ import {
   EditIcon,
   Trash2Icon,
 } from 'lucide-react'
-import { TodoComments } from '@/components/todo-comments'
+import { TodoComments } from '@/components/todos/todo-comments'
 import { fetchTodo } from '@/components/todos/actions'
 
 export const Route = createFileRoute('/todos_/$id/view')({

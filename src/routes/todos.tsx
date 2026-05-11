@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { useDepartmentStore } from '@/stores/department-store'
 import { DataTable } from '@/components/tables/data-table'
-import { columns } from '@/components/tables/todos-cols'
+import { columns } from '@/components/todos/todos-cols'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
