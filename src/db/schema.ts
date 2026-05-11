@@ -21,6 +21,8 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
+  position: text('position'),
+  phone: text('phone'),
   role: text('role').notNull().default('user'),
   departmentId: text('department_id').references(
     (): AnyPgColumn => department.id,

@@ -3,7 +3,7 @@ import { department, user } from '@/db/schema'
 import type { ParentDepartmentOption, ParentDepartmentRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import * as z from 'zod'
 
 const parentIdSchema = z.union([z.string().uuid(), z.undefined()])
@@ -26,6 +26,16 @@ const addDepartmentSchema = z.object({
 
 const updateDepartmentSchema = addDepartmentSchema.extend({
   id: z.string(),
+})
+
+const departmentHeadSchema = z.object({
+  departmentId: z.string().uuid(),
+  userId: z.string().min(1).nullable(),
+})
+
+const departmentEmployeeSchema = z.object({
+  departmentId: z.string().uuid(),
+  userId: z.string().min(1),
 })
 
 function getExcludedDepartmentIds(
@@ -150,6 +160,28 @@ async function validateDepartmentHead(headUserId?: string) {
   return headUserId
 }
 
+async function validateDepartmentId(departmentId: string) {
+  const item = await db.query.department.findFirst({
+    columns: { id: true },
+    where: eq(department.id, departmentId),
+  })
+
+  if (!item) {
+    throw new Error('Подразделение не найдено')
+  }
+}
+
+async function validateUserId(userId: string) {
+  const item = await db.query.user.findFirst({
+    columns: { id: true },
+    where: eq(user.id, userId),
+  })
+
+  if (!item) {
+    throw new Error('Пользователь не найден')
+  }
+}
+
 export const fetchMyCompanyData = createServerFn().handler(async () => {
   const [departments, users] = await Promise.all([
     db.query.department.findMany({
@@ -158,7 +190,8 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
           columns: {
             id: true,
             name: true,
-            role: true,
+            position: true,
+            phone: true,
             image: true,
           },
         },
@@ -166,7 +199,8 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
           columns: {
             id: true,
             name: true,
-            role: true,
+            position: true,
+            phone: true,
             image: true,
           },
         },
@@ -178,6 +212,11 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
         id: true,
         name: true,
         email: true,
+        role: true,
+        image: true,
+        departmentId: true,
+        position: true,
+        phone: true,
       },
       with: {
         sessions: {
@@ -198,7 +237,11 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
       id: appUser.id,
       name: appUser.name,
       email: appUser.email,
-      mobileNumber: null,
+      role: appUser.role,
+      image: appUser.image,
+      departmentId: appUser.departmentId,
+      position: appUser.position,
+      phone: appUser.phone,
       lastActivityAt: appUser.sessions.at(0)?.updatedAt ?? null,
     })),
   }
@@ -254,7 +297,7 @@ export const fetchHeadUserOptions = createServerFn({ method: 'GET' }).handler(
       .select({
         id: user.id,
         name: user.name,
-        role: user.role,
+        position: user.position,
       })
       .from(user)
       .orderBy(user.name)
@@ -297,6 +340,41 @@ export const updateDepartment = createServerFn({ method: 'POST' })
         parentId,
       })
       .where(eq(department.id, data.id))
+  })
+
+export const setDepartmentHead = createServerFn({ method: 'POST' })
+  .inputValidator(departmentHeadSchema)
+  .handler(async ({ data }) => {
+    await validateDepartmentId(data.departmentId)
+    if (data.userId) await validateUserId(data.userId)
+
+    await db
+      .update(department)
+      .set({ headUserId: data.userId })
+      .where(eq(department.id, data.departmentId))
+  })
+
+export const addDepartmentEmployee = createServerFn({ method: 'POST' })
+  .inputValidator(departmentEmployeeSchema)
+  .handler(async ({ data }) => {
+    await validateDepartmentId(data.departmentId)
+    await validateUserId(data.userId)
+
+    await db
+      .update(user)
+      .set({ departmentId: data.departmentId })
+      .where(eq(user.id, data.userId))
+  })
+
+export const removeDepartmentEmployee = createServerFn({ method: 'POST' })
+  .inputValidator(departmentEmployeeSchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(user)
+      .set({ departmentId: null })
+      .where(
+        and(eq(user.id, data.userId), eq(user.departmentId, data.departmentId)),
+      )
   })
 
 export const deleteDepartment = createServerFn({ method: 'POST' })

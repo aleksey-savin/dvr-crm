@@ -101,7 +101,10 @@ function RouteComponent() {
               </EmptyContent>
             </Empty>
           ) : (
-            <DepartmentTree departments={departments as DepartmentRow[]} />
+            <DepartmentTree
+              departments={departments as DepartmentRow[]}
+              users={users}
+            />
           )}
         </TabsContent>
       </Tabs>
@@ -131,8 +134,9 @@ function EmployeesTable({ users }: { users: EmployeeRow[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>Имя</TableHead>
+            <TableHead>Должность</TableHead>
+            <TableHead>Телефон</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Мобильный номер</TableHead>
             <TableHead>Последняя активность</TableHead>
           </TableRow>
         </TableHeader>
@@ -140,8 +144,27 @@ function EmployeesTable({ users }: { users: EmployeeRow[] }) {
           {users.map((user) => (
             <TableRow key={user.id}>
               <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>{user.mobileNumber ?? '—'}</TableCell>
+              <TableCell>{user.position ?? '—'}</TableCell>
+              <TableCell>
+                {user.phone ? (
+                  <a
+                    href={`tel:${user.phone}`}
+                    className="text-foreground underline-offset-4 hover:underline"
+                  >
+                    {user.phone}
+                  </a>
+                ) : (
+                  '—'
+                )}
+              </TableCell>
+              <TableCell>
+                <a
+                  href={`mailto:${user.email}`}
+                  className="text-foreground underline-offset-4 hover:underline"
+                >
+                  {user.email}
+                </a>
+              </TableCell>
               <TableCell>{formatDateTime(user.lastActivityAt)}</TableCell>
             </TableRow>
           ))}

@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import { Button } from '@/components/ui/button'
-import { roleLabels } from '@/utils/roleLabels'
 import { Link } from '@tanstack/react-router'
 import {
   Building2Icon,
@@ -13,7 +12,13 @@ import {
 import type { DepartmentNode } from '@/types'
 import { formatRuCount, getInitials } from './text-utils'
 
-export function DepartmentCard({ node }: { node: DepartmentNode }) {
+export function DepartmentCard({
+  node,
+  onOpen,
+}: {
+  node: DepartmentNode
+  onOpen: (node: DepartmentNode) => void
+}) {
   const accentColor = node.accentColor?.trim()
   const head = node.head
   const style: CSSProperties | undefined = accentColor
@@ -23,6 +28,15 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
   return (
     <div className="department-node-card">
       <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(node)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onOpen(node)
+          }
+        }}
         className="flex h-46 w-72 flex-col gap-3 rounded-lg border border-t-4 bg-card p-3 text-left shadow-sm transition-shadow hover:shadow-md"
         style={style}
       >
@@ -44,6 +58,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
                 params={{ id: node.id }}
                 aria-label={`Открыть ${node.name}`}
                 title="Открыть"
+                onClick={(event) => event.stopPropagation()}
               >
                 <EyeIcon />
               </Link>
@@ -54,6 +69,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
                 params={{ id: node.id }}
                 aria-label={`Изменить ${node.name}`}
                 title="Изменить"
+                onClick={(event) => event.stopPropagation()}
               >
                 <EditIcon />
               </Link>
@@ -64,6 +80,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
                 params={{ id: node.id }}
                 aria-label={`Удалить ${node.name}`}
                 title="Удалить"
+                onClick={(event) => event.stopPropagation()}
               >
                 <Trash2Icon />
               </Link>
@@ -87,7 +104,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
             <div className="min-w-0">
               <div className="truncate text-xs font-medium">{head.name}</div>
               <div className="truncate text-[11px] text-muted-foreground">
-                Руководитель · {roleLabels[head.role] ?? head.role}
+                Руководитель{head.position ? ` · ${head.position}` : ''}
               </div>
             </div>
           </div>
@@ -123,6 +140,7 @@ export function DepartmentCard({ node }: { node: DepartmentNode }) {
           search={{ parentId: node.id, tab: 'structure' }}
           aria-label={`Создать дочернее подразделение для ${node.name}`}
           title="Создать дочернее подразделение"
+          onClick={(event) => event.stopPropagation()}
         >
           <Plus />
         </Link>

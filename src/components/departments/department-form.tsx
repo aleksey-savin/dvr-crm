@@ -16,8 +16,6 @@ import * as React from 'react'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
-import { roleLabels } from '@/utils/roleLabels'
-
 import { Input } from '@/components/ui/input'
 import {
   addDepartment,
@@ -26,7 +24,7 @@ import {
   updateDepartment,
 } from '@/components/departments/actions'
 import type { SelectDepartment } from '@/db/types'
-import type { ParentDepartmentOption, UserRoleOption } from '@/types'
+import type { ParentDepartmentOption, UserPositionOption } from '@/types'
 
 const ROOT_PARENT_VALUE = '__root__'
 const NO_HEAD_USER_VALUE = '__no_head__'
@@ -90,7 +88,7 @@ const DepartmentForm = ({
     ParentDepartmentOption[]
   >([])
   const [headUserOptions, setHeadUserOptions] = React.useState<
-    UserRoleOption[]
+    UserPositionOption[]
   >([])
 
   React.useEffect(() => {
@@ -240,7 +238,8 @@ const DepartmentForm = ({
                     </SelectItem>
                     {headUserOptions.map((option) => (
                       <SelectItem key={option.id} value={option.id}>
-                        {option.name} · {roleLabels[option.role] ?? option.role}
+                        {option.name}
+                        {option.position ? ` · ${option.position}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

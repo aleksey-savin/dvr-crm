@@ -25,13 +25,40 @@ export const fetchUser = createServerFn()
     const [authUser, dbRow] = await Promise.all([
       auth.api.getUser({ query: { id: userId }, headers: request.headers }),
       db
-        .select({ departmentId: userTable.departmentId })
+        .select({
+          departmentId: userTable.departmentId,
+          position: userTable.position,
+          phone: userTable.phone,
+        })
         .from(userTable)
         .where(eq(userTable.id, userId))
         .then((rows) => rows.at(0)),
     ])
 
-    return { ...authUser, departmentId: dbRow?.departmentId ?? null }
+    return {
+      ...authUser,
+      departmentId: dbRow?.departmentId ?? null,
+      position: dbRow?.position ?? null,
+      phone: dbRow?.phone ?? null,
+    }
+  })
+
+export const setUserProfileFields = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      userId: z.string(),
+      position: z.string().trim().nullable(),
+      phone: z.string().trim().nullable(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await db
+      .update(userTable)
+      .set({
+        position: data.position || null,
+        phone: data.phone || null,
+      })
+      .where(eq(userTable.id, data.userId))
   })
 
 export const setUserDepartment = createServerFn({ method: 'POST' })

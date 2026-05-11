@@ -26,7 +26,10 @@ import { authClient } from 'utils/auth-client'
 import { roleLabels, roles } from '@/utils/roleLabels'
 import { useDepartmentStore } from '@/stores/department-store'
 import { fetchDepartmentOptions } from '@/components/departments/actions'
-import { setUserDepartment } from '@/components/users/actions'
+import {
+  setUserDepartment,
+  setUserProfileFields,
+} from '@/components/users/actions'
 import type { UserFormUser } from '@/types'
 
 // ---------------------------------------------------------------------------
@@ -37,6 +40,8 @@ const baseSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   email: z.email('Неверный адрес электронной почты'),
   image: z.string(),
+  position: z.string(),
+  phone: z.string(),
   role: z.string(),
   departmentId: z.string().uuid('Выберите подразделение'),
 })
@@ -84,6 +89,8 @@ const UserForm = ({
       name: user?.name ?? '',
       email: user?.email ?? '',
       image: user?.image ?? '',
+      position: user?.position ?? '',
+      phone: user?.phone ?? '',
       role: user?.role ?? 'user',
       password: '',
       departmentId: defaultDepartmentId,
@@ -107,6 +114,13 @@ const UserForm = ({
         await setUserDepartment({
           data: { userId: data.user.id, departmentId: value.departmentId },
         })
+        await setUserProfileFields({
+          data: {
+            userId: data.user.id,
+            position: value.position,
+            phone: value.phone,
+          },
+        })
         toast.success('Пользователь успешно создан')
         onSuccess?.()
       } else {
@@ -126,6 +140,13 @@ const UserForm = ({
         }
         await setUserDepartment({
           data: { userId: user.id, departmentId: value.departmentId },
+        })
+        await setUserProfileFields({
+          data: {
+            userId: user.id,
+            position: value.position,
+            phone: value.phone,
+          },
         })
         toast.success('Пользователь успешно изменён')
         onSuccess?.()
@@ -194,6 +215,57 @@ const UserForm = ({
                   autoComplete="off"
                   type="email"
                   required
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )
+          }}
+        />
+
+        {/* Role */}
+        <form.Field
+          name="position"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Должность</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="Должность"
+                  autoComplete="organization-title"
+                  type="text"
+                />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )
+          }}
+        />
+
+        <form.Field
+          name="phone"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid
+            return (
+              <Field data-invalid={isInvalid}>
+                <FieldLabel htmlFor={field.name}>Телефон</FieldLabel>
+                <Input
+                  id={field.name}
+                  name={field.name}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
+                  placeholder="+7..."
+                  autoComplete="tel"
+                  type="tel"
                 />
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>

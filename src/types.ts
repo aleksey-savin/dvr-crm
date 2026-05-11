@@ -37,6 +37,10 @@ export type UserRoleOption = UserOption & {
   role: string
 }
 
+export type UserPositionOption = UserOption & {
+  position: string | null
+}
+
 export type CompanyOption = {
   id: string
   name: string
@@ -151,7 +155,8 @@ export type Todo = {
 export type DepartmentUser = {
   id: string
   name: string
-  role: string
+  position: string | null
+  phone: string | null
   image: string | null
 }
 
@@ -174,7 +179,11 @@ export type EmployeeRow = {
   id: string
   name: string
   email: string
-  mobileNumber: string | null
+  role: string
+  image: string | null
+  departmentId: string | null
+  position: string | null
+  phone: string | null
   lastActivityAt: Date | string | null
 }
 
@@ -243,4 +252,6 @@ export type UserFormUser = {
   image?: string | null
   role?: string | null
   departmentId?: string | null
+  position?: string | null
+  phone?: string | null
 }

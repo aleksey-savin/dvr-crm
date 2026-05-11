@@ -15,13 +15,8 @@ type ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState | null>(null)
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'vite-ui-theme',
-  ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
+function readStoredTheme(storageKey: string, defaultTheme: Theme) {
+  try {
     const storedTheme = localStorage.getItem(storageKey)
     if (
       storedTheme === 'dark' ||
@@ -30,8 +25,30 @@ export function ThemeProvider({
     ) {
       return storedTheme
     }
+  } catch {
     return defaultTheme
-  })
+  }
+
+  return defaultTheme
+}
+
+function writeStoredTheme(storageKey: string, theme: Theme) {
+  try {
+    localStorage.setItem(storageKey, theme)
+  } catch {
+    // Storage can be unavailable during SSR or blocked in the browser.
+  }
+}
+
+export function ThemeProvider({
+  children,
+  defaultTheme = 'system',
+  storageKey = 'vite-ui-theme',
+  ...props
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(() =>
+    readStoredTheme(storageKey, defaultTheme),
+  )
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -54,7 +71,7 @@ export function ThemeProvider({
   const value = {
     theme,
     setTheme: (nextTheme: Theme) => {
-      localStorage.setItem(storageKey, nextTheme)
+      writeStoredTheme(storageKey, nextTheme)
       setTheme(nextTheme)
     },
   }
