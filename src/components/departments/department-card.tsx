@@ -1,5 +1,8 @@
 import type { CSSProperties } from 'react'
-import { Building2Icon, UsersIcon } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
+import { Building2Icon, Plus, UsersIcon } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
 import type { DepartmentNode } from '@/types'
 import { formatRuCount, getInitials } from './text-utils'
 
@@ -82,6 +85,23 @@ export function DepartmentCard({
           </div>
         </div>
       </div>
+
+      <Button
+        asChild
+        variant="outline"
+        size="icon-sm"
+        className="department-add-child rounded-full bg-background shadow-sm"
+      >
+        <Link
+          to="/my-company/new"
+          search={{ parentId: node.id, tab: 'structure' }}
+          aria-label={`Создать дочернее подразделение для ${node.name}`}
+          title="Создать дочернее подразделение"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <Plus />
+        </Link>
+      </Button>
     </div>
   )
 }
