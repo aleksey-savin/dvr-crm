@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from '@tanstack/react-router'
+import { Link, useRouter } from '@tanstack/react-router'
 import {
   BriefcaseBusinessIcon,
   CrownIcon,
+  EditIcon,
+  EyeIcon,
   PlusIcon,
   Trash2Icon,
   UserRoundIcon,
@@ -26,6 +28,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
@@ -142,7 +145,7 @@ export function DepartmentMembersSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+      <SheetContent className="flex w-full flex-col overflow-hidden sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>{department.name}</SheetTitle>
           <SheetDescription>
@@ -150,7 +153,7 @@ export function DepartmentMembersSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col gap-6 px-4 pb-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-medium">
@@ -274,6 +277,51 @@ export function DepartmentMembersSheet({
             )}
           </section>
         </div>
+
+        <SheetFooter className="border-t">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Button asChild variant="outline">
+              <Link
+                to="/my-company/$id/view"
+                params={{ id: department.id }}
+                onClick={() => onOpenChange(false)}
+              >
+                <EyeIcon />
+                Подробнее
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link
+                to="/my-company/$id/update"
+                params={{ id: department.id }}
+                onClick={() => onOpenChange(false)}
+              >
+                <EditIcon />
+                Изменить
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link
+                to="/my-company/new"
+                search={{ parentId: department.id, tab: 'structure' }}
+                onClick={() => onOpenChange(false)}
+              >
+                <PlusIcon />
+                Дочернее
+              </Link>
+            </Button>
+            <Button asChild variant="destructiveGhost">
+              <Link
+                to="/my-company/$id/delete"
+                params={{ id: department.id }}
+                onClick={() => onOpenChange(false)}
+              >
+                <Trash2Icon />
+                Удалить
+              </Link>
+            </Button>
+          </div>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   )

@@ -1,14 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Button } from '@/components/ui/button'
-import { Link } from '@tanstack/react-router'
-import {
-  Building2Icon,
-  EditIcon,
-  EyeIcon,
-  Plus,
-  Trash2Icon,
-  UsersIcon,
-} from 'lucide-react'
+import { Building2Icon, UsersIcon } from 'lucide-react'
 import type { DepartmentNode } from '@/types'
 import { formatRuCount, getInitials } from './text-utils'
 
@@ -40,51 +31,14 @@ export function DepartmentCard({
         className="flex h-46 w-72 flex-col gap-3 rounded-lg border border-t-4 bg-card p-3 text-left shadow-sm transition-shadow hover:shadow-md"
         style={style}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-              <Building2Icon className="size-4" />
-            </span>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold leading-5">
-                {node.name}
-              </h3>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center justify-end gap-0.5">
-            <Button asChild variant="ghost" size="icon-xs">
-              <Link
-                to="/my-company/$id/view"
-                params={{ id: node.id }}
-                aria-label={`Открыть ${node.name}`}
-                title="Открыть"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <EyeIcon />
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="icon-xs">
-              <Link
-                to="/my-company/$id/update"
-                params={{ id: node.id }}
-                aria-label={`Изменить ${node.name}`}
-                title="Изменить"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <EditIcon />
-              </Link>
-            </Button>
-            <Button asChild variant="destructiveGhost" size="icon-xs">
-              <Link
-                to="/my-company/$id/delete"
-                params={{ id: node.id }}
-                aria-label={`Удалить ${node.name}`}
-                title="Удалить"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <Trash2Icon />
-              </Link>
-            </Button>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+            <Building2Icon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold leading-5">
+              {node.name}
+            </h3>
           </div>
         </div>
 
@@ -128,23 +82,6 @@ export function DepartmentCard({
           </div>
         </div>
       </div>
-
-      <Button
-        asChild
-        variant="outline"
-        size="icon-sm"
-        className="department-add-child rounded-full bg-background shadow-sm"
-      >
-        <Link
-          to="/my-company/new"
-          search={{ parentId: node.id, tab: 'structure' }}
-          aria-label={`Создать дочернее подразделение для ${node.name}`}
-          title="Создать дочернее подразделение"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <Plus />
-        </Link>
-      </Button>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { DepartmentTree } from '@/components/departments/department-tree'
 import { fetchMyCompanyData } from '@/components/departments/actions'
+import { EmployeesTable } from '@/components/users/employees-table'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -8,14 +9,6 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   createFileRoute,
@@ -23,8 +16,8 @@ import {
   Outlet,
   useRouter,
 } from '@tanstack/react-router'
-import { ListTodoIcon, Plus, UsersIcon } from 'lucide-react'
-import type { DepartmentRow, EmployeeRow } from '@/types'
+import { ListTodoIcon, Plus } from 'lucide-react'
+import type { DepartmentRow } from '@/types'
 
 const myCompanyTabs = ['employees', 'structure'] as const
 type MyCompanyTab = (typeof myCompanyTabs)[number]
@@ -73,7 +66,7 @@ function RouteComponent() {
           value="employees"
           className="flex min-h-0 flex-col data-[state=inactive]:hidden"
         >
-          <EmployeesTable users={users} />
+          <EmployeesTable departments={departments} users={users} />
         </TabsContent>
 
         <TabsContent
@@ -112,73 +105,4 @@ function RouteComponent() {
       <Outlet />
     </>
   )
-}
-
-function EmployeesTable({ users }: { users: EmployeeRow[] }) {
-  if (users.length === 0) {
-    return (
-      <Empty className="border border-dashed">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <UsersIcon />
-          </EmptyMedia>
-        </EmptyHeader>
-        <EmptyDescription>Нет сотрудников</EmptyDescription>
-      </Empty>
-    )
-  }
-
-  return (
-    <div className="min-h-0 flex-1 overflow-auto rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Имя</TableHead>
-            <TableHead>Должность</TableHead>
-            <TableHead>Телефон</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Последняя активность</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell>{user.position ?? '—'}</TableCell>
-              <TableCell>
-                {user.phone ? (
-                  <a
-                    href={`tel:${user.phone}`}
-                    className="text-foreground underline-offset-4 hover:underline"
-                  >
-                    {user.phone}
-                  </a>
-                ) : (
-                  '—'
-                )}
-              </TableCell>
-              <TableCell>
-                <a
-                  href={`mailto:${user.email}`}
-                  className="text-foreground underline-offset-4 hover:underline"
-                >
-                  {user.email}
-                </a>
-              </TableCell>
-              <TableCell>{formatDateTime(user.lastActivityAt)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
-function formatDateTime(value: Date | string | null) {
-  if (!value) return '—'
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-
-  return date.toLocaleString('ru-RU')
 }
