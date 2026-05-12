@@ -67,6 +67,10 @@ ALTER TABLE "client_upselling_opportunities" DISABLE ROW LEVEL SECURITY;--> stat
 ALTER TABLE "wishlist_client" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "wishlist_client_department" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "wishlist_client_responsible_users" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "todos" DROP CONSTRAINT IF EXISTS "todos_client_id_client_id_fk";
+--> statement-breakpoint
+ALTER TABLE "todos" DROP CONSTRAINT IF EXISTS "todos_wishlist_client_id_wishlist_client_id_fk";
+--> statement-breakpoint
 DROP TABLE "client" CASCADE;--> statement-breakpoint
 DROP TABLE "client_gross_profits" CASCADE;--> statement-breakpoint
 DROP TABLE "client_hook" CASCADE;--> statement-breakpoint
@@ -77,10 +81,6 @@ DROP TABLE "client_upselling_opportunities" CASCADE;--> statement-breakpoint
 DROP TABLE "wishlist_client" CASCADE;--> statement-breakpoint
 DROP TABLE "wishlist_client_department" CASCADE;--> statement-breakpoint
 DROP TABLE "wishlist_client_responsible_users" CASCADE;--> statement-breakpoint
-ALTER TABLE "todos" DROP CONSTRAINT "todos_client_id_client_id_fk";
---> statement-breakpoint
-ALTER TABLE "todos" DROP CONSTRAINT "todos_wishlist_client_id_wishlist_client_id_fk";
---> statement-breakpoint
 ALTER TABLE "todos" ALTER COLUMN "deadline" SET DEFAULT '2026-05-14 09:09:30.130';--> statement-breakpoint
 ALTER TABLE "department" ADD COLUMN "head_user_id" text;--> statement-breakpoint
 ALTER TABLE "department" ADD COLUMN "parent_department_id" text;--> statement-breakpoint
