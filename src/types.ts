@@ -10,6 +10,8 @@ export type AccountType = 'client' | 'wishlist' | 'prospect' | 'lost'
 
 export type WishlistState = 'active' | 'basement' | 'archived'
 
+export type ChangelogStatus = 'draft' | 'published'
+
 // ─── Shared picked option types ─────────────────────────────────────────────
 
 export type DepartmentOption = {
@@ -185,6 +187,19 @@ export type EmployeeRow = {
   position: string | null
   phone: string | null
   lastActivityAt: Date | string | null
+}
+
+export type ChangelogReleaseRow = {
+  id: string
+  version: string
+  title: string
+  summary: string | null
+  content: string
+  status: ChangelogStatus
+  publishedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+  authorName: string | null
 }
 
 // ─── Detail view embedded item types ────────────────────────────────────────

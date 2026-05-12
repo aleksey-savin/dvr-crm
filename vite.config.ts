@@ -9,6 +9,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { nitro } from 'nitro/vite'
 
 const config = defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '0.0.0'),
+  },
   plugins: [
     devtools(),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),

@@ -19,6 +19,7 @@ import { authMiddleware } from 'utils/middleware'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { ModeToggle } from '@/components/layout/mode-toggle'
 import { useDepartmentStore } from '@/stores/department-store'
+import { AppFooter } from '@/components/layout/app-footer'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,9 +94,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                     </div>
                     <ModeToggle />
                   </header>
-                  <div className="flex min-h-0 flex-1 flex-col p-4">
+                  <main className="flex min-h-0 flex-1 flex-col p-4">
                     {children}
-                  </div>
+                  </main>
+                  <AppFooter />
                 </SidebarInset>
               </SidebarProvider>
             ) : (

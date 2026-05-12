@@ -22,6 +22,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as ChangelogRouteImport } from './routes/changelog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WishlistNewRouteImport } from './routes/wishlist.new'
 import { Route as UsersNewRouteImport } from './routes/users.new'
@@ -29,6 +30,7 @@ import { Route as TodosNewRouteImport } from './routes/todos.new'
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
+import { Route as ChangelogNewRouteImport } from './routes/changelog.new'
 import { Route as WishlistIdViewRouteImport } from './routes/wishlist_.$id.view'
 import { Route as WishlistIdUpdateRouteImport } from './routes/wishlist.$id.update'
 import { Route as WishlistIdDeleteRouteImport } from './routes/wishlist.$id.delete'
@@ -48,6 +50,8 @@ import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.de
 import { Route as ClientsIdViewRouteImport } from './routes/clients_.$id.view'
 import { Route as ClientsIdUpdateRouteImport } from './routes/clients.$id.update'
 import { Route as ClientsIdDeleteRouteImport } from './routes/clients.$id.delete'
+import { Route as ChangelogIdUpdateRouteImport } from './routes/changelog.$id.update'
+import { Route as ChangelogIdDeleteRouteImport } from './routes/changelog.$id.delete'
 import { Route as ApiPingSplatRouteImport } from './routes/api/ping/$'
 import { Route as ApiMeetingsSplatRouteImport } from './routes/api/meetings/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -117,6 +121,11 @@ const ClientsRoute = ClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -151,6 +160,11 @@ const ClientsNewRoute = ClientsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => ClientsRoute,
+} as any)
+const ChangelogNewRoute = ChangelogNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ChangelogRoute,
 } as any)
 const WishlistIdViewRoute = WishlistIdViewRouteImport.update({
   id: '/wishlist_/$id/view',
@@ -247,6 +261,16 @@ const ClientsIdDeleteRoute = ClientsIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => ClientsRoute,
 } as any)
+const ChangelogIdUpdateRoute = ChangelogIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => ChangelogRoute,
+} as any)
+const ChangelogIdDeleteRoute = ChangelogIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => ChangelogRoute,
+} as any)
 const ApiPingSplatRoute = ApiPingSplatRouteImport.update({
   id: '/api/ping/$',
   path: '/api/ping/$',
@@ -265,6 +289,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/changelog': typeof ChangelogRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
@@ -278,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
+  '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -287,6 +313,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/api/ping/$': typeof ApiPingSplatRoute
+  '/changelog/$id/delete': typeof ChangelogIdDeleteRoute
+  '/changelog/$id/update': typeof ChangelogIdUpdateRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -309,6 +337,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/changelog': typeof ChangelogRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
@@ -322,6 +351,7 @@ export interface FileRoutesByTo {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
+  '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -331,6 +361,8 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/api/ping/$': typeof ApiPingSplatRoute
+  '/changelog/$id/delete': typeof ChangelogIdDeleteRoute
+  '/changelog/$id/update': typeof ChangelogIdUpdateRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients/$id/view': typeof ClientsIdViewRoute
@@ -354,6 +386,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/changelog': typeof ChangelogRouteWithChildren
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
@@ -367,6 +400,7 @@ export interface FileRoutesById {
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
+  '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -376,6 +410,8 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/meetings/$': typeof ApiMeetingsSplatRoute
   '/api/ping/$': typeof ApiPingSplatRoute
+  '/changelog/$id/delete': typeof ChangelogIdDeleteRoute
+  '/changelog/$id/update': typeof ChangelogIdUpdateRoute
   '/clients/$id/delete': typeof ClientsIdDeleteRoute
   '/clients/$id/update': typeof ClientsIdUpdateRoute
   '/clients_/$id/view': typeof ClientsIdViewRoute
@@ -400,6 +436,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/changelog'
     | '/clients'
     | '/companies'
     | '/dashboard'
@@ -413,6 +450,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
     | '/my-company/new'
@@ -422,6 +460,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/api/ping/$'
+    | '/changelog/$id/delete'
+    | '/changelog/$id/update'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -444,6 +484,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/changelog'
     | '/clients'
     | '/companies'
     | '/dashboard'
@@ -457,6 +498,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
     | '/my-company/new'
@@ -466,6 +508,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/api/ping/$'
+    | '/changelog/$id/delete'
+    | '/changelog/$id/update'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients/$id/view'
@@ -488,6 +532,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/changelog'
     | '/clients'
     | '/companies'
     | '/dashboard'
@@ -501,6 +546,7 @@ export interface FileRouteTypes {
     | '/todos'
     | '/users'
     | '/wishlist'
+    | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
     | '/my-company/new'
@@ -510,6 +556,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/meetings/$'
     | '/api/ping/$'
+    | '/changelog/$id/delete'
+    | '/changelog/$id/update'
     | '/clients/$id/delete'
     | '/clients/$id/update'
     | '/clients_/$id/view'
@@ -533,6 +581,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ChangelogRoute: typeof ChangelogRouteWithChildren
   ClientsRoute: typeof ClientsRouteWithChildren
   CompaniesRoute: typeof CompaniesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
@@ -649,6 +698,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -697,6 +753,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clients/new'
       preLoaderRoute: typeof ClientsNewRouteImport
       parentRoute: typeof ClientsRoute
+    }
+    '/changelog/new': {
+      id: '/changelog/new'
+      path: '/new'
+      fullPath: '/changelog/new'
+      preLoaderRoute: typeof ChangelogNewRouteImport
+      parentRoute: typeof ChangelogRoute
     }
     '/wishlist_/$id/view': {
       id: '/wishlist_/$id/view'
@@ -831,6 +894,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientsIdDeleteRouteImport
       parentRoute: typeof ClientsRoute
     }
+    '/changelog/$id/update': {
+      id: '/changelog/$id/update'
+      path: '/$id/update'
+      fullPath: '/changelog/$id/update'
+      preLoaderRoute: typeof ChangelogIdUpdateRouteImport
+      parentRoute: typeof ChangelogRoute
+    }
+    '/changelog/$id/delete': {
+      id: '/changelog/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/changelog/$id/delete'
+      preLoaderRoute: typeof ChangelogIdDeleteRouteImport
+      parentRoute: typeof ChangelogRoute
+    }
     '/api/ping/$': {
       id: '/api/ping/$'
       path: '/api/ping/$'
@@ -854,6 +931,22 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ChangelogRouteChildren {
+  ChangelogNewRoute: typeof ChangelogNewRoute
+  ChangelogIdDeleteRoute: typeof ChangelogIdDeleteRoute
+  ChangelogIdUpdateRoute: typeof ChangelogIdUpdateRoute
+}
+
+const ChangelogRouteChildren: ChangelogRouteChildren = {
+  ChangelogNewRoute: ChangelogNewRoute,
+  ChangelogIdDeleteRoute: ChangelogIdDeleteRoute,
+  ChangelogIdUpdateRoute: ChangelogIdUpdateRoute,
+}
+
+const ChangelogRouteWithChildren = ChangelogRoute._addFileChildren(
+  ChangelogRouteChildren,
+)
 
 interface ClientsRouteChildren {
   ClientsNewRoute: typeof ClientsNewRoute
@@ -952,6 +1045,7 @@ const WishlistRouteWithChildren = WishlistRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ChangelogRoute: ChangelogRouteWithChildren,
   ClientsRoute: ClientsRouteWithChildren,
   CompaniesRoute: CompaniesRouteWithChildren,
   DashboardRoute: DashboardRoute,

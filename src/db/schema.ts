@@ -431,9 +431,7 @@ export const todo = pgTable('todos', {
   createdBy: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-  deadline: timestamp('deadline')
-    .notNull()
-    .default(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+  deadline: timestamp('deadline').notNull().defaultNow(),
   completedAt: timestamp({ withTimezone: true }),
   archivedAt: timestamp({ withTimezone: true }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -561,6 +559,45 @@ export const apiKey = pgTable('api_key', {
     .notNull(),
 })
 
+// ---------------------------------------------------------------------------
+// Changelog
+// ---------------------------------------------------------------------------
+
+export const changelogRelease = pgTable(
+  'changelog_release',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    version: text('version').notNull(),
+    title: text('title').notNull(),
+    summary: text('summary'),
+    content: text('content').notNull(),
+    status: text('status', {
+      enum: ['draft', 'published'],
+    })
+      .default('draft')
+      .notNull(),
+    authorId: text('author_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    publishedAt: timestamp('published_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('changelog_release_status_published_at_idx').on(
+      table.status,
+      table.publishedAt,
+    ),
+    index('changelog_release_version_idx').on(table.version),
+    index('changelog_release_author_id_idx').on(table.authorId),
+  ],
+)
+
 // ===========================================================================
 // Relations
 // ===========================================================================
@@ -606,6 +643,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   comments: many(comment),
   commentReads: many(commentRead),
   apiKeys: many(apiKey),
+  changelogReleases: many(changelogRelease),
   department: one(department, {
     fields: [user.departmentId],
     references: [department.id],
@@ -779,3 +817,13 @@ export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     references: [user.id],
   }),
 }))
+
+export const changelogReleaseRelations = relations(
+  changelogRelease,
+  ({ one }) => ({
+    author: one(user, {
+      fields: [changelogRelease.authorId],
+      references: [user.id],
+    }),
+  }),
+)

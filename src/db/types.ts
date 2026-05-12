@@ -21,6 +21,7 @@ import type {
   commentRead,
   meeting,
   apiKey,
+  changelogRelease,
 } from './schema'
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -181,4 +182,12 @@ export type SelectApiKey = InferSelectModel<typeof apiKey>
 export type InsertApiKey = InferInsertModel<typeof apiKey>
 export type UpdateApiKey = Partial<
   Omit<InsertApiKey, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+// ─── Changelog ──────────────────────────────────────────────────────────────
+
+export type SelectChangelogRelease = InferSelectModel<typeof changelogRelease>
+export type InsertChangelogRelease = InferInsertModel<typeof changelogRelease>
+export type UpdateChangelogRelease = Partial<
+  Omit<InsertChangelogRelease, 'id' | 'createdAt' | 'updatedAt'>
 >

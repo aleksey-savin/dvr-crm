@@ -30,13 +30,17 @@ const navMain = [
     title: 'Обзор',
     url: '#',
     items: [
-      /* {
+      {
         title: 'Дашборд',
         url: '/dashboard',
-      }, */
+      },
       {
         title: 'Моя компания',
         url: '/my-company',
+      },
+      {
+        title: 'Обновления',
+        url: '/changelog',
       },
     ],
   },

@@ -180,6 +180,34 @@
   display: none;
 }
 
+.changelog-content {
+  @apply text-sm leading-6 text-foreground;
+}
+
+.changelog-content :where(p) {
+  @apply my-2;
+}
+
+.changelog-content :where(ul) {
+  @apply my-2 list-disc space-y-1 pl-5;
+}
+
+.changelog-content :where(ol) {
+  @apply my-2 list-decimal space-y-1 pl-5;
+}
+
+.changelog-content :where(h2, h3) {
+  @apply mt-5 mb-2 font-semibold;
+}
+
+.changelog-content :where(a) {
+  @apply underline underline-offset-4;
+}
+
+.changelog-content :where(blockquote) {
+  @apply my-3 border-l-2 pl-4 text-muted-foreground;
+}
+
 body {
   @apply m-0;
   font-family:
