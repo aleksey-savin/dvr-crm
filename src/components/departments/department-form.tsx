@@ -75,6 +75,10 @@ function getColorPickerValue(value: string) {
     : DEFAULT_ACCENT_COLOR.toLowerCase()
 }
 
+function getOptionalString(value: string | null | undefined) {
+  return value || undefined
+}
+
 const DepartmentForm = ({
   item,
   initialParentId,
@@ -120,10 +124,10 @@ const DepartmentForm = ({
   const form = useForm({
     defaultValues: {
       name: item?.name ?? '',
-      headUserId: item?.headUserId ?? undefined,
-      description: item?.description as string | undefined,
+      headUserId: getOptionalString(item?.headUserId),
+      description: getOptionalString(item?.description),
       accentColor: normalizeHexColor(item?.accentColor ?? DEFAULT_ACCENT_COLOR),
-      parentId: item?.parentId ?? initialParentId,
+      parentId: getOptionalString(item?.parentId) ?? initialParentId,
     },
     validators: {
       onSubmit: formSchema,
@@ -282,16 +286,7 @@ const DepartmentForm = ({
                     </SelectItem>
                     {parentOptions.map((option) => (
                       <SelectItem key={option.id} value={option.id}>
-                        <span
-                          style={{
-                            paddingLeft:
-                              option.depth > 0
-                                ? `${option.depth * 12}px`
-                                : undefined,
-                          }}
-                        >
-                          {option.name}
-                        </span>
+                        {`${'\u00A0'.repeat(option.depth * 2)}${option.name}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
