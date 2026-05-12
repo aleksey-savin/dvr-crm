@@ -3,7 +3,6 @@ import {
   CalendarDaysIcon,
   EditIcon,
   FileTextIcon,
-  PlusIcon,
   Trash2Icon,
 } from 'lucide-react'
 
@@ -20,7 +19,6 @@ import {
 } from '@/components/ui/card'
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -39,26 +37,6 @@ function RouteComponent() {
   return (
     <>
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="min-w-0 space-y-2">
-            <h1 className="text-2xl font-semibold tracking-normal">
-              Обновления
-            </h1>
-            <p className="max-w-2xl text-sm text-muted-foreground">
-              Последние релизы корпоративного портала DVR Group.
-            </p>
-          </div>
-
-          {canManage && (
-            <Button asChild>
-              <Link to="/changelog/new">
-                <PlusIcon />
-                Добавить релиз
-              </Link>
-            </Button>
-          )}
-        </div>
-
         {releases.length === 0 ? (
           <Empty className="border border-dashed">
             <EmptyHeader>
@@ -70,16 +48,6 @@ function RouteComponent() {
                 Опубликованные изменения появятся на этой странице.
               </EmptyDescription>
             </EmptyHeader>
-            {canManage && (
-              <EmptyContent>
-                <Button asChild>
-                  <Link to="/changelog/new">
-                    <PlusIcon />
-                    Добавить релиз
-                  </Link>
-                </Button>
-              </EmptyContent>
-            )}
           </Empty>
         ) : (
           <div className="flex flex-col gap-4">

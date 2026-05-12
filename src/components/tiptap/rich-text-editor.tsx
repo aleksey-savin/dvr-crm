@@ -16,7 +16,6 @@ import Typography from '@tiptap/extension-typography'
 import Underline from '@tiptap/extension-underline'
 import { EditorContent, type Extension, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { TipTapFloatingMenu } from '@/components/tiptap/extensions/floating-menu'
 import { FloatingToolbar } from '@/components/tiptap/extensions/floating-toolbar'
 import { EditorToolbar } from './toolbars/editor-toolbar'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -54,7 +53,7 @@ const extensions = [
         case 'codeBlock':
           return ''
         default:
-          return "Write, type '/' for commands"
+          return 'Write...'
       }
     },
     includeChildren: false,
@@ -125,7 +124,6 @@ function RichTextEditorInner({
     >
       <EditorToolbar editor={editor} />
       <FloatingToolbar editor={editor} />
-      <TipTapFloatingMenu editor={editor} />
       <EditorContent
         editor={editor}
         className="flex-1 min-h-0 overflow-y-auto w-full cursor-text"

@@ -18,6 +18,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     wishlist: { label: 'Вишлист', showAddButton: true },
     todos: { label: 'Задачи', showAddButton: true },
     users: { label: 'Пользователи', showAddButton: true },
+    changelog: { label: 'Обновления', showAddButton: true },
     'my-company': { label: 'Моя компания', showAddButton: false },
     preferences: { label: 'Настройки', showAddButton: false },
   }
@@ -47,7 +48,7 @@ export function AppBreadcrumb() {
   // Get loader data from the current active route match
   const activeMatch = matches[matches.length - 1]
   const loaderData = activeMatch.loaderData as
-    | { company?: { name?: string }; name?: string }
+    | { canManage?: boolean; company?: { name?: string }; name?: string }
     | undefined
 
   // Get entity name for view pages
@@ -63,7 +64,9 @@ export function AppBreadcrumb() {
   }
 
   // Check if the last segment should show an add button
-  const showAddButton = ROUTE_LABELS[lastSegment].showAddButton
+  const showAddButton =
+    ROUTE_LABELS[lastSegment].showAddButton &&
+    (lastSegment !== 'changelog' || loaderData?.canManage === true)
 
   return (
     <div className="flex items-center">

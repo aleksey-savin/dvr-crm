@@ -3,7 +3,7 @@ import { changelogRelease } from '@/db/schema'
 import type { ChangelogReleaseRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { auth } from 'utils/auth'
 import * as z from 'zod'
 
@@ -21,6 +21,9 @@ const changelogInputSchema = z.object({
 const updateChangelogSchema = changelogInputSchema.extend({
   id: z.string(),
 })
+
+const duplicateVersionMessage =
+  'Для этой версии уже есть запись. Удалите предыдущую запись или добавьте текущие изменения в неё.'
 
 function isChangelogEditor(role: string | null | undefined) {
   return role === 'admin' || role === 'manager'
@@ -54,6 +57,22 @@ function resolvePublishedAt(
 
 function getReleaseTime(row: { publishedAt: Date | null; createdAt: Date }) {
   return (row.publishedAt ?? row.createdAt).getTime()
+}
+
+async function ensureUniqueReleaseVersion(version: string, currentId?: string) {
+  const existingRelease = await db.query.changelogRelease.findFirst({
+    columns: { id: true },
+    where: currentId
+      ? and(
+          eq(changelogRelease.version, version),
+          ne(changelogRelease.id, currentId),
+        )
+      : eq(changelogRelease.version, version),
+  })
+
+  if (existingRelease) {
+    throw new Error(duplicateVersionMessage)
+  }
 }
 
 function toChangelogReleaseRow(
@@ -146,6 +165,7 @@ export const addChangelogRelease = createServerFn({ method: 'POST' })
   .inputValidator(changelogInputSchema)
   .handler(async ({ data }) => {
     const session = await requireChangelogEditor()
+    await ensureUniqueReleaseVersion(data.version)
 
     await db.insert(changelogRelease).values({
       version: data.version,
@@ -162,6 +182,7 @@ export const updateChangelogRelease = createServerFn({ method: 'POST' })
   .inputValidator(updateChangelogSchema)
   .handler(async ({ data }) => {
     await requireChangelogEditor()
+    await ensureUniqueReleaseVersion(data.version, data.id)
 
     await db
       .update(changelogRelease)
