@@ -9,6 +9,7 @@ import {
   primaryKey,
   numeric,
   integer,
+  unique,
 } from 'drizzle-orm/pg-core'
 
 // ---------------------------------------------------------------------------
@@ -145,6 +146,48 @@ export const company = pgTable('company', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   industry: text('industry'),
 })
+
+// ---------------------------------------------------------------------------
+// Counterparty (attached to companies through a junction table)
+// ---------------------------------------------------------------------------
+
+export const counterparty = pgTable('counterparty', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  fullName: text('full_name'),
+  tin: text('tin'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+})
+
+export const companyCounterparty = pgTable(
+  'company_counterparty',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyId: text('company_id')
+      .notNull()
+      .references(() => company.id, { onDelete: 'cascade' }),
+    counterpartyId: text('counterparty_id')
+      .notNull()
+      .references(() => counterparty.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    unique('company_counterparty_unique').on(
+      table.companyId,
+      table.counterpartyId,
+    ),
+    index('company_counterparty_companyId_idx').on(table.companyId),
+    index('company_counterparty_counterpartyId_idx').on(table.counterpartyId),
+  ],
+)
 
 // ---------------------------------------------------------------------------
 // Company Account in Business Unit (1.1.3)
@@ -337,6 +380,10 @@ export const companyContact = pgTable(
     position: text('position'),
     description: text('description'),
     contacts: text('contacts'),
+    phone: text('phone'),
+    email: text('email'),
+    telegram: text('telegram'),
+    max: text('max'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -723,7 +770,26 @@ export const companyRelations = relations(company, ({ many }) => ({
   accounts: many(companyAccount),
   revenues: many(companyRevenue),
   contacts: many(companyContact),
+  counterparties: many(companyCounterparty),
 }))
+
+export const counterpartyRelations = relations(counterparty, ({ many }) => ({
+  companyLinks: many(companyCounterparty),
+}))
+
+export const companyCounterpartyRelations = relations(
+  companyCounterparty,
+  ({ one }) => ({
+    company: one(company, {
+      fields: [companyCounterparty.companyId],
+      references: [company.id],
+    }),
+    counterparty: one(counterparty, {
+      fields: [companyCounterparty.counterpartyId],
+      references: [counterparty.id],
+    }),
+  }),
+)
 
 export const companyRevenueRelations = relations(companyRevenue, ({ one }) => ({
   company: one(company, {

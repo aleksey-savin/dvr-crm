@@ -1,12 +1,28 @@
 import * as React from 'react'
 import { toast } from 'sonner'
-import { UsersRoundIcon, PlusIcon, Settings2Icon, XIcon } from 'lucide-react'
+import {
+  MailIcon,
+  PhoneIcon,
+  PlusIcon,
+  SendIcon,
+  Settings2Icon,
+  UsersRoundIcon,
+  XIcon,
+} from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +31,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -23,8 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
-import { Section } from '@/components/companyAccounts/client-view/shared'
+import { Textarea } from '@/components/ui/textarea'
 import {
   addCompanyContact,
   deleteCompanyContact,
@@ -38,27 +55,77 @@ type Props = {
   onRefresh: () => void
 }
 
-// ---------------------------------------------------------------------------
-// Contact form state
-// ---------------------------------------------------------------------------
-
 type ContactFormState = {
   name: string
   position: string
   description: string
-  contacts: string
+  phone: string
+  email: string
+  telegram: string
+  max: string
 }
 
 const emptyForm = (): ContactFormState => ({
   name: '',
   position: '',
   description: '',
-  contacts: '',
+  phone: '',
+  email: '',
+  telegram: '',
+  max: '',
 })
 
-// ---------------------------------------------------------------------------
-// Add / Edit dialog
-// ---------------------------------------------------------------------------
+function cleanMessengerValue(value: string) {
+  return value.trim().replace(/^@/, '')
+}
+
+function telegramHref(value: string) {
+  const trimmed = value.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://t.me/${cleanMessengerValue(trimmed)}`
+}
+
+function maxHref(value: string) {
+  const trimmed = value.trim()
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://max.ru/${cleanMessengerValue(trimmed)}`
+}
+
+function MaxIcon({ className }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center ${className ?? ''}`}
+    >
+      <img
+        src="/max_logo.svg"
+        alt=""
+        className="size-full invert dark:invert-0"
+      />
+    </span>
+  )
+}
+
+function ContactLink({
+  href,
+  icon: Icon,
+  children,
+}: {
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+}) {
+  return (
+    <a
+      href={href}
+      target={href.startsWith('http') ? '_blank' : undefined}
+      rel={href.startsWith('http') ? 'noreferrer' : undefined}
+      className="inline-flex min-w-0 items-center gap-1.5 text-sm text-primary hover:underline"
+    >
+      <Icon className="size-3.5 shrink-0" />
+      <span className="truncate">{children}</span>
+    </a>
+  )
+}
 
 function ContactFormDialog({
   companyId,
@@ -76,51 +143,48 @@ function ContactFormDialog({
   const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
-    if (open) {
-      setForm(
-        existing
-          ? {
-              name: existing.name,
-              position: existing.position ?? '',
-              description: existing.description ?? '',
-              contacts: existing.contacts ?? '',
-            }
-          : emptyForm(),
-      )
-    }
+    if (!open) return
+    setForm(
+      existing
+        ? {
+            name: existing.name,
+            position: existing.position ?? '',
+            description: existing.description ?? '',
+            phone: existing.phone ?? '',
+            email: existing.email ?? '',
+            telegram: existing.telegram ?? '',
+            max: existing.max ?? '',
+          }
+        : emptyForm(),
+    )
   }, [open, existing])
 
   const set =
     (key: keyof ContactFormState) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }))
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [key]: event.target.value }))
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     if (!form.name.trim()) return
+
+    const data = {
+      name: form.name.trim(),
+      position: form.position.trim() || undefined,
+      description: form.description.trim() || undefined,
+      phone: form.phone.trim() || undefined,
+      email: form.email.trim() || undefined,
+      telegram: form.telegram.trim() || undefined,
+      max: form.max.trim() || undefined,
+    }
+
     setLoading(true)
     try {
       if (existing) {
-        await updateCompanyContact({
-          data: {
-            id: existing.id,
-            name: form.name.trim(),
-            position: form.position.trim() || undefined,
-            description: form.description.trim() || undefined,
-            contacts: form.contacts.trim() || undefined,
-          },
-        })
+        await updateCompanyContact({ data: { id: existing.id, ...data } })
         toast.success('Контакт обновлён')
       } else {
-        await addCompanyContact({
-          data: {
-            companyId,
-            name: form.name.trim(),
-            position: form.position.trim() || undefined,
-            description: form.description.trim() || undefined,
-            contacts: form.contacts.trim() || undefined,
-          },
-        })
+        await addCompanyContact({ data: { companyId, ...data } })
         toast.success('Контакт добавлен')
       }
       onSaved()
@@ -135,47 +199,74 @@ function ContactFormDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {existing ? 'Редактировать контакт' : 'Добавить контакт'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label>Имя *</Label>
-            <Input
-              value={form.name}
-              onChange={set('name')}
-              placeholder="Иванов Иван Иванович"
-              autoFocus
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Должность</Label>
-            <Input
-              value={form.position}
-              onChange={set('position')}
-              placeholder="Генеральный директор"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label>Имя *</Label>
+              <Input
+                value={form.name}
+                onChange={set('name')}
+                placeholder="Иванов Иван"
+                autoFocus
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Должность</Label>
+              <Input
+                value={form.position}
+                onChange={set('position')}
+                placeholder="Генеральный директор"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Телефон</Label>
+              <Input
+                value={form.phone}
+                onChange={set('phone')}
+                placeholder="+7 999 123-45-67"
+                inputMode="tel"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Email</Label>
+              <Input
+                value={form.email}
+                onChange={set('email')}
+                placeholder="ivan@example.com"
+                type="email"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Telegram</Label>
+              <Input
+                value={form.telegram}
+                onChange={set('telegram')}
+                placeholder="@ivan"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Max</Label>
+              <Input
+                value={form.max}
+                onChange={set('max')}
+                placeholder="@ivan"
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Описание</Label>
             <Textarea
               value={form.description}
               onChange={set('description')}
-              placeholder="Краткое описание…"
-              className="min-h-20 resize-none"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Контакты</Label>
-            <Textarea
-              value={form.contacts}
-              onChange={set('contacts')}
-              placeholder="+7 (999) 123-45-67&#10;ivan@example.com&#10;@ivan_tg"
-              className="min-h-20 resize-none"
+              placeholder="Краткое описание"
+              className="min-h-16 resize-none"
             />
           </div>
           <DialogFooter>
@@ -196,11 +287,7 @@ function ContactFormDialog({
   )
 }
 
-// ---------------------------------------------------------------------------
-// Manage dialog
-// ---------------------------------------------------------------------------
-
-function ManageDialog({ contacts, companyId, onRefresh }: Props) {
+export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
   const handleDelete = async (id: string) => {
@@ -217,169 +304,153 @@ function ManageDialog({ contacts, companyId, onRefresh }: Props) {
   }
 
   return (
-    <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-      <DialogHeader>
-        <DialogTitle>Управление контактами</DialogTitle>
-      </DialogHeader>
-
-      <div className="flex-1 overflow-y-auto pr-1">
-        <Section
-          icon={UsersRoundIcon}
-          title="Контакты"
-          action={
-            <ContactFormDialog companyId={companyId} onSaved={onRefresh}>
-              <Button size="sm" variant="outline" className="gap-1.5">
-                <PlusIcon className="size-3.5" />
-                Добавить
-              </Button>
-            </ContactFormDialog>
-          }
-        >
-          {contacts.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-2">
-              Контактов не добавлено
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Имя</TableHead>
-                  <TableHead>Должность</TableHead>
-                  <TableHead>Контакты</TableHead>
-                  <TableHead className="w-0" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {contacts.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium leading-tight">
-                          {c.name}
-                        </span>
-                        {c.description && (
-                          <span className="text-xs text-muted-foreground line-clamp-2">
-                            {c.description}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {c.position ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm whitespace-pre-line text-muted-foreground">
-                      {c.contacts ?? '—'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <ContactFormDialog
-                          companyId={companyId}
-                          existing={c}
-                          onSaved={onRefresh}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-muted-foreground"
-                          >
-                            <Settings2Icon className="size-3.5" />
-                          </Button>
-                        </ContactFormDialog>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          disabled={deletingId === c.id}
-                          onClick={() => handleDelete(c.id)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <XIcon className="size-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </Section>
-      </div>
-    </DialogContent>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Main export
-// ---------------------------------------------------------------------------
-
-export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="flex-1 flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-sm font-semibold">
-          <UsersRoundIcon className="size-4 text-muted-foreground" />
-          Контакты
-          {contacts.length > 0 && (
-            <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
-              {contacts.length}
-            </Badge>
-          )}
-        </div>
-
-        {contacts.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic">
-            Контактов не добавлено
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {contacts.map((c) => (
-              <li key={c.id} className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium leading-tight">
-                    {c.name}
-                  </span>
-                  {c.position && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] h-4 px-1.5"
-                    >
-                      {c.position}
-                    </Badge>
-                  )}
-                </div>
-                {c.contacts && (
-                  <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
-                    {c.contacts}
-                  </p>
-                )}
-                {c.description && (
-                  <p className="text-xs text-muted-foreground/70 italic">
-                    {c.description}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <UsersRoundIcon className="size-4 text-muted-foreground" />
+        Контакты
+        {contacts.length > 0 && (
+          <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+            {contacts.length}
+          </Badge>
         )}
       </div>
 
-      {/* Manage button */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 self-start shrink-0"
-          >
-            <Settings2Icon className="size-3.5" />
-            Управлять
-          </Button>
-        </DialogTrigger>
-        <ManageDialog
-          contacts={contacts}
-          companyId={companyId}
-          onRefresh={onRefresh}
-        />
-      </Dialog>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[26%] font-semibold">Имя</TableHead>
+              <TableHead className="font-semibold">Контакты</TableHead>
+              <TableHead className="w-[30%] font-semibold">Описание</TableHead>
+              <TableHead className="w-0" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {contacts.map((contact) => {
+              const position = contact.position?.trim()
+              const description = contact.description?.trim()
+              const phone = contact.phone?.trim()
+              const email = contact.email?.trim()
+              const telegram = contact.telegram?.trim()
+              const max = contact.max?.trim()
+
+              return (
+                <TableRow key={contact.id}>
+                  <TableCell>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-medium">{contact.name}</span>
+                      {position && (
+                        <span className="text-xs text-muted-foreground">
+                          {position}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      {phone && (
+                        <ContactLink href={`tel:${phone}`} icon={PhoneIcon}>
+                          {phone}
+                        </ContactLink>
+                      )}
+                      {email && (
+                        <ContactLink href={`mailto:${email}`} icon={MailIcon}>
+                          {email}
+                        </ContactLink>
+                      )}
+                      {telegram && (
+                        <ContactLink
+                          href={telegramHref(telegram)}
+                          icon={SendIcon}
+                        >
+                          {telegram}
+                        </ContactLink>
+                      )}
+                      {max && (
+                        <ContactLink href={maxHref(max)} icon={MaxIcon}>
+                          {max}
+                        </ContactLink>
+                      )}
+                      {!phone && !email && !telegram && !max && '—'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-sm text-muted-foreground">
+                    {description || '—'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <ContactFormDialog
+                        companyId={companyId}
+                        existing={contact}
+                        onSaved={onRefresh}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground"
+                        >
+                          <Settings2Icon className="size-3.5" />
+                        </Button>
+                      </ContactFormDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            disabled={deletingId === contact.id}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <XIcon className="size-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Удалить контакт?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Контакт «{contact.name}» будет удалён из компании.
+                              Это действие нельзя отменить.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel
+                              disabled={deletingId === contact.id}
+                            >
+                              Отмена
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              variant="destructive"
+                              disabled={deletingId === contact.id}
+                              onClick={() => handleDelete(contact.id)}
+                            >
+                              Удалить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+            <TableRow>
+              <TableCell colSpan={4}>
+                <ContactFormDialog companyId={companyId} onSaved={onRefresh}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-1.5 text-muted-foreground"
+                  >
+                    <PlusIcon className="size-3.5" />
+                    Добавить контакт
+                  </Button>
+                </ContactFormDialog>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

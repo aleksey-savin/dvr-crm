@@ -1,9 +1,15 @@
 import { db } from '@/db'
-import { company, companyContact, companyRevenue } from '@/db/schema'
+import {
+  company,
+  companyContact,
+  companyCounterparty,
+  companyRevenue,
+  counterparty,
+} from '@/db/schema'
 import type { CompanyRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
-import { and, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 import * as z from 'zod'
 
 const companySchema = z.object({
@@ -32,11 +38,28 @@ const addContactSchema = z.object({
   position: z.string().optional(),
   description: z.string().optional(),
   contacts: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+  telegram: z.string().optional(),
+  max: z.string().optional(),
 })
 
 const updateContactSchema = addContactSchema.omit({ companyId: true }).extend({
   id: z.string(),
 })
+
+const addCounterpartySchema = z.object({
+  companyId: z.string(),
+  name: z.string().min(2, 'Минимум 2 символа'),
+  fullName: z.string().optional(),
+  tin: z.string().optional(),
+})
+
+const updateCounterpartySchema = addCounterpartySchema
+  .omit({ companyId: true })
+  .extend({
+    id: z.string(),
+  })
 
 export const fetchCompanies = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
@@ -91,16 +114,55 @@ export const fetchCompany = createServerFn({ method: 'GET' })
       with: {
         contacts: true,
         revenues: true,
+        counterparties: {
+          with: {
+            counterparty: {
+              columns: {
+                id: true,
+                name: true,
+                fullName: true,
+                tin: true,
+              },
+            },
+          },
+        },
         accounts: {
           columns: {
             id: true,
+            businessUnitId: true,
             accountType: true,
             isTarget: true,
             isLost: true,
+            lostReasons: true,
             why: true,
+            wishlistState: true,
           },
           with: {
             businessUnit: { columns: { id: true, name: true } },
+            owner: { columns: { id: true, name: true, image: true } },
+            risks: true,
+            grossProfits: true,
+            targetForecasts: true,
+            upsellingOpportunities: true,
+            hooks: true,
+            todos: {
+              columns: {
+                id: true,
+                name: true,
+                status: true,
+                deadline: true,
+                completedAt: true,
+                archivedAt: true,
+                createdAt: true,
+              },
+              with: {
+                responsibleUsers: {
+                  with: {
+                    user: { columns: { id: true, name: true } },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -188,6 +250,10 @@ export const addCompanyContact = createServerFn({ method: 'POST' })
       position: data.position ?? null,
       description: data.description ?? null,
       contacts: data.contacts ?? null,
+      phone: data.phone ?? null,
+      email: data.email ?? null,
+      telegram: data.telegram ?? null,
+      max: data.max ?? null,
     })
   })
 
@@ -201,6 +267,10 @@ export const updateCompanyContact = createServerFn({ method: 'POST' })
         position: data.position ?? null,
         description: data.description ?? null,
         contacts: data.contacts ?? null,
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        telegram: data.telegram ?? null,
+        max: data.max ?? null,
       })
       .where(eq(companyContact.id, data.id))
   })
@@ -209,4 +279,68 @@ export const deleteCompanyContact = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     await db.delete(companyContact).where(eq(companyContact.id, data.id))
+  })
+
+export const addCompanyCounterparty = createServerFn({ method: 'POST' })
+  .inputValidator(addCounterpartySchema)
+  .handler(async ({ data }) => {
+    await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(counterparty)
+        .values({
+          name: data.name,
+          fullName: data.fullName ?? null,
+          tin: data.tin ?? null,
+        })
+        .returning({ id: counterparty.id })
+
+      await tx.insert(companyCounterparty).values({
+        companyId: data.companyId,
+        counterpartyId: inserted.id,
+      })
+    })
+  })
+
+export const updateCounterparty = createServerFn({ method: 'POST' })
+  .inputValidator(updateCounterpartySchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(counterparty)
+      .set({
+        name: data.name,
+        fullName: data.fullName ?? null,
+        tin: data.tin ?? null,
+      })
+      .where(eq(counterparty.id, data.id))
+  })
+
+export const removeCompanyCounterparty = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      companyId: z.string(),
+      counterpartyId: z.string(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(companyCounterparty)
+        .where(
+          and(
+            eq(companyCounterparty.companyId, data.companyId),
+            eq(companyCounterparty.counterpartyId, data.counterpartyId),
+          ),
+        )
+
+      const [refs] = await tx
+        .select({ n: count() })
+        .from(companyCounterparty)
+        .where(eq(companyCounterparty.counterpartyId, data.counterpartyId))
+
+      if (refs.n === 0) {
+        await tx
+          .delete(counterparty)
+          .where(eq(counterparty.id, data.counterpartyId))
+      }
+    })
   })

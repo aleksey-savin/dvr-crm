@@ -31,10 +31,17 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
 
       return (
         <div className="flex flex-col">
-          <div>{account.name as any as React.ReactNode}</div>
+          <Link
+            to="/companies/$id/view"
+            params={{ id: account.companyId }}
+            search={{ tab: account.id }}
+            className="hover:underline"
+          >
+            {account.name}
+          </Link>
           {!selectedDepartmentId && (
             <div className="text-xs text-muted-foreground">
-              {account.businessUnit as any as React.ReactNode}
+              {account.businessUnit}
             </div>
           )}
         </div>
@@ -198,7 +205,11 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
       return (
         <div className="flex items-center justify-end gap-1">
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/view" params={{ id: account.id }}>
+            <Link
+              to="/companies/$id/view"
+              params={{ id: account.companyId }}
+              search={{ tab: account.id }}
+            >
               <EyeIcon />
             </Link>
           </Button>

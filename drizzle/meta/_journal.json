@@ -274,6 +274,20 @@
       "when": 1778573322221,
       "tag": "0038_motionless_ultragirl",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1778591534230,
+      "tag": "0039_last_karma",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1778593106741,
+      "tag": "0040_chief_starfox",
+      "breakpoints": true
     }
   ]
 }

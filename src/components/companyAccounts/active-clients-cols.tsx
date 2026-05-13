@@ -37,7 +37,14 @@ export const columns: ColumnDef<ClientAccountRow>[] = [
       return (
         <div className="flex justify-start">
           <div className="flex flex-col">
-            <div>{item.name}</div>
+            <Link
+              to="/companies/$id/view"
+              params={{ id: item.companyId }}
+              search={{ tab: item.id }}
+              className="hover:underline"
+            >
+              {item.name}
+            </Link>
             {!selectedDepartmentId && (
               <div className="text-xs text-muted-foreground">
                 {item.businessUnit}
@@ -261,7 +268,11 @@ export const columns: ColumnDef<ClientAccountRow>[] = [
       return (
         <div className="flex items-center justify-end gap-1">
           <Button asChild variant="ghost" size="icon-sm">
-            <Link to="/clients/$id/view" params={{ id: item.id }}>
+            <Link
+              to="/companies/$id/view"
+              params={{ id: item.companyId }}
+              search={{ tab: item.id }}
+            >
               <EyeIcon />
             </Link>
           </Button>

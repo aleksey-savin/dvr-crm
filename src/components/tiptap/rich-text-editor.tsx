@@ -53,7 +53,7 @@ const extensions = [
         case 'codeBlock':
           return ''
         default:
-          return 'Write...'
+          return 'Введите текст...'
       }
     },
     includeChildren: false,

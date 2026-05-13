@@ -38,10 +38,6 @@ const navMain = [
         title: 'Моя компания',
         url: '/my-company',
       },
-      {
-        title: 'Обновления',
-        url: '/changelog',
-      },
     ],
   },
   {

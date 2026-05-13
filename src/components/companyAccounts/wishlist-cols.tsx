@@ -38,8 +38,9 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     ),
     cell: ({ row }) => (
       <Link
-        to="/wishlist/$id/view"
-        params={{ id: row.original.id }}
+        to="/companies/$id/view"
+        params={{ id: row.original.companyId }}
+        search={{ tab: row.original.id }}
         className="font-medium hover:underline min-w-36 block"
       >
         {row.original.companyName}
@@ -207,7 +208,11 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-1">
         <Button asChild variant="ghost" size="icon-sm">
-          <Link to="/wishlist/$id/view" params={{ id: row.original.id }}>
+          <Link
+            to="/companies/$id/view"
+            params={{ id: row.original.companyId }}
+            search={{ tab: row.original.id }}
+          >
             <EyeIcon />
           </Link>
         </Button>

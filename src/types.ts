@@ -58,6 +58,7 @@ export type CompanyAccountOption = {
 /** Row shape for the active (non-lost) clients DataTable */
 export type ClientAccountRow = {
   id: string
+  companyId: string
   /** company.name */
   name: string
   /** department.name (business unit) */
@@ -77,6 +78,7 @@ export type ClientAccountRow = {
 /** Row shape for the lost clients DataTable */
 export type LostClientAccountRow = {
   id: string
+  companyId: string
   name: string
   businessUnit: string
   potentialNextYear: string | null
@@ -235,6 +237,17 @@ export type Contact = {
   position: string | null
   description: string | null
   contacts: string | null
+  phone: string | null
+  email: string | null
+  telegram: string | null
+  max: string | null
+}
+
+export type Counterparty = {
+  id: string
+  name: string
+  fullName: string | null
+  tin: string | null
 }
 
 export type AccountTodoItem = {

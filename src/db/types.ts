@@ -8,6 +8,8 @@ import type {
   todoResponsibleUsers,
   department,
   company,
+  counterparty,
+  companyCounterparty,
   companyAccount,
   accountRisk,
   accountGrossProfit,
@@ -64,6 +66,19 @@ export type SelectCompany = InferSelectModel<typeof company>
 export type InsertCompany = InferInsertModel<typeof company>
 export type UpdateCompany = Partial<
   Omit<InsertCompany, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectCounterparty = InferSelectModel<typeof counterparty>
+export type InsertCounterparty = InferInsertModel<typeof counterparty>
+export type UpdateCounterparty = Partial<
+  Omit<InsertCounterparty, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectCompanyCounterparty = InferSelectModel<
+  typeof companyCounterparty
+>
+export type InsertCompanyCounterparty = InferInsertModel<
+  typeof companyCounterparty
 >
 
 // ─── Company Account (Аккаунт компании в бизнес-юните) ───────────────────────

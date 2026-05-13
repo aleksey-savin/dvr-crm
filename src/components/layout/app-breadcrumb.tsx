@@ -24,7 +24,8 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
   }
 
 export function AppBreadcrumb() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const location = useRouterState({ select: (s) => s.location })
+  const pathname = location.pathname
   const matches = useMatches()
 
   const allSegments = pathname.split('/').filter(Boolean)
@@ -48,15 +49,36 @@ export function AppBreadcrumb() {
   // Get loader data from the current active route match
   const activeMatch = matches[matches.length - 1]
   const loaderData = activeMatch.loaderData as
-    | { canManage?: boolean; company?: { name?: string }; name?: string }
+    | {
+        canManage?: boolean
+        company?: { name?: string }
+        name?: string
+        accounts?: Array<{ id: string; accountType: string }>
+      }
     | undefined
+
+  const activeTab =
+    typeof location.search.tab === 'string' ? location.search.tab : undefined
+  const activeAccount = loaderData?.accounts?.find(
+    (account) => account.id === activeTab,
+  )
+  const effectiveLastSegment =
+    lastSegment === 'companies' && activeAccount?.accountType === 'client'
+      ? 'clients'
+      : lastSegment === 'companies' && activeAccount?.accountType === 'wishlist'
+        ? 'wishlist'
+        : lastSegment
+  const effectiveSegments = segments.slice(0, -1).concat(effectiveLastSegment)
 
   // Get entity name for view pages
   let entityName = ''
   if (isViewPage && loaderData) {
     // Special case for clients - use company.name
-    if (lastSegment === 'clients' || lastSegment === 'wishlist') {
-      entityName = loaderData.company?.name || ''
+    if (
+      effectiveLastSegment === 'clients' ||
+      effectiveLastSegment === 'wishlist'
+    ) {
+      entityName = loaderData.company?.name || loaderData.name || ''
     } else {
       // For all other entities - use entity.name
       entityName = loaderData.name || ''
@@ -65,15 +87,15 @@ export function AppBreadcrumb() {
 
   // Check if the last segment should show an add button
   const showAddButton =
-    ROUTE_LABELS[lastSegment].showAddButton &&
-    (lastSegment !== 'changelog' || loaderData?.canManage === true)
+    ROUTE_LABELS[effectiveLastSegment].showAddButton &&
+    (effectiveLastSegment !== 'changelog' || loaderData?.canManage === true)
 
   return (
     <div className="flex items-center">
       <Breadcrumb>
         <BreadcrumbList>
-          {segments.map((segment, index) => {
-            const href = '/' + segments.slice(0, index + 1).join('/')
+          {effectiveSegments.map((segment, index) => {
+            const href = '/' + effectiveSegments.slice(0, index + 1).join('/')
             const label = ROUTE_LABELS[segment].label
             const isLast = index === segments.length - 1
 
@@ -105,7 +127,7 @@ export function AppBreadcrumb() {
           {!isViewPage && segments.length > 0 && showAddButton && (
             <BreadcrumbItem>
               <Button asChild size="sm" className="gap-2 ml-2">
-                <Link to={`/${lastSegment}/new` as any}>
+                <Link to={`/${effectiveLastSegment}/new` as any}>
                   <PlusIcon className="size-4" />
                 </Link>
               </Button>

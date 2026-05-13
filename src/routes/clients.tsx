@@ -71,6 +71,7 @@ function RouteComponent() {
 
   const toActiveRow = (a: (typeof filtered)[number]): ClientAccountRow => ({
     id: a.id,
+    companyId: a.company.id,
     name: a.company.name,
     businessUnit: a.businessUnit.name,
     gpLastYear: a.gpLastYear,
@@ -86,6 +87,7 @@ function RouteComponent() {
 
   const toLostRow = (a: (typeof filtered)[number]): LostClientAccountRow => ({
     id: a.id,
+    companyId: a.company.id,
     name: a.company.name,
     businessUnit: a.businessUnit.name,
     potentialNextYear: a.potentialNextYear,
