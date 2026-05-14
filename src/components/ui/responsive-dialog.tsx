@@ -16,6 +16,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { cn } from '@/lib/utils'
 
 interface ResponsiveDialogProps {
   open: boolean
@@ -24,6 +25,8 @@ interface ResponsiveDialogProps {
   description?: string
   children: React.ReactNode
   footer?: React.ReactNode
+  contentClassName?: string
+  bodyClassName?: string
 }
 
 export function ResponsiveDialog({
@@ -33,20 +36,32 @@ export function ResponsiveDialog({
   description,
   children,
   footer,
+  contentClassName,
+  bodyClassName,
 }: ResponsiveDialogProps) {
   const isMobile = useIsMobile()
 
   if (!isMobile) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-5xl flex flex-col max-h-[90dvh]">
+        <DialogContent
+          className={cn(
+            'sm:max-w-5xl flex flex-col max-h-[75dvh]',
+            contentClassName,
+          )}
+        >
           <DialogHeader className="shrink-0">
             <DialogTitle>{title}</DialogTitle>
             {description && (
               <DialogDescription>{description}</DialogDescription>
             )}
           </DialogHeader>
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div
+            className={cn(
+              'flex-1 min-h-0 flex flex-col overflow-y-auto',
+              bodyClassName,
+            )}
+          >
             {children}
           </div>
           {footer && <DialogFooter className="shrink-0">{footer}</DialogFooter>}
@@ -57,12 +72,19 @@ export function ResponsiveDialog({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="pb-10">
+      <DrawerContent className={cn('pb-10', contentClassName)}>
         <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>
           {description && <DrawerDescription>{description}</DrawerDescription>}
         </DrawerHeader>
-        <div className="px-4">{children}</div>
+        <div
+          className={cn(
+            'flex-1 min-h-0 flex flex-col overflow-y-auto px-4',
+            bodyClassName,
+          )}
+        >
+          {children}
+        </div>
         {footer && <DrawerFooter>{footer}</DrawerFooter>}
       </DrawerContent>
     </Drawer>

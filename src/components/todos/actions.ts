@@ -2,6 +2,7 @@ import { db } from '@/db'
 import {
   company,
   companyAccount,
+  companyAccountManagers,
   department,
   todo,
   todoResponsibleUsers,
@@ -12,6 +13,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
 import { and, asc, eq } from 'drizzle-orm'
 import * as z from 'zod'
+import { recalculateClientClassifications } from '@/lib/client-classification'
 
 const todoInputSchema = z.object({
   name: z.string().min(2, 'Задача должна содержать минимум 2 символа'),
@@ -109,11 +111,19 @@ export const getEntityManagers = createServerFn({ method: 'GET' })
     const accountId = data.clientId ?? data.wishlistClientId
     if (!accountId) return []
 
+    const managers = await db
+      .select({ userId: companyAccountManagers.userId })
+      .from(companyAccountManagers)
+      .where(eq(companyAccountManagers.companyAccountId, accountId))
+
+    if (managers.length > 0) {
+      return managers.map((manager) => manager.userId)
+    }
+
     const account = await db.query.companyAccount.findFirst({
       columns: { ownerUserId: true },
       where: eq(companyAccount.id, accountId),
     })
-
     return account?.ownerUserId ? [account.ownerUserId] : []
   })
 
@@ -173,6 +183,10 @@ export const addTodo = createServerFn({ method: 'POST' })
       })
       .returning({ id: todo.id })
 
+    if (companyAccountId) {
+      await recalculateClientClassifications([companyAccountId])
+    }
+
     return inserted.id
   })
 
@@ -180,6 +194,12 @@ export const updateTodo = createServerFn({ method: 'POST' })
   .inputValidator(updateTodoSchema)
   .handler(async ({ data }) => {
     const companyAccountId = data.clientId ?? data.wishlistClientId ?? null
+    const [existing] = await db
+      .select({ companyAccountId: todo.companyAccountId })
+      .from(todo)
+      .where(eq(todo.id, data.id))
+      .limit(1)
+
     await db
       .update(todo)
       .set({
@@ -191,6 +211,12 @@ export const updateTodo = createServerFn({ method: 'POST' })
         ...(data.deadline ? { deadline: new Date(data.deadline) } : {}),
       })
       .where(eq(todo.id, data.id))
+
+    const affectedAccountIds = Array.from(
+      new Set([existing?.companyAccountId, companyAccountId].filter(Boolean)),
+    ) as string[]
+
+    await recalculateClientClassifications(affectedAccountIds)
   })
 
 export const setResponsibleUsers = createServerFn({ method: 'POST' })
@@ -235,6 +261,12 @@ export const updateTodoStatus = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
+    const [existing] = await db
+      .select({ companyAccountId: todo.companyAccountId })
+      .from(todo)
+      .where(eq(todo.id, data.id))
+      .limit(1)
+
     await db
       .update(todo)
       .set({
@@ -243,10 +275,24 @@ export const updateTodoStatus = createServerFn({ method: 'POST' })
         archivedAt: data.archivedAt,
       })
       .where(eq(todo.id, data.id))
+
+    if (existing?.companyAccountId) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })
 
 export const deleteTodo = createServerFn({ method: 'POST' })
   .inputValidator(z.string())
   .handler(async ({ data: id }) => {
+    const [existing] = await db
+      .select({ companyAccountId: todo.companyAccountId })
+      .from(todo)
+      .where(eq(todo.id, id))
+      .limit(1)
+
     await db.delete(todo).where(eq(todo.id, id))
+
+    if (existing?.companyAccountId) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })

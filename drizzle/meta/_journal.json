@@ -288,6 +288,41 @@
       "when": 1778593106741,
       "tag": "0040_chief_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1778651811305,
+      "tag": "0041_old_rattler",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1778653961819,
+      "tag": "0042_milky_greymalkin",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1778655987112,
+      "tag": "0043_department_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1778658087935,
+      "tag": "0044_company_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1778658266542,
+      "tag": "0045_company_website_counterparty_bank_account",
+      "breakpoints": true
     }
   ]
 }

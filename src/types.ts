@@ -17,6 +17,8 @@ export type ChangelogStatus = 'draft' | 'published'
 export type DepartmentOption = {
   id: string
   name: string
+  departmentType?: 'sales' | 'production' | 'administrative'
+  parentId?: string | null
   accentColor?: string | null
 }
 
@@ -167,6 +169,7 @@ export type DepartmentUser = {
 export type DepartmentRow = {
   id: string
   name: string
+  departmentType: 'sales' | 'production' | 'administrative'
   description: string | null
   accentColor: string | null
   headUserId: string | null
@@ -248,6 +251,7 @@ export type Counterparty = {
   name: string
   fullName: string | null
   tin: string | null
+  bankAccount: string | null
 }
 
 export type AccountTodoItem = {

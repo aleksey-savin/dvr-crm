@@ -3,10 +3,11 @@ import { authClient } from 'utils/auth-client'
 import * as z from 'zod'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Card,
   CardContent,
@@ -39,22 +40,53 @@ import {
   EyeOffIcon,
   CopyIcon,
   CheckIcon,
+  KeyRoundIcon,
+  SaveIcon,
+  Settings2Icon,
 } from 'lucide-react'
 import {
   addApiKey,
   deleteApiKey,
+  getClientClassificationSettings,
   getApiKeys,
+  updateClientClassificationSettings,
 } from '@/components/preferences/actions'
-import type { SelectApiKey } from '@/db/types'
+import type {
+  SelectApiKey,
+  SelectClientClassificationSettings,
+} from '@/db/types'
 
 export const Route = createFileRoute('/preferences')({
   component: RouteComponent,
+})
+
+const classificationSettingsSchema = z.object({
+  targetGrossProfitThreshold: z
+    .string()
+    .trim()
+    .min(1, 'Укажите порог валовой прибыли')
+    .regex(/^\d+([.,]\d{1,2})?$/, 'Введите положительное число'),
+  lostActivityYears: z.coerce
+    .number()
+    .int('Период должен быть целым числом')
+    .min(1, 'Минимум 1 год')
+    .max(20, 'Максимум 20 лет'),
 })
 
 function RouteComponent() {
   const { data: session } = authClient.useSession()
   const [apiKeys, setApiKeys] = useState<SelectApiKey[]>([])
   const [loading, setLoading] = useState(true)
+  const [classificationSettings, setClassificationSettings] =
+    useState<SelectClientClassificationSettings | null>(null)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [targetGrossProfitThreshold, setTargetGrossProfitThreshold] =
+    useState('0')
+  const [lostActivityYears, setLostActivityYears] = useState('1')
+  const [settingsErrors, setSettingsErrors] = useState<
+    Partial<Record<'targetGrossProfitThreshold' | 'lostActivityYears', string>>
+  >({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [keyToDelete, setKeyToDelete] = useState<string | null>(null)
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set())
@@ -63,7 +95,10 @@ function RouteComponent() {
   const userId = session?.user.id
 
   const loadApiKeys = async () => {
-    if (!userId) return
+    if (!userId) {
+      setLoading(false)
+      return
+    }
     try {
       const keys = await getApiKeys({ data: { userId } })
       setApiKeys(keys)
@@ -74,8 +109,22 @@ function RouteComponent() {
     }
   }
 
+  const loadClassificationSettings = async () => {
+    try {
+      const settings = await getClientClassificationSettings()
+      setClassificationSettings(settings)
+      setTargetGrossProfitThreshold(settings.targetGrossProfitThreshold)
+      setLostActivityYears(String(settings.lostActivityYears))
+    } catch (error) {
+      toast.error('Не удалось загрузить правила классификации')
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadApiKeys()
+    loadClassificationSettings()
   }, [userId])
 
   const form = useForm({
@@ -168,6 +217,67 @@ function RouteComponent() {
     }
   }
 
+  const handleSaveClassificationSettings = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault()
+
+    const parsed = classificationSettingsSchema.safeParse({
+      targetGrossProfitThreshold,
+      lostActivityYears,
+    })
+
+    if (!parsed.success) {
+      setSettingsErrors(
+        parsed.error.issues.reduce<
+          Partial<
+            Record<'targetGrossProfitThreshold' | 'lostActivityYears', string>
+          >
+        >((errors, issue) => {
+          const field = issue.path[0]
+
+          if (
+            field === 'targetGrossProfitThreshold' ||
+            field === 'lostActivityYears'
+          ) {
+            errors[field] = issue.message
+          }
+
+          return errors
+        }, {}),
+      )
+      return
+    }
+
+    if (!userId) {
+      toast.error('Необходима авторизация')
+      return
+    }
+
+    setSettingsErrors({})
+    setSettingsSaving(true)
+
+    try {
+      const result = await updateClientClassificationSettings({
+        data: {
+          ...parsed.data,
+          userId,
+        },
+      })
+
+      setClassificationSettings(result.settings)
+      setTargetGrossProfitThreshold(result.settings.targetGrossProfitThreshold)
+      setLostActivityYears(String(result.settings.lostActivityYears))
+      toast.success(
+        `Правила сохранены. Обновлено клиентов: ${result.recalculation.updated}`,
+      )
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
+    } finally {
+      setSettingsSaving(false)
+    }
+  }
+
   if (!session?.user) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -181,151 +291,265 @@ function RouteComponent() {
       <div>
         <h1 className="text-3xl font-bold">Настройки</h1>
         <p className="text-muted-foreground mt-2">
-          Управление вашими API ключами для внешних запросов
+          Правила CRM и интеграционные ключи
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Добавить новый API ключ</CardTitle>
-          <CardDescription>
-            API ключ будет сгенерирован автоматически при создании
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              form.handleSubmit()
-            }}
-          >
-            <form.Field
-              name="name"
-              children={(field) => {
-                const isInvalid =
-                  field.state.meta.isTouched && !field.state.meta.isValid
-                return (
-                  <Field data-invalid={isInvalid}>
-                    <FieldLabel htmlFor={field.name}>Название</FieldLabel>
-                    <Input
-                      id={field.name}
-                      name={field.name}
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      aria-invalid={isInvalid}
-                      placeholder="Например: OpenAI API Key"
-                      autoComplete="off"
-                      type="text"
-                      required
-                    />
-                    {isInvalid && (
-                      <FieldError errors={field.state.meta.errors} />
-                    )}
-                  </Field>
-                )
-              }}
-            />
-            <Button type="submit" className="w-full">
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Добавить API ключ
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ваши API ключи</CardTitle>
-          <CardDescription>Управление сохраненными API ключами</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-muted-foreground text-center py-8">
-              Загрузка...
-            </p>
-          ) : apiKeys.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              У вас пока нет сохраненных API ключей
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Название</TableHead>
-                  <TableHead>API Ключ</TableHead>
-                  <TableHead>Создан</TableHead>
-                  <TableHead className="text-right">Действия</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apiKeys.map((key) => (
-                  <TableRow
-                    key={key.id}
-                    className={
-                      newlyCreatedKey === key.id
-                        ? 'bg-green-50 dark:bg-green-950/20'
-                        : ''
-                    }
-                  >
-                    <TableCell className="font-medium">{key.name}</TableCell>
-                    <TableCell className="font-mono text-sm">
-                      <div className="flex items-center gap-2">
-                        <span>
-                          {visibleKeys.has(key.id) ? key.key : maskKey(key.key)}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleKeyVisibility(key.id)}
-                          className="h-6 w-6 p-0"
-                          title={
-                            visibleKeys.has(key.id) ? 'Скрыть' : 'Показать'
-                          }
-                        >
-                          {visibleKeys.has(key.id) ? (
-                            <EyeOffIcon className="h-3 w-3" />
-                          ) : (
-                            <EyeIcon className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(key.id, key.key)}
-                          className="h-6 w-6 p-0"
-                          title="Копировать"
-                        >
-                          {copiedKeys.has(key.id) ? (
-                            <CheckIcon className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <CopyIcon className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(key.createdAt).toLocaleDateString('ru-RU')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setKeyToDelete(key.id)
-                          setDeleteDialogOpen(true)
-                        }}
+      <Tabs defaultValue="classification" className="gap-6">
+        <TabsList>
+          <TabsTrigger value="classification" className="gap-2">
+            <Settings2Icon className="size-4" />
+            Клиенты
+          </TabsTrigger>
+          <TabsTrigger value="api" className="gap-2">
+            <KeyRoundIcon className="size-4" />
+            API ключи
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="classification" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Классификация клиентов</CardTitle>
+              <CardDescription>
+                Настройки автоматически определяют целевых, нецелевых и
+                потерянных клиентов
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {settingsLoading ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Загрузка...
+                </p>
+              ) : (
+                <form
+                  className="space-y-6"
+                  onSubmit={handleSaveClassificationSettings}
+                >
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field
+                      data-invalid={!!settingsErrors.targetGrossProfitThreshold}
+                    >
+                      <FieldLabel htmlFor="targetGrossProfitThreshold">
+                        Порог валовой прибыли за прошлый год
+                      </FieldLabel>
+                      <Input
+                        id="targetGrossProfitThreshold"
+                        value={targetGrossProfitThreshold}
+                        onChange={(event) =>
+                          setTargetGrossProfitThreshold(event.target.value)
+                        }
+                        placeholder="Например: 1000000"
+                        inputMode="decimal"
+                      />
+                      {settingsErrors.targetGrossProfitThreshold && (
+                        <p className="text-sm text-destructive">
+                          {settingsErrors.targetGrossProfitThreshold}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        Меньше порога — нецелевой, равно или больше — целевой.
+                      </p>
+                    </Field>
+
+                    <Field data-invalid={!!settingsErrors.lostActivityYears}>
+                      <FieldLabel htmlFor="lostActivityYears">
+                        Период без активности, лет
+                      </FieldLabel>
+                      <Input
+                        id="lostActivityYears"
+                        value={lostActivityYears}
+                        onChange={(event) =>
+                          setLostActivityYears(event.target.value)
+                        }
+                        min={1}
+                        max={20}
+                        type="number"
+                      />
+                      {settingsErrors.lostActivityYears && (
+                        <p className="text-sm text-destructive">
+                          {settingsErrors.lostActivityYears}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        Если за этот период по клиенту нет задач, комментариев,
+                        ВП, прогнозов, рисков или апселлов — клиент потерянный.
+                      </p>
+                    </Field>
+                  </div>
+
+                  {classificationSettings && (
+                    <p className="text-xs text-muted-foreground">
+                      Последнее обновление:{' '}
+                      {new Date(
+                        classificationSettings.updatedAt,
+                      ).toLocaleString('ru-RU')}
+                    </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={settingsSaving}>
+                      <SaveIcon className="mr-2 size-4" />
+                      {settingsSaving ? 'Сохранение...' : 'Сохранить'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Добавить новый API ключ</CardTitle>
+              <CardDescription>
+                API ключ будет сгенерирован автоматически при создании
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="space-y-4"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  form.handleSubmit()
+                }}
+              >
+                <form.Field
+                  name="name"
+                  children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid
+                    return (
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>Название</FieldLabel>
+                        <Input
+                          id={field.name}
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          aria-invalid={isInvalid}
+                          placeholder="Например: OpenAI API Key"
+                          autoComplete="off"
+                          type="text"
+                          required
+                        />
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )
+                  }}
+                />
+                <Button type="submit" className="w-full">
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Добавить API ключ
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Ваши API ключи</CardTitle>
+              <CardDescription>
+                Управление сохраненными API ключами
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-muted-foreground text-center py-8">
+                  Загрузка...
+                </p>
+              ) : apiKeys.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  У вас пока нет сохраненных API ключей
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Название</TableHead>
+                      <TableHead>API Ключ</TableHead>
+                      <TableHead>Создан</TableHead>
+                      <TableHead className="text-right">Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {apiKeys.map((key) => (
+                      <TableRow
+                        key={key.id}
+                        className={
+                          newlyCreatedKey === key.id
+                            ? 'bg-green-50 dark:bg-green-950/20'
+                            : ''
+                        }
                       >
-                        <Trash2Icon className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                        <TableCell className="font-medium">
+                          {key.name}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          <div className="flex items-center gap-2">
+                            <span>
+                              {visibleKeys.has(key.id)
+                                ? key.key
+                                : maskKey(key.key)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleKeyVisibility(key.id)}
+                              className="h-6 w-6 p-0"
+                              title={
+                                visibleKeys.has(key.id) ? 'Скрыть' : 'Показать'
+                              }
+                            >
+                              {visibleKeys.has(key.id) ? (
+                                <EyeOffIcon className="h-3 w-3" />
+                              ) : (
+                                <EyeIcon className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(key.id, key.key)}
+                              className="h-6 w-6 p-0"
+                              title="Копировать"
+                            >
+                              {copiedKeys.has(key.id) ? (
+                                <CheckIcon className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <CopyIcon className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(key.createdAt).toLocaleDateString('ru-RU')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setKeyToDelete(key.id)
+                              setDeleteDialogOpen(true)
+                            }}
+                          >
+                            <Trash2Icon className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

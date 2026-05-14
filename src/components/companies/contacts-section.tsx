@@ -119,7 +119,7 @@ function ContactLink({
       href={href}
       target={href.startsWith('http') ? '_blank' : undefined}
       rel={href.startsWith('http') ? 'noreferrer' : undefined}
-      className="inline-flex min-w-0 items-center gap-1.5 text-sm text-primary hover:underline"
+      className="inline-flex max-w-full min-w-0 items-center gap-1.5 text-sm text-primary hover:underline"
     >
       <Icon className="size-3.5 shrink-0" />
       <span className="truncate">{children}</span>
@@ -336,9 +336,11 @@ export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
 
               return (
                 <TableRow key={contact.id}>
-                  <TableCell>
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="font-medium">{contact.name}</span>
+                  <TableCell className="py-2 align-middle">
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <span className="font-medium leading-tight">
+                        {contact.name}
+                      </span>
                       {position && (
                         <span className="text-xs text-muted-foreground">
                           {position}
@@ -346,8 +348,8 @@ export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex min-w-0 flex-col gap-1">
+                  <TableCell className="py-2 align-middle">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                       {phone && (
                         <ContactLink href={`tel:${phone}`} icon={PhoneIcon}>
                           {phone}
@@ -374,10 +376,10 @@ export function ContactsSection({ contacts, companyId, onRefresh }: Props) {
                       {!phone && !email && !telegram && !max && '—'}
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-normal text-sm text-muted-foreground">
+                  <TableCell className="py-2 align-middle text-sm text-muted-foreground">
                     {description || '—'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="py-2 align-middle">
                     <div className="flex items-center justify-end gap-1">
                       <ContactFormDialog
                         companyId={companyId}

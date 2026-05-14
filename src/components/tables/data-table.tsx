@@ -24,15 +24,20 @@ import {
 } from '@/components/ui/table'
 
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  toolbar?: React.ReactNode
+  rowClassName?: (row: TData) => string
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  toolbar,
+  rowClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
@@ -77,13 +82,14 @@ export function DataTable<TData, TValue>({
 
   return (
     <>
-      <div className="flex items-center py-4">
+      <div className="flex flex-col gap-2 py-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Поиск..."
           value={globalFilter ?? ''}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
+        {toolbar}
       </div>
       <div className="overflow-hidden rounded-md border">
         <Table>
@@ -111,6 +117,7 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  className={cn(rowClassName?.(row.original))}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

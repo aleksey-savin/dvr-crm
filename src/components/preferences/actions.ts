@@ -1,5 +1,10 @@
 import { db } from '@/db'
-import { apiKey } from '@/db/schema'
+import { apiKey, clientClassificationSettings } from '@/db/schema'
+import {
+  CLIENT_CLASSIFICATION_SETTINGS_ID,
+  ensureClientClassificationSettings,
+  recalculateClientClassifications,
+} from '@/lib/client-classification'
 import { createServerFn } from '@tanstack/react-start'
 import { and, eq } from 'drizzle-orm'
 import * as z from 'zod'
@@ -16,6 +21,20 @@ const deleteApiKeySchema = z.object({
 
 const getApiKeysSchema = z.object({
   userId: z.string(),
+})
+
+const clientClassificationSettingsSchema = z.object({
+  targetGrossProfitThreshold: z
+    .string()
+    .trim()
+    .min(1, 'Укажите порог валовой прибыли')
+    .regex(/^\d+([.,]\d{1,2})?$/, 'Введите положительное число'),
+  lostActivityYears: z
+    .number()
+    .int('Период должен быть целым числом')
+    .min(1, 'Минимум 1 год')
+    .max(20, 'Максимум 20 лет'),
+  userId: z.string().optional(),
 })
 
 export const addApiKey = createServerFn({ method: 'POST' })
@@ -54,4 +73,47 @@ export const getApiKeys = createServerFn({ method: 'POST' })
       .from(apiKey)
       .where(eq(apiKey.userId, data.userId))
       .orderBy(apiKey.createdAt)
+  })
+
+export const getClientClassificationSettings = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  return ensureClientClassificationSettings()
+})
+
+export const updateClientClassificationSettings = createServerFn({
+  method: 'POST',
+})
+  .inputValidator(clientClassificationSettingsSchema)
+  .handler(async ({ data }) => {
+    const targetGrossProfitThreshold = data.targetGrossProfitThreshold.replace(
+      ',',
+      '.',
+    )
+
+    const [settings] = await db
+      .insert(clientClassificationSettings)
+      .values({
+        id: CLIENT_CLASSIFICATION_SETTINGS_ID,
+        targetGrossProfitThreshold,
+        lostActivityYears: data.lostActivityYears,
+        updatedByUserId: data.userId ?? null,
+      })
+      .onConflictDoUpdate({
+        target: clientClassificationSettings.id,
+        set: {
+          targetGrossProfitThreshold,
+          lostActivityYears: data.lostActivityYears,
+          updatedByUserId: data.userId ?? null,
+          updatedAt: new Date(),
+        },
+      })
+      .returning()
+
+    const recalculation = await recalculateClientClassifications(undefined, {
+      targetGrossProfitThreshold,
+      lostActivityYears: data.lostActivityYears,
+    })
+
+    return { settings, recalculation }
   })

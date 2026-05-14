@@ -1,0 +1,1 @@
+ALTER TABLE "department" ADD COLUMN "department_type" text DEFAULT 'sales' NOT NULL;

@@ -31,6 +31,7 @@ function RouteComponent() {
       }}
       title="Добавить в вишлист"
       description="Добавление компании в вишлист"
+      contentClassName="h-[85dvh]"
     >
       <WishlistClientForm
         initialCompanyId={companyId}

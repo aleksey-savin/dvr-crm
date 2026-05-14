@@ -50,12 +50,14 @@ type CounterpartyFormState = {
   name: string
   fullName: string
   tin: string
+  bankAccount: string
 }
 
 const emptyForm = (): CounterpartyFormState => ({
   name: '',
   fullName: '',
   tin: '',
+  bankAccount: '',
 })
 
 function CounterpartyFormDialog({
@@ -81,6 +83,7 @@ function CounterpartyFormDialog({
             name: existing.name,
             fullName: existing.fullName ?? '',
             tin: existing.tin ?? '',
+            bankAccount: existing.bankAccount ?? '',
           }
         : emptyForm(),
     )
@@ -100,6 +103,7 @@ function CounterpartyFormDialog({
       name,
       fullName: form.fullName.trim() || undefined,
       tin: form.tin.trim() || undefined,
+      bankAccount: form.bankAccount.trim() || undefined,
     }
 
     setLoading(true)
@@ -154,6 +158,15 @@ function CounterpartyFormDialog({
               value={form.tin}
               onChange={set('tin')}
               placeholder="ИНН"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Расчётный счёт</Label>
+            <Input
+              value={form.bankAccount}
+              onChange={set('bankAccount')}
+              placeholder="Номер расчётного счёта"
               inputMode="numeric"
             />
           </div>
@@ -214,11 +227,14 @@ export function CounterpartiesSection({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%] font-semibold">Название</TableHead>
+              <TableHead className="w-[24%] font-semibold">Название</TableHead>
               <TableHead className="font-semibold">
                 Полное наименование
               </TableHead>
-              <TableHead className="w-[18%] font-semibold">ИНН</TableHead>
+              <TableHead className="w-[14%] font-semibold">ИНН</TableHead>
+              <TableHead className="w-[20%] font-semibold">
+                Расчётный счёт
+              </TableHead>
               <TableHead className="w-0" />
             </TableRow>
           </TableHeader>
@@ -233,6 +249,9 @@ export function CounterpartiesSection({
                 </TableCell>
                 <TableCell className="font-mono text-sm">
                   {counterparty.tin ?? '—'}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {counterparty.bankAccount ?? '—'}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center justify-end gap-1">
@@ -292,7 +311,7 @@ export function CounterpartiesSection({
               </TableRow>
             ))}
             <TableRow>
-              <TableCell colSpan={4}>
+              <TableCell colSpan={5}>
                 <CounterpartyFormDialog
                   companyId={companyId}
                   onSaved={onRefresh}

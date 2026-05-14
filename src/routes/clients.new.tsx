@@ -31,6 +31,7 @@ function RouteComponent() {
       }}
       title="Новый клиент"
       description="Добавление нового клиента"
+      contentClassName="h-[85dvh]"
     >
       <ClientForm initialCompanyId={companyId} onSuccess={handleSuccess} />
     </ResponsiveDialog>

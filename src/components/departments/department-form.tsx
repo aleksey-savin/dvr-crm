@@ -36,8 +36,15 @@ const accentColorSchema = z
   .trim()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'Цвет должен быть в формате #RRGGBB')
 
+const DEPARTMENT_TYPE_OPTIONS = [
+  { value: 'sales', label: 'Продающее' },
+  { value: 'production', label: 'Производственное' },
+  { value: 'administrative', label: 'Административное' },
+] as const
+
 const formSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  departmentType: z.enum(['sales', 'production', 'administrative']),
   headUserId: headUserIdSchema,
   description: z.union([
     z.string().min(2, 'Описание должно содержать минимум 2 символа'),
@@ -124,6 +131,7 @@ const DepartmentForm = ({
   const form = useForm({
     defaultValues: {
       name: item?.name ?? '',
+      departmentType: (item?.departmentType ?? 'sales') as 'sales' | 'production' | 'administrative',
       headUserId: getOptionalString(item?.headUserId),
       description: getOptionalString(item?.description),
       accentColor: normalizeHexColor(item?.accentColor ?? DEFAULT_ACCENT_COLOR),
@@ -138,6 +146,7 @@ const DepartmentForm = ({
           await addDepartment({
             data: {
               name: value.name,
+              departmentType: value.departmentType,
               headUserId: value.headUserId,
               description: value.description,
               accentColor: normalizeHexColor(value.accentColor),
@@ -157,6 +166,7 @@ const DepartmentForm = ({
             data: {
               id: item.id,
               name: value.name,
+              departmentType: value.departmentType,
               headUserId: value.headUserId,
               description: value.description,
               accentColor: normalizeHexColor(value.accentColor),
@@ -206,6 +216,42 @@ const DepartmentForm = ({
                   type="text"
                   required
                 />
+                {isInvalid && <FieldError errors={field.state.meta.errors} />}
+              </Field>
+            )
+          }}
+        />
+        <form.Field
+          name="departmentType"
+          children={(field) => {
+            const isInvalid =
+              field.state.meta.isTouched && !field.state.meta.isValid
+            return (
+              <Field data-invalid={isInvalid} className="shrink-0">
+                <FieldLabel htmlFor={field.name}>Тип подразделения</FieldLabel>
+                <Select
+                  name={field.name}
+                  value={field.state.value}
+                  onValueChange={(value) =>
+                    field.handleChange(value as 'sales' | 'production' | 'administrative')
+                  }
+                >
+                  <SelectTrigger
+                    id={field.name}
+                    className="w-full"
+                    onBlur={field.handleBlur}
+                    aria-invalid={isInvalid}
+                  >
+                    <SelectValue placeholder="Выберите тип" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENT_TYPE_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )

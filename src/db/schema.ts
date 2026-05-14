@@ -112,6 +112,10 @@ export const department = pgTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     name: text('name').notNull(),
+    departmentType: text('department_type')
+      .$type<'sales' | 'production' | 'administrative'>()
+      .notNull()
+      .default('sales'),
     description: text('description'),
     accentColor: text('accent_color'),
     headUserId: text('head_user_id').references((): AnyPgColumn => user.id, {
@@ -132,6 +136,26 @@ export const department = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Industry
+// ---------------------------------------------------------------------------
+
+export const industry = pgTable(
+  'industry',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [unique('industry_name_unique').on(table.name)],
+)
+
+// ---------------------------------------------------------------------------
 // Company (1.1.1)
 // ---------------------------------------------------------------------------
 
@@ -140,10 +164,16 @@ export const company = pgTable('company', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
+  scope: text('company_scope').$type<'federal' | 'regional'>(),
+  website: text('website'),
   description: text('description'),
   regionalMarketPosition: text('regional_market_position'),
+  industryId: text('industry_id').references(() => industry.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  // Legacy text fallback. New writes should use industryId.
   industry: text('industry'),
 })
 
@@ -158,6 +188,7 @@ export const counterparty = pgTable('counterparty', {
   name: text('name').notNull(),
   fullName: text('full_name'),
   tin: text('tin'),
+  bankAccount: text('bank_account'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
@@ -251,6 +282,26 @@ export const companyAccount = pgTable(
     index('company_account_businessUnitId_idx').on(table.businessUnitId),
     index('company_account_accountType_idx').on(table.accountType),
     index('company_account_ownerUserId_idx').on(table.ownerUserId),
+  ],
+)
+
+export const companyAccountManagers = pgTable(
+  'company_account_managers',
+  {
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.companyAccountId, table.userId] }),
+    index('company_account_managers_companyAccountId_idx').on(
+      table.companyAccountId,
+    ),
+    index('company_account_managers_userId_idx').on(table.userId),
   ],
 )
 
@@ -607,6 +658,29 @@ export const apiKey = pgTable('api_key', {
 })
 
 // ---------------------------------------------------------------------------
+// Client classification settings
+// ---------------------------------------------------------------------------
+
+export const clientClassificationSettings = pgTable(
+  'client_classification_settings',
+  {
+    id: text('id').primaryKey().default('default'),
+    targetGrossProfitThreshold: numeric('target_gross_profit_threshold')
+      .notNull()
+      .default('0'),
+    lostActivityYears: integer('lost_activity_years').notNull().default(1),
+    updatedByUserId: text('updated_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+)
+
+// ---------------------------------------------------------------------------
 // Changelog
 // ---------------------------------------------------------------------------
 
@@ -683,6 +757,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
   ownedCompanyAccounts: many(companyAccount),
+  managedCompanyAccounts: many(companyAccountManagers),
   headedDepartments: many(department, {
     relationName: 'departmentHead',
   }),
@@ -713,12 +788,27 @@ export const companyAccountRelations = relations(
       fields: [companyAccount.ownerUserId],
       references: [user.id],
     }),
+    managers: many(companyAccountManagers),
     risks: many(accountRisk),
     grossProfits: many(accountGrossProfit),
     targetForecasts: many(accountTargetForecast),
     upsellingOpportunities: many(accountUpsellingOpportunity),
     hooks: many(accountHook),
     todos: many(todo),
+  }),
+)
+
+export const companyAccountManagersRelations = relations(
+  companyAccountManagers,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [companyAccountManagers.companyAccountId],
+      references: [companyAccount.id],
+    }),
+    user: one(user, {
+      fields: [companyAccountManagers.userId],
+      references: [user.id],
+    }),
   }),
 )
 
@@ -766,7 +856,15 @@ export const accountHookRelations = relations(accountHook, ({ one }) => ({
   }),
 }))
 
-export const companyRelations = relations(company, ({ many }) => ({
+export const industryRelations = relations(industry, ({ many }) => ({
+  companies: many(company),
+}))
+
+export const companyRelations = relations(company, ({ one, many }) => ({
+  industryRef: one(industry, {
+    fields: [company.industryId],
+    references: [industry.id],
+  }),
   accounts: many(companyAccount),
   revenues: many(companyRevenue),
   contacts: many(companyContact),

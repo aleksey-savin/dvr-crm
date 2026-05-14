@@ -2,7 +2,6 @@ import '@/components/tiptap/tiptap.css'
 
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import {
-  ArrowLeftIcon,
   EditIcon,
   Trash2Icon,
   BookmarkPlusIcon,
@@ -10,12 +9,13 @@ import {
   UserPlusIcon,
   UsersIcon,
   BookmarkIcon,
-  TargetIcon,
   ShieldAlertIcon,
   InfoIcon,
   HeartIcon,
   UsersRoundIcon,
   Building2Icon,
+  GlobeIcon,
+  ExternalLinkIcon,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -41,9 +41,13 @@ import { fetchCompany } from '@/components/companies/actions'
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute('/companies_/$id/view')({
-  validateSearch: (search: Record<string, unknown>): { tab?: string } => {
-    if (typeof search.tab === 'string') return { tab: search.tab }
-    return {}
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: string; from?: string } => {
+    const result: { tab?: string; from?: string } = {}
+    if (typeof search.tab === 'string') result.tab = search.tab
+    if (typeof search.from === 'string') result.from = search.from
+    return result
   },
   component: RouteComponent,
   loader: async ({ params }) => fetchCompany({ data: params }),
@@ -64,15 +68,6 @@ function clientStatusLabel(isTarget: boolean, isLost: boolean) {
   return 'Клиент'
 }
 
-function clientStatusVariant(
-  isTarget: boolean,
-  isLost: boolean,
-): 'destructive' | 'success' | 'default' {
-  if (isLost) return 'destructive'
-  if (isTarget) return 'success'
-  return 'default'
-}
-
 function accountTabLabel(account: CompanyAccount) {
   if (account.accountType === 'wishlist') {
     return `Вишлист: ${account.businessUnit.name}`
@@ -81,6 +76,14 @@ function accountTabLabel(account: CompanyAccount) {
   return `${clientStatusLabel(account.isTarget, account.isLost)}: ${
     account.businessUnit.name
   }`
+}
+
+function accountManagers(account: CompanyAccount) {
+  if (account.managers.length > 0) {
+    return account.managers.map(({ user }) => user)
+  }
+
+  return account.owner ? [account.owner] : []
 }
 
 function HeaderActions({
@@ -169,23 +172,57 @@ function AboutCompanyTab({
 
   return (
     <div className="flex flex-col gap-6">
-      {(item.industry || regionalMarketPosition) && (
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
         <Section icon={Building2Icon} title="Профиль">
-          <div className="flex flex-wrap gap-2">
-            {item.industry && (
-              <Badge variant="secondary">{item.industry}</Badge>
-            )}
-            {regionalMarketPosition && (
-              <Badge variant="secondary" className="gap-1">
-                <MapPinIcon className="size-3" />
-                {regionalMarketPosition}
-              </Badge>
-            )}
-          </div>
+          {item.industry || regionalMarketPosition || item.scope || item.website ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap gap-2">
+                {item.scope && (
+                  <Badge variant="secondary" className="gap-1">
+                    <GlobeIcon className="size-3" />
+                    {item.scope === 'federal' ? 'Федеральная' : 'Региональная'}
+                  </Badge>
+                )}
+                {item.industry && (
+                  <Badge variant="secondary">{item.industry}</Badge>
+                )}
+                {regionalMarketPosition && (
+                  <Badge variant="secondary" className="gap-1">
+                    <MapPinIcon className="size-3" />
+                    {regionalMarketPosition}
+                  </Badge>
+                )}
+              </div>
+              {item.website && (
+                <a
+                  href={item.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+                >
+                  <ExternalLinkIcon className="size-3.5 shrink-0" />
+                  {item.website}
+                </a>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">
+              Профиль не заполнен
+            </p>
+          )}
         </Section>
-      )}
 
-      {description && (
+        <div className="justify-self-start xl:justify-self-end">
+          <RevenueSection
+            revenues={item.revenues}
+            companyId={item.id}
+            onRefresh={onRefresh}
+            variant="chart"
+          />
+        </div>
+      </div>
+
+      {description && description !== '<p></p>' && (
         <Section icon={InfoIcon} title="Описание">
           <div
             className="prose prose-sm max-w-none text-foreground"
@@ -194,26 +231,14 @@ function AboutCompanyTab({
         </Section>
       )}
 
-      <Separator />
-
       <ContactsSection
         contacts={item.contacts}
         companyId={item.id}
         onRefresh={onRefresh}
       />
 
-      <Separator />
-
       <CounterpartiesSection
         counterparties={counterparties}
-        companyId={item.id}
-        onRefresh={onRefresh}
-      />
-
-      <Separator />
-
-      <RevenueSection
-        revenues={item.revenues}
         companyId={item.id}
         onRefresh={onRefresh}
       />
@@ -230,12 +255,18 @@ function ClientAccountTab({
 }) {
   return (
     <div className="flex flex-col gap-6">
-      <Section icon={UsersIcon} title="Ответственный">
-        {account.owner ? (
-          <Badge variant="secondary">{account.owner.name}</Badge>
+      <Section icon={UsersIcon} title="Менеджеры">
+        {accountManagers(account).length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {accountManagers(account).map((manager) => (
+              <Badge key={manager.id} variant="secondary">
+                {manager.name}
+              </Badge>
+            ))}
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground italic">
-            Ответственный не назначен
+            Менеджеры не назначены
           </p>
         )}
       </Section>
@@ -414,11 +445,10 @@ function WishlistAccountTab({
 
 function RouteComponent() {
   const item = Route.useLoaderData()
-  const { tab } = Route.useSearch()
+  const { tab, from } = Route.useSearch()
   const router = useRouter()
 
   const refresh = () => router.invalidate()
-  const regionalMarketPosition = item.regionalMarketPosition?.trim()
 
   const clientAccounts = item.accounts.filter(
     (account) => account.accountType === 'client',
@@ -439,12 +469,27 @@ function RouteComponent() {
     : ({ entityType: 'company', entityId: item.id } as const)
 
   const handleTabChange = (value: string) => {
-    router.navigate({
-      to: '/companies/$id/view',
-      params: { id: item.id },
-      search: value === ABOUT_TAB ? {} : { tab: value },
-      replace: true,
-    })
+    if (value === ABOUT_TAB) {
+      const origin =
+        activeAccount?.accountType === 'client'
+          ? 'clients'
+          : activeAccount?.accountType === 'wishlist'
+            ? 'wishlist'
+            : from
+      router.navigate({
+        to: '/companies/$id/view',
+        params: { id: item.id },
+        search: origin ? { from: origin } : {},
+        replace: true,
+      })
+    } else {
+      router.navigate({
+        to: '/companies/$id/view',
+        params: { id: item.id },
+        search: { tab: value },
+        replace: true,
+      })
+    }
   }
 
   return (
@@ -455,69 +500,8 @@ function RouteComponent() {
         className="min-w-0"
       >
         <Card className="flex h-[79svh] flex-col gap-0 overflow-hidden">
-          <CardHeader className="gap-3 border-b px-4 py-4 shrink-0">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 min-w-0">
-                <Button asChild variant="ghost" size="icon-sm">
-                  <Link to="/companies">
-                    <ArrowLeftIcon className="size-4" />
-                  </Link>
-                </Button>
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <h1 className="text-lg font-semibold leading-tight truncate">
-                      {item.name}
-                    </h1>
-                    {activeAccount?.accountType === 'client' && (
-                      <Badge
-                        variant={clientStatusVariant(
-                          activeAccount.isTarget,
-                          activeAccount.isLost,
-                        )}
-                        className="shrink-0 gap-1"
-                      >
-                        {activeAccount.isTarget && (
-                          <TargetIcon className="size-3" />
-                        )}
-                        {clientStatusLabel(
-                          activeAccount.isTarget,
-                          activeAccount.isLost,
-                        )}
-                      </Badge>
-                    )}
-                    {activeAccount?.accountType === 'wishlist' && (
-                      <Badge variant="secondary" className="shrink-0 gap-1">
-                        <BookmarkIcon className="size-3" />
-                        Вишлист
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-                    {activeAccount ? (
-                      <span className="truncate">
-                        {activeAccount.businessUnit.name}
-                      </span>
-                    ) : (
-                      regionalMarketPosition && (
-                        <>
-                          <MapPinIcon className="size-3.5 shrink-0" />
-                          <span className="truncate">
-                            {regionalMarketPosition}
-                          </span>
-                        </>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <HeaderActions
-                companyId={item.id}
-                activeAccount={activeAccount}
-              />
-            </div>
-
-            <div className="min-w-0 overflow-x-auto pb-1">
+          <CardHeader className="gap-3 border-b px-4">
+            <div className="flex justify-between items-center">
               <TabsList className="w-max justify-start">
                 <TabsTrigger value={ABOUT_TAB}>
                   <InfoIcon className="size-3.5" />О компании
@@ -542,6 +526,10 @@ function RouteComponent() {
                   )
                 })}
               </TabsList>
+              <HeaderActions
+                companyId={item.id}
+                activeAccount={activeAccount}
+              />
             </div>
           </CardHeader>
 

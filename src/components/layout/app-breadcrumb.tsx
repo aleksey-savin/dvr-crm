@@ -1,4 +1,6 @@
+import * as React from 'react'
 import { useRouterState, Link, useMatches } from '@tanstack/react-router'
+import { useDepartmentStore } from '@/stores/department-store'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,6 +20,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     wishlist: { label: 'Вишлист', showAddButton: true },
     todos: { label: 'Задачи', showAddButton: true },
     users: { label: 'Пользователи', showAddButton: true },
+    industries: { label: 'Отрасли', showAddButton: true },
     changelog: { label: 'Обновления', showAddButton: true },
     'my-company': { label: 'Моя компания', showAddButton: false },
     preferences: { label: 'Настройки', showAddButton: false },
@@ -27,6 +30,28 @@ export function AppBreadcrumb() {
   const location = useRouterState({ select: (s) => s.location })
   const pathname = location.pathname
   const matches = useMatches()
+  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
+  const departments = useDepartmentStore((s) => s.departments)
+  const canAddClient = React.useMemo(() => {
+    if (!selectedDepartmentId) return true
+    const dept = departments.find((d) => d.id === selectedDepartmentId)
+    if (dept?.departmentType === 'sales') return true
+    if (dept?.departmentType === 'administrative') {
+      const visited = new Set([selectedDepartmentId])
+      const queue = [selectedDepartmentId]
+      while (queue.length > 0) {
+        const cur = queue.shift()!
+        for (const d of departments) {
+          if (d.parentId === cur && !visited.has(d.id)) {
+            if (d.departmentType === 'sales') return true
+            visited.add(d.id)
+            queue.push(d.id)
+          }
+        }
+      }
+    }
+    return false
+  }, [selectedDepartmentId, departments])
 
   const allSegments = pathname.split('/').filter(Boolean)
 
@@ -62,12 +87,18 @@ export function AppBreadcrumb() {
   const activeAccount = loaderData?.accounts?.find(
     (account) => account.id === activeTab,
   )
+  const fromParam =
+    typeof location.search.from === 'string' ? location.search.from : undefined
   const effectiveLastSegment =
     lastSegment === 'companies' && activeAccount?.accountType === 'client'
       ? 'clients'
       : lastSegment === 'companies' && activeAccount?.accountType === 'wishlist'
         ? 'wishlist'
-        : lastSegment
+        : lastSegment === 'companies' && fromParam === 'clients'
+          ? 'clients'
+          : lastSegment === 'companies' && fromParam === 'wishlist'
+            ? 'wishlist'
+            : lastSegment
   const effectiveSegments = segments.slice(0, -1).concat(effectiveLastSegment)
 
   // Get entity name for view pages
@@ -88,7 +119,8 @@ export function AppBreadcrumb() {
   // Check if the last segment should show an add button
   const showAddButton =
     ROUTE_LABELS[effectiveLastSegment].showAddButton &&
-    (effectiveLastSegment !== 'changelog' || loaderData?.canManage === true)
+    (effectiveLastSegment !== 'changelog' || loaderData?.canManage === true) &&
+    (effectiveLastSegment !== 'clients' || canAddClient)
 
   return (
     <div className="flex items-center">

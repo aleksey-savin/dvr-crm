@@ -45,10 +45,6 @@ const navMain = [
     url: '#',
     items: [
       {
-        title: 'Компании',
-        url: '/companies',
-      },
-      {
         title: 'Вишлист',
         url: '/wishlist',
       },
@@ -99,6 +95,14 @@ const navMain = [
     title: 'Администрирование',
     url: '#',
     items: [
+      {
+        title: 'Компании',
+        url: '/companies',
+      },
+      {
+        title: 'Отрасли',
+        url: '/industries',
+      },
       {
         title: 'Пользователи',
         url: '/users',

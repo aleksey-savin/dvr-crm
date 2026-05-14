@@ -6,7 +6,6 @@ import * as z from 'zod'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 
-import { Input } from '@/components/ui/input'
 import * as React from 'react'
 import {
   Select,
@@ -15,17 +14,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+} from '@/components/ui/combobox'
 import {
   addAccount,
+  getClientCandidateCompanies,
   getCompanyById,
-  getFilteredCompanies,
   getFilteredDepartments,
   getFilteredUsers,
   updateAccount,
 } from '@/components/companyAccounts/actions'
-import { fetchDepartmentOptions } from '@/components/departments/actions'
+import { CompanySelectStep } from '@/components/companyAccounts/company-select-step'
+import { useDepartmentStore } from '@/stores/department-store'
 import type { SelectCompanyAccount } from '@/db/types'
 import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
 
@@ -39,8 +48,13 @@ const formSchema = z.object({
   isTarget: z.boolean(),
   isLost: z.boolean(),
   lostReasons: z.string(),
-  ownerUserId: z.string(),
+  managerUserIds: z.array(z.string()),
 })
+
+type ClientFormItem = SelectCompanyAccount & {
+  managers?: Array<{ user: UserOption }>
+  owner?: UserOption | null
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -51,76 +65,76 @@ const ClientForm = ({
   initialCompanyId,
   onSuccess,
 }: {
-  item?: SelectCompanyAccount
+  item?: ClientFormItem
   initialCompanyId?: string
   onSuccess?: () => void
 }) => {
+  const initialManagers = React.useMemo(() => {
+    if (item?.managers && item.managers.length > 0) {
+      return item.managers.map(({ user }) => user)
+    }
+
+    return item?.owner ? [item.owner] : []
+  }, [item])
+
   const [users, setUsers] = React.useState<UserOption[]>([])
+  const [selectedManagers, setSelectedManagers] =
+    React.useState<UserOption[]>(initialManagers)
   const [companies, setCompanies] = React.useState<CompanyOption[]>([])
   const [companiesLoading, setCompaniesLoading] = React.useState(false)
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
+  const [step, setStep] = React.useState(
+    item?.companyId || initialCompanyId ? 2 : 1,
+  )
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState(
+    item?.companyId ?? initialCompanyId ?? '',
+  )
   const [selectedBusinessUnitId, setSelectedBusinessUnitId] = React.useState(
     item?.businessUnitId ?? '',
   )
+  const selectedDepartmentId = useDepartmentStore(
+    (state) => state.selectedDepartmentId,
+  )
+  const globalDepartments = useDepartmentStore((state) => state.departments)
+  const selectedDeptType = globalDepartments.find(
+    (d) => d.id === selectedDepartmentId,
+  )?.departmentType
+  // Only pre-select/lock when the active department is itself a sales unit.
+  // Administrative (and production) selections let the user pick freely.
+  const scopedDepartmentId =
+    item ? null : selectedDeptType === 'sales' ? selectedDepartmentId : null
 
-  // When company is pre-selected: load filtered departments and lock the
-  // company field. Otherwise load all departments normally.
-  React.useEffect(() => {
-    if (initialCompanyId) {
-      getFilteredDepartments({
-        data: {
-          companyId: initialCompanyId,
-          excludeAccountId: item?.id,
-        },
-      })
-        .then(setDepartments)
-        .catch(console.error)
-      getCompanyById({ data: { id: initialCompanyId } })
-        .then((company) => setCompanies([company]))
-        .catch(console.error)
-    } else {
-      fetchDepartmentOptions().then(setDepartments).catch(console.error)
-    }
-  }, [])
+  const lockedCompanyId = initialCompanyId
+  const isCompanyLocked = !!lockedCompanyId
+  const isDepartmentLocked = !!scopedDepartmentId
+  const portalRef = React.useRef<HTMLDivElement>(null)
 
-  // Refetch companies and users whenever the selected business unit changes
-  React.useEffect(() => {
-    if (!selectedBusinessUnitId) {
-      if (!initialCompanyId) setCompanies([])
-      setUsers([])
-      return
+  const departmentsForSelect = React.useMemo(() => {
+    if (
+      !scopedDepartmentId ||
+      departments.some((department) => department.id === scopedDepartmentId)
+    ) {
+      return departments
     }
-    // When company is pre-fixed, skip company refetch — just load users
-    if (!initialCompanyId) {
-      setCompaniesLoading(true)
-      getFilteredCompanies({
-        data: {
-          businessUnitId: selectedBusinessUnitId,
-          excludeAccountId: item?.id,
-        },
-      })
-        .then(setCompanies)
-        .catch(console.error)
-        .finally(() => setCompaniesLoading(false))
-    }
-    getFilteredUsers({ data: { businessUnitId: selectedBusinessUnitId } })
-      .then(setUsers)
-      .catch(console.error)
-  }, [selectedBusinessUnitId])
+
+    const scopedDepartment = globalDepartments.find(
+      (department) => department.id === scopedDepartmentId,
+    )
+
+    return scopedDepartment ? [scopedDepartment, ...departments] : departments
+  }, [departments, globalDepartments, scopedDepartmentId])
 
   const form = useForm({
     defaultValues: {
       companyId: item?.companyId ?? initialCompanyId ?? '',
-      businessUnitId: item?.businessUnitId ?? '',
+      businessUnitId: item?.businessUnitId ?? scopedDepartmentId ?? '',
       isTarget: item?.isTarget ?? false,
       isLost: item?.isLost ?? false,
       lostReasons: item?.lostReasons ?? '',
-      ownerUserId: item?.ownerUserId ?? '',
+      managerUserIds: initialManagers.map((manager) => manager.id),
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
-      const ownerUserId = value.ownerUserId || undefined
-
       if (!item) {
         try {
           await addAccount({
@@ -130,7 +144,7 @@ const ClientForm = ({
               isTarget: value.isTarget,
               isLost: value.isLost,
               lostReasons: value.lostReasons,
-              ownerUserId,
+              managerUserIds: value.managerUserIds,
             },
           })
           toast.success('Клиент успешно добавлен')
@@ -150,7 +164,7 @@ const ClientForm = ({
               isTarget: value.isTarget,
               isLost: value.isLost,
               lostReasons: value.lostReasons,
-              ownerUserId,
+              managerUserIds: value.managerUserIds,
             },
           })
           toast.success('Клиент успешно изменён')
@@ -164,244 +178,251 @@ const ClientForm = ({
     },
   })
 
+  const selectCompany = React.useCallback(
+    (company: CompanyOption) => {
+      setCompanies((current) => {
+        if (current.some((item) => item.id === company.id)) return current
+        return [company, ...current]
+      })
+
+      form.setFieldValue('companyId', company.id)
+      if (company.id !== selectedCompanyId) {
+        const nextBusinessUnitId = scopedDepartmentId ?? ''
+
+        form.setFieldValue('businessUnitId', nextBusinessUnitId)
+        form.setFieldValue('managerUserIds', [])
+        setSelectedManagers([])
+        setSelectedBusinessUnitId(nextBusinessUnitId)
+        if (nextBusinessUnitId !== selectedBusinessUnitId) {
+          setUsers([])
+        }
+        setDepartments([])
+      }
+      setSelectedCompanyId(company.id)
+      setStep(2)
+    },
+    [form, scopedDepartmentId, selectedBusinessUnitId, selectedCompanyId],
+  )
+
+  React.useEffect(() => {
+    if (!scopedDepartmentId) return
+
+    form.setFieldValue('businessUnitId', scopedDepartmentId)
+    setSelectedBusinessUnitId(scopedDepartmentId)
+  }, [form, scopedDepartmentId])
+
+  React.useEffect(() => {
+    if (lockedCompanyId) {
+      getCompanyById({ data: { id: lockedCompanyId } })
+        .then((company) => {
+          if (!company) return
+          setCompanies([company])
+          setSelectedCompanyId(company.id)
+          setStep(2)
+        })
+        .catch(console.error)
+      return
+    }
+
+    setCompaniesLoading(true)
+    getClientCandidateCompanies({
+      data: {
+        excludeAccountId: item?.id,
+        businessUnitId: scopedDepartmentId ?? undefined,
+      },
+    })
+      .then((items) => {
+        setCompanies(items)
+        const initial = items.find(
+          (company) => company.id === selectedCompanyId,
+        )
+        if (initial) setStep(2)
+      })
+      .catch(console.error)
+      .finally(() => setCompaniesLoading(false))
+  }, [lockedCompanyId, item?.id, scopedDepartmentId])
+
+  React.useEffect(() => {
+    if (!selectedCompanyId) {
+      setDepartments([])
+      return
+    }
+
+    getFilteredDepartments({
+      data: {
+        companyId: selectedCompanyId,
+        excludeAccountId: item?.id,
+      },
+    })
+      .then((items) => {
+        setDepartments(items)
+
+        if (
+          scopedDepartmentId &&
+          items.some((department) => department.id === scopedDepartmentId)
+        ) {
+          form.setFieldValue('businessUnitId', scopedDepartmentId)
+          setSelectedBusinessUnitId(scopedDepartmentId)
+        }
+      })
+      .catch(console.error)
+  }, [selectedCompanyId, item?.id, scopedDepartmentId, form])
+
+  React.useEffect(() => {
+    if (!selectedBusinessUnitId || !selectedCompanyId) {
+      setUsers([])
+      return
+    }
+
+    getFilteredUsers({ data: { businessUnitId: selectedBusinessUnitId } })
+      .then(setUsers)
+      .catch(console.error)
+  }, [selectedBusinessUnitId, selectedCompanyId])
+
+  React.useEffect(() => {
+    form.setFieldValue(
+      'managerUserIds',
+      selectedManagers.map((manager) => manager.id),
+    )
+  }, [form, selectedManagers])
+
   return (
     <TooltipProvider>
+      <div ref={portalRef} />
       <form
         id="client-form"
-        className="flex-1 flex flex-col gap-6 min-h-0"
+        className="flex-1 flex min-h-0 flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="shrink-0 flex flex-col gap-6">
-          {/* Business unit */}
-          <form.Field
-            name="businessUnitId"
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Подразделение</FieldLabel>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(val) => {
-                      field.handleChange(val)
-                      setSelectedBusinessUnitId(val)
-                      // Reset dependent fields when business unit changes.
-                      // Don't reset companyId if it was pre-filled from outside.
-                      if (!initialCompanyId) {
-                        form.setFieldValue('companyId', '')
-                      }
-                      form.setFieldValue('ownerUserId', '')
-                    }}
-                  >
-                    <SelectTrigger
-                      id={field.name}
-                      aria-invalid={isInvalid}
-                      className="w-full"
-                      onBlur={field.handleBlur}
-                    >
-                      <SelectValue placeholder="Выберите подразделение" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              )
-            }}
-          />
-
-          {/* Company */}
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1">
           <form.Field
             name="companyId"
             children={(field) => {
               const isInvalid =
                 field.state.meta.isTouched && !field.state.meta.isValid
+
               return (
                 <Field data-invalid={isInvalid}>
-                  <FieldLabel htmlFor={field.name}>Компания</FieldLabel>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(val) => field.handleChange(val)}
-                    disabled={
-                      !!initialCompanyId ||
-                      !selectedBusinessUnitId ||
-                      companiesLoading
-                    }
-                  >
-                    <SelectTrigger
-                      id={field.name}
-                      aria-invalid={isInvalid}
-                      className="w-full"
-                      onBlur={field.handleBlur}
-                    >
-                      <SelectValue
-                        placeholder={
-                          initialCompanyId
-                            ? 'Загрузка…'
-                            : !selectedBusinessUnitId
-                              ? 'Сначала выберите подразделение'
-                              : companiesLoading
-                                ? 'Загрузка…'
-                                : 'Выберите компанию'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {companies.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <CompanySelectStep
+                    companies={companies}
+                    loading={companiesLoading}
+                    selectedCompanyId={field.state.value}
+                    locked={isCompanyLocked}
+                    onSelect={(company) => {
+                      field.handleChange(company.id)
+                      selectCompany(company)
+                    }}
+                  />
                   {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
               )
             }}
           />
 
-          {/* isTarget & isLost are mutually exclusive */}
-          <form.Field
-            name="isTarget"
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <Field data-invalid={isInvalid}>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={field.name}
-                      checked={field.state.value}
-                      onCheckedChange={(val: boolean) => {
-                        field.handleChange(val)
-                        if (val) {
-                          form.setFieldValue('isLost', false)
-                          form.setFieldValue('lostReasons', '')
-                        }
-                      }}
-                    />
-                    <Label htmlFor={field.name}>Целевой клиент</Label>
-                  </div>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              )
-            }}
-          />
-
-          <form.Field
-            name="isLost"
-            children={(field) => {
-              const isInvalid =
-                field.state.meta.isTouched && !field.state.meta.isValid
-              return (
-                <Field data-invalid={isInvalid}>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={field.name}
-                      checked={field.state.value}
-                      onCheckedChange={(val: boolean) => {
-                        field.handleChange(val)
-                        if (val) {
-                          form.setFieldValue('isTarget', false)
-                        } else {
-                          form.setFieldValue('lostReasons', '')
-                        }
-                      }}
-                    />
-                    <Label htmlFor={field.name}>Потерянный клиент</Label>
-                  </div>
-                  {isInvalid && <FieldError errors={field.state.meta.errors} />}
-                </Field>
-              )
-            }}
-          />
-
-          {/* Lost reasons — shown only when isLost = true */}
-          <form.Subscribe
-            selector={(state) => state.values.isLost}
-            children={(isLost) =>
-              isLost ? (
-                <form.Field
-                  name="lostReasons"
-                  children={(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched && !field.state.meta.isValid
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>
-                          Причина потери
-                        </FieldLabel>
-                        <Input
+          {step === 2 && (
+            <>
+              <form.Field
+                name="businessUnitId"
+                children={(field) => {
+                  const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid
+                  return (
+                    <Field data-invalid={isInvalid}>
+                      <FieldLabel htmlFor={field.name}>
+                        Подразделение
+                      </FieldLabel>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(val) => {
+                          field.handleChange(val)
+                          setSelectedBusinessUnitId(val)
+                          form.setFieldValue('managerUserIds', [])
+                          setSelectedManagers([])
+                        }}
+                        disabled={!selectedCompanyId || isDepartmentLocked}
+                      >
+                        <SelectTrigger
                           id={field.name}
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          placeholder="Укажите причину потери клиента"
                           aria-invalid={isInvalid}
+                          className="w-full"
+                          onBlur={field.handleBlur}
+                        >
+                          <SelectValue placeholder="Выберите подразделение" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departmentsForSelect.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isInvalid && (
+                        <FieldError errors={field.state.meta.errors} />
+                      )}
+                    </Field>
+                  )
+                }}
+              />
+
+              <form.Field
+                name="managerUserIds"
+                children={() => (
+                  <Field>
+                    <FieldLabel>Менеджеры</FieldLabel>
+                    <Combobox
+                      items={users}
+                      itemToStringValue={(user) => user.name}
+                      isItemEqualToValue={(a, b) => a.id === b.id}
+                      multiple
+                      value={selectedManagers}
+                      onValueChange={setSelectedManagers}
+                      disabled={!selectedBusinessUnitId}
+                    >
+                      <ComboboxChips>
+                        <ComboboxValue>
+                          {(value: UserOption[]) =>
+                            value.map((user) => (
+                              <ComboboxChip key={user.id}>
+                                {user.name}
+                              </ComboboxChip>
+                            ))
+                          }
+                        </ComboboxValue>
+                        <ComboboxChipsInput
+                          placeholder={
+                            !selectedBusinessUnitId
+                              ? 'Сначала выберите подразделение'
+                              : 'Добавить менеджера'
+                          }
                         />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    )
-                  }}
-                />
-              ) : null
-            }
-          />
+                      </ComboboxChips>
+                      <ComboboxContent container={portalRef.current}>
+                        <ComboboxEmpty>Менеджеры не найдены</ComboboxEmpty>
+                        <ComboboxList>
+                          {(user) => (
+                            <ComboboxItem key={user.id} value={user}>
+                              {user.name}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </Field>
+                )}
+              />
+            </>
+          )}
+        </div>
 
-          {/* Owner — single select from users in the selected business unit */}
-          <form.Field
-            name="ownerUserId"
-            children={(field) => (
-              <Field>
-                <FieldLabel htmlFor={field.name}>Ответственный</FieldLabel>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(val) =>
-                    field.handleChange(val === '_none' ? '' : val)
-                  }
-                  disabled={!selectedBusinessUnitId}
-                >
-                  <SelectTrigger
-                    id={field.name}
-                    className="w-full"
-                    onBlur={field.handleBlur}
-                  >
-                    <SelectValue
-                      placeholder={
-                        !selectedBusinessUnitId
-                          ? 'Сначала выберите подразделение'
-                          : 'Не назначен'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">Не назначен</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-          />
-
-          <div className="flex justify-end">
+        {step === 2 && (
+          <div className="flex shrink-0 justify-end border-t pt-4">
             <Button type="submit">{item ? 'Изменить' : 'Создать'}</Button>
           </div>
-        </div>
+        )}
       </form>
     </TooltipProvider>
   )

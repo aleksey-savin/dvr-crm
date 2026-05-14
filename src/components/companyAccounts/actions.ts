@@ -8,6 +8,7 @@ import {
   comment,
   company,
   companyAccount,
+  companyAccountManagers,
   department,
   todo,
   todoResponsibleUsers,
@@ -29,6 +30,8 @@ import {
   sql,
 } from 'drizzle-orm'
 import * as z from 'zod'
+import { recalculateClientClassifications } from '@/lib/client-classification'
+import { getAccessibleDepartmentIds } from '@/lib/department-scope'
 
 const clientAccountSchema = z.object({
   businessUnitId: z.string().uuid(),
@@ -36,7 +39,7 @@ const clientAccountSchema = z.object({
   isTarget: z.boolean(),
   isLost: z.boolean(),
   lostReasons: z.string().optional(),
-  ownerUserId: z.string().optional(),
+  managerUserIds: z.array(z.string()).optional(),
 })
 
 const updateClientAccountSchema = clientAccountSchema.extend({
@@ -66,17 +69,62 @@ const textEntrySchema = z.object({
   description: z.string().min(1),
 })
 
+async function validateSalesDepartment(businessUnitId: string) {
+  const dept = await db.query.department.findFirst({
+    where: eq(department.id, businessUnitId),
+    columns: { departmentType: true },
+  })
+  if (!dept || dept.departmentType !== 'sales') {
+    throw new Error(
+      'Клиентов можно привязывать только к продающим подразделениям',
+    )
+  }
+}
+
+async function setCompanyAccountManagers(
+  companyAccountId: string,
+  userIds: string[],
+) {
+  const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)))
+
+  await db
+    .delete(companyAccountManagers)
+    .where(eq(companyAccountManagers.companyAccountId, companyAccountId))
+
+  if (uniqueUserIds.length === 0) return
+
+  await db.insert(companyAccountManagers).values(
+    uniqueUserIds.map((userId) => ({
+      companyAccountId,
+      userId,
+    })),
+  )
+}
+
 export const fetchClients = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
   const lastYear = currentYear - 1
   const nextYear = currentYear + 1
 
+  const accessibleIds = await getAccessibleDepartmentIds()
+  if (accessibleIds.length === 0) {
+    return { accounts: [], currentYear, lastYear, nextYear }
+  }
+
   const accounts = await db.query.companyAccount.findMany({
-    where: eq(companyAccount.accountType, 'client'),
+    where: and(
+      eq(companyAccount.accountType, 'client'),
+      inArray(companyAccount.businessUnitId, accessibleIds),
+    ),
     with: {
       company: { columns: { id: true, name: true } },
       businessUnit: { columns: { id: true, name: true } },
       owner: { columns: { id: true, name: true } },
+      managers: {
+        with: {
+          user: { columns: { id: true, name: true } },
+        },
+      },
     },
     orderBy: (account, { asc }) => [asc(account.id)],
   })
@@ -174,10 +222,10 @@ export const fetchClients = createServerFn().handler(async () => {
       .from(todo)
       .innerJoin(todoResponsibleUsers, eq(todo.id, todoResponsibleUsers.todoId))
       .innerJoin(
-        companyAccount,
+        companyAccountManagers,
         and(
-          eq(todo.companyAccountId, companyAccount.id),
-          eq(todoResponsibleUsers.userId, companyAccount.ownerUserId),
+          eq(todo.companyAccountId, companyAccountManagers.companyAccountId),
+          eq(todoResponsibleUsers.userId, companyAccountManagers.userId),
         ),
       )
       .where(
@@ -186,7 +234,6 @@ export const fetchClients = createServerFn().handler(async () => {
           inArray(todo.companyAccountId, accountIds),
           ne(todo.status, 'completed'),
           isNull(todo.archivedAt),
-          isNotNull(companyAccount.ownerUserId),
         ),
       )
       .groupBy(todo.companyAccountId),
@@ -242,6 +289,11 @@ export const fetchClient = createServerFn({ method: 'GET' })
           company: true,
           businessUnit: true,
           owner: { columns: { id: true, name: true, image: true } },
+          managers: {
+            with: {
+              user: { columns: { id: true, name: true, image: true } },
+            },
+          },
           risks: true,
           grossProfits: true,
           targetForecasts: true,
@@ -267,9 +319,15 @@ export const fetchClient = createServerFn({ method: 'GET' })
 export const fetchWishlistAccounts = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
 
+  const accessibleIds = await getAccessibleDepartmentIds()
+  if (accessibleIds.length === 0) return []
+
   const [rows, commentCounts] = await Promise.all([
     db.query.companyAccount.findMany({
-      where: eq(companyAccount.accountType, 'wishlist'),
+      where: and(
+        eq(companyAccount.accountType, 'wishlist'),
+        inArray(companyAccount.businessUnitId, accessibleIds),
+      ),
       with: {
         company: {
           columns: {
@@ -279,6 +337,7 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
             industry: true,
           },
           with: {
+            industryRef: { columns: { name: true } },
             revenues: { columns: { year: true, value: true } },
           },
         },
@@ -309,7 +368,7 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
       companyId: row.companyId,
       companyName: row.company.name,
       businessUnit: row.businessUnit.name,
-      industry: row.company.industry,
+      industry: row.company.industryRef?.name ?? row.company.industry,
       regionalMarketPosition: row.company.regionalMarketPosition,
       revenueLastYear:
         row.company.revenues.find((revenue) => revenue.year === currentYear - 1)
@@ -344,6 +403,7 @@ export const fetchWishlistClient = createServerFn({ method: 'GET' })
       with: {
         company: {
           with: {
+            industryRef: { columns: { name: true } },
             revenues: true,
             contacts: true,
           },
@@ -373,7 +433,13 @@ export const fetchWishlistClient = createServerFn({ method: 'GET' })
     })
 
     if (!row) throw notFound()
-    return row
+    return {
+      ...row,
+      company: {
+        ...row.company,
+        industry: row.company.industryRef?.name ?? row.company.industry,
+      },
+    }
   })
 
 export const getFilteredUsers = createServerFn({ method: 'GET' })
@@ -426,6 +492,55 @@ export const getFilteredCompanies = createServerFn({ method: 'GET' })
       .orderBy(company.name)
   })
 
+export const getClientCandidateCompanies = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      excludeAccountId: z.string().optional(),
+      businessUnitId: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const wishlistCompanyIds = db
+      .select({ id: companyAccount.companyId })
+      .from(companyAccount)
+      .where(
+        and(
+          eq(companyAccount.accountType, 'wishlist'),
+          data.excludeAccountId
+            ? ne(companyAccount.id, data.excludeAccountId)
+            : undefined,
+        ),
+      )
+
+    const scopedClientCompanyIds = data.businessUnitId
+      ? db
+          .select({ id: companyAccount.companyId })
+          .from(companyAccount)
+          .where(
+            and(
+              eq(companyAccount.accountType, 'client'),
+              eq(companyAccount.businessUnitId, data.businessUnitId),
+              data.excludeAccountId
+                ? ne(companyAccount.id, data.excludeAccountId)
+                : undefined,
+            ),
+          )
+      : undefined
+
+    return db
+      .select({ id: company.id, name: company.name })
+      .from(company)
+      .where(
+        and(
+          notInArray(company.id, wishlistCompanyIds),
+          scopedClientCompanyIds
+            ? notInArray(company.id, scopedClientCompanyIds)
+            : undefined,
+        ),
+      )
+      .orderBy(company.name)
+  })
+
 export const getFilteredDepartments = createServerFn({ method: 'GET' })
   .inputValidator(
     z.object({
@@ -450,7 +565,12 @@ export const getFilteredDepartments = createServerFn({ method: 'GET' })
     return db
       .select({ id: department.id, name: department.name })
       .from(department)
-      .where(notInArray(department.id, existingBusinessUnitIds))
+      .where(
+        and(
+          eq(department.departmentType, 'sales'),
+          notInArray(department.id, existingBusinessUnitIds),
+        ),
+      )
       .orderBy(department.name)
   })
 
@@ -469,6 +589,8 @@ export const getCompanyById = createServerFn({ method: 'GET' })
 export const addAccount = createServerFn({ method: 'POST' })
   .inputValidator(clientAccountSchema)
   .handler(async ({ data }) => {
+    await validateSalesDepartment(data.businessUnitId)
+
     const [inserted] = await db
       .insert(companyAccount)
       .values({
@@ -478,9 +600,11 @@ export const addAccount = createServerFn({ method: 'POST' })
         isTarget: data.isTarget,
         isLost: data.isLost,
         lostReasons: data.lostReasons ?? null,
-        ownerUserId: data.ownerUserId ?? null,
       })
       .returning({ id: companyAccount.id })
+
+    await setCompanyAccountManagers(inserted.id, data.managerUserIds ?? [])
+    await recalculateClientClassifications([inserted.id])
 
     return inserted.id
   })
@@ -488,6 +612,8 @@ export const addAccount = createServerFn({ method: 'POST' })
 export const updateAccount = createServerFn({ method: 'POST' })
   .inputValidator(updateClientAccountSchema)
   .handler(async ({ data }) => {
+    await validateSalesDepartment(data.businessUnitId)
+
     await db
       .update(companyAccount)
       .set({
@@ -496,9 +622,11 @@ export const updateAccount = createServerFn({ method: 'POST' })
         isTarget: data.isTarget,
         isLost: data.isLost,
         lostReasons: data.lostReasons ?? null,
-        ownerUserId: data.ownerUserId ?? null,
       })
       .where(eq(companyAccount.id, data.id))
+
+    await setCompanyAccountManagers(data.id, data.managerUserIds ?? [])
+    await recalculateClientClassifications([data.id])
   })
 
 export const deleteClient = createServerFn({ method: 'POST' })
@@ -532,6 +660,8 @@ export const getFilteredWishlistCompanies = createServerFn({ method: 'GET' })
 export const addWishlistClient = createServerFn({ method: 'POST' })
   .inputValidator(wishlistAccountSchema)
   .handler(async ({ data }) => {
+    await validateSalesDepartment(data.businessUnitId)
+
     const [inserted] = await db
       .insert(companyAccount)
       .values({
@@ -548,6 +678,8 @@ export const addWishlistClient = createServerFn({ method: 'POST' })
 export const updateWishlistClient = createServerFn({ method: 'POST' })
   .inputValidator(updateWishlistAccountSchema)
   .handler(async ({ data }) => {
+    await validateSalesDepartment(data.businessUnitId)
+
     await db
       .update(companyAccount)
       .set({
@@ -588,14 +720,26 @@ export const addGrossProfit = createServerFn({ method: 'POST' })
       year: data.year,
       value: data.value,
     })
+
+    await recalculateClientClassifications([data.clientId])
   })
 
 export const deleteGrossProfit = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    const [existing] = await db
+      .select({ companyAccountId: accountGrossProfit.companyAccountId })
+      .from(accountGrossProfit)
+      .where(eq(accountGrossProfit.id, data.id))
+      .limit(1)
+
     await db
       .delete(accountGrossProfit)
       .where(eq(accountGrossProfit.id, data.id))
+
+    if (existing) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })
 
 export const addTargetForecast = createServerFn({ method: 'POST' })
@@ -623,14 +767,26 @@ export const addTargetForecast = createServerFn({ method: 'POST' })
       year: data.year,
       value: data.value,
     })
+
+    await recalculateClientClassifications([data.clientId])
   })
 
 export const deleteTargetForecast = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    const [existing] = await db
+      .select({ companyAccountId: accountTargetForecast.companyAccountId })
+      .from(accountTargetForecast)
+      .where(eq(accountTargetForecast.id, data.id))
+      .limit(1)
+
     await db
       .delete(accountTargetForecast)
       .where(eq(accountTargetForecast.id, data.id))
+
+    if (existing) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })
 
 export const addRisk = createServerFn({ method: 'POST' })
@@ -640,12 +796,24 @@ export const addRisk = createServerFn({ method: 'POST' })
       companyAccountId: data.clientId,
       description: data.description,
     })
+
+    await recalculateClientClassifications([data.clientId])
   })
 
 export const deleteRisk = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    const [existing] = await db
+      .select({ companyAccountId: accountRisk.companyAccountId })
+      .from(accountRisk)
+      .where(eq(accountRisk.id, data.id))
+      .limit(1)
+
     await db.delete(accountRisk).where(eq(accountRisk.id, data.id))
+
+    if (existing) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })
 
 export const addUpselling = createServerFn({ method: 'POST' })
@@ -655,14 +823,28 @@ export const addUpselling = createServerFn({ method: 'POST' })
       companyAccountId: data.clientId,
       description: data.description,
     })
+
+    await recalculateClientClassifications([data.clientId])
   })
 
 export const deleteUpselling = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
+    const [existing] = await db
+      .select({
+        companyAccountId: accountUpsellingOpportunity.companyAccountId,
+      })
+      .from(accountUpsellingOpportunity)
+      .where(eq(accountUpsellingOpportunity.id, data.id))
+      .limit(1)
+
     await db
       .delete(accountUpsellingOpportunity)
       .where(eq(accountUpsellingOpportunity.id, data.id))
+
+    if (existing) {
+      await recalculateClientClassifications([existing.companyAccountId])
+    }
   })
 
 export const addHook = createServerFn({ method: 'POST' })

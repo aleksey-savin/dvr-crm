@@ -3,7 +3,8 @@ import { department, user } from '@/db/schema'
 import type { ParentDepartmentOption, ParentDepartmentRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
+import { getAccessibleDepartmentIds } from '@/lib/department-scope'
 import * as z from 'zod'
 
 const parentIdSchema = z.union([z.string().uuid(), z.undefined()])
@@ -13,8 +14,11 @@ const accentColorSchema = z
   .trim()
   .regex(/^#[0-9A-Fa-f]{6}$/, 'Цвет должен быть в формате #RRGGBB')
 
+const departmentTypeSchema = z.enum(['sales', 'production', 'administrative'])
+
 const addDepartmentSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  departmentType: departmentTypeSchema,
   headUserId: headUserIdSchema,
   description: z
     .string()
@@ -264,14 +268,18 @@ export const fetchDepartmentOptions = createServerFn({
   return db
     .select({ id: department.id, name: department.name })
     .from(department)
+    .where(eq(department.departmentType, 'sales'))
     .orderBy(department.name)
 })
 
 export const fetchSidebarDepartments = createServerFn({
   method: 'GET',
 }).handler(async () => {
+  const accessibleIds = await getAccessibleDepartmentIds()
+  if (accessibleIds.length === 0) return []
   return db.query.department.findMany({
-    columns: { id: true, name: true, accentColor: true },
+    where: inArray(department.id, accessibleIds),
+    columns: { id: true, name: true, departmentType: true, parentId: true, accentColor: true },
     orderBy: (departmentTable, { asc }) => [asc(departmentTable.name)],
   })
 })
@@ -314,6 +322,7 @@ export const addDepartment = createServerFn({ method: 'POST' })
       .insert(department)
       .values({
         name: data.name,
+        departmentType: data.departmentType,
         headUserId,
         description: data.description,
         accentColor: data.accentColor,
@@ -334,6 +343,7 @@ export const updateDepartment = createServerFn({ method: 'POST' })
       .update(department)
       .set({
         name: data.name,
+        departmentType: data.departmentType,
         headUserId,
         description: data.description,
         accentColor: data.accentColor,

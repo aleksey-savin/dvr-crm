@@ -7,10 +7,12 @@ import type {
   todo,
   todoResponsibleUsers,
   department,
+  industry,
   company,
   counterparty,
   companyCounterparty,
   companyAccount,
+  companyAccountManagers,
   accountRisk,
   accountGrossProfit,
   accountTargetForecast,
@@ -23,6 +25,7 @@ import type {
   commentRead,
   meeting,
   apiKey,
+  clientClassificationSettings,
   changelogRelease,
 } from './schema'
 
@@ -62,6 +65,12 @@ export type UpdateDepartment = Partial<
 
 // ─── Company ─────────────────────────────────────────────────────────────────
 
+export type SelectIndustry = InferSelectModel<typeof industry>
+export type InsertIndustry = InferInsertModel<typeof industry>
+export type UpdateIndustry = Partial<
+  Omit<InsertIndustry, 'id' | 'createdAt' | 'updatedAt'>
+>
+
 export type SelectCompany = InferSelectModel<typeof company>
 export type InsertCompany = InferInsertModel<typeof company>
 export type UpdateCompany = Partial<
@@ -87,6 +96,13 @@ export type SelectCompanyAccount = InferSelectModel<typeof companyAccount>
 export type InsertCompanyAccount = InferInsertModel<typeof companyAccount>
 export type UpdateCompanyAccount = Partial<
   Omit<InsertCompanyAccount, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectCompanyAccountManager = InferSelectModel<
+  typeof companyAccountManagers
+>
+export type InsertCompanyAccountManager = InferInsertModel<
+  typeof companyAccountManagers
 >
 
 // ─── Account sub-entities ────────────────────────────────────────────────────
@@ -197,6 +213,18 @@ export type SelectApiKey = InferSelectModel<typeof apiKey>
 export type InsertApiKey = InferInsertModel<typeof apiKey>
 export type UpdateApiKey = Partial<
   Omit<InsertApiKey, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+// ─── Client classification settings ─────────────────────────────────────────
+
+export type SelectClientClassificationSettings = InferSelectModel<
+  typeof clientClassificationSettings
+>
+export type InsertClientClassificationSettings = InferInsertModel<
+  typeof clientClassificationSettings
+>
+export type UpdateClientClassificationSettings = Partial<
+  Omit<InsertClientClassificationSettings, 'id' | 'createdAt' | 'updatedAt'>
 >
 
 // ─── Changelog ──────────────────────────────────────────────────────────────

@@ -18,11 +18,25 @@ export const useDepartmentStore = create<DepartmentStore>()(
       selectedAccentColor: null,
 
       setDepartments: (departments) => {
+        // Auto-select the only department when the user has access to exactly one
+        if (departments.length === 1) {
+          const dept = departments[0]
+          set({
+            departments,
+            selectedDepartmentId: dept.id,
+            selectedAccentColor: dept.accentColor ?? null,
+          })
+          return
+        }
+
         const { selectedDepartmentId } = get()
+        const isStillAccessible = selectedDepartmentId
+          ? departments.some((d) => d.id === selectedDepartmentId)
+          : true
+        const nextSelectedId = isStillAccessible ? selectedDepartmentId : null
         const selectedAccentColor =
-          departments.find((d) => d.id === selectedDepartmentId)?.accentColor ??
-          null
-        set({ departments, selectedAccentColor })
+          departments.find((d) => d.id === nextSelectedId)?.accentColor ?? null
+        set({ departments, selectedDepartmentId: nextSelectedId, selectedAccentColor })
       },
 
       setSelectedDepartmentId: (id) => {

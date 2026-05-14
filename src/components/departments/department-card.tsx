@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button'
 import type { DepartmentNode } from '@/types'
 import { formatRuCount, getInitials } from './text-utils'
 
+const DEPT_TYPE_LABEL: Record<string, string> = {
+  sales: 'Продающее',
+  production: 'Производственное',
+  administrative: 'Административное',
+}
+
 export function DepartmentCard({
   node,
   onOpen,
@@ -42,6 +48,9 @@ export function DepartmentCard({
             <h3 className="truncate text-sm font-semibold leading-5">
               {node.name}
             </h3>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {DEPT_TYPE_LABEL[node.departmentType]}
+            </p>
           </div>
         </div>
 

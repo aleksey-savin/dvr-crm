@@ -5,6 +5,7 @@ import {
   companyCounterparty,
   companyRevenue,
   counterparty,
+  industry,
 } from '@/db/schema'
 import type { CompanyRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
@@ -14,11 +15,15 @@ import * as z from 'zod'
 
 const companySchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  scope: z.enum(['federal', 'regional']).optional(),
+  website: z.string().optional(),
   description: z
     .string()
     .min(2, 'Описание должно содержать минимум 2 символа')
     .optional(),
   regionalMarketPosition: z.string().optional(),
+  industryId: z.string().optional().nullable(),
+  // Legacy compatibility for older inline create callers.
   industry: z.string().optional(),
 })
 
@@ -53,6 +58,7 @@ const addCounterpartySchema = z.object({
   name: z.string().min(2, 'Минимум 2 символа'),
   fullName: z.string().optional(),
   tin: z.string().optional(),
+  bankAccount: z.string().optional(),
 })
 
 const updateCounterpartySchema = addCounterpartySchema
@@ -61,11 +67,37 @@ const updateCounterpartySchema = addCounterpartySchema
     id: z.string(),
   })
 
+async function getIndustryName(industryId?: string | null) {
+  if (!industryId) return null
+
+  const row = await db.query.industry.findFirst({
+    where: eq(industry.id, industryId),
+    columns: { name: true },
+  })
+
+  return row?.name ?? null
+}
+
+async function normalizeIndustry(data: {
+  industryId?: string | null
+  industry?: string
+}) {
+  const industryName = data.industryId
+    ? await getIndustryName(data.industryId)
+    : (data.industry?.trim() ?? null)
+
+  return {
+    industryId: data.industryId || null,
+    industryName: industryName || null,
+  }
+}
+
 export const fetchCompanies = createServerFn().handler(async () => {
   const currentYear = new Date().getFullYear()
 
   const rows = await db.query.company.findMany({
     with: {
+      industryRef: { columns: { name: true } },
       accounts: {
         columns: { accountType: true, isTarget: true, isLost: true },
         with: {
@@ -89,7 +121,7 @@ export const fetchCompanies = createServerFn().handler(async () => {
       name: row.name,
       description: row.description,
       regionalMarketPosition: row.regionalMarketPosition,
-      industry: row.industry,
+      industry: row.industryRef?.name ?? row.industry,
       clients: clientAccounts.map((account) => ({
         departmentName: account.businessUnit.name,
         isTarget: account.isTarget,
@@ -112,6 +144,7 @@ export const fetchCompany = createServerFn({ method: 'GET' })
     const row = await db.query.company.findFirst({
       where: eq(company.id, data.id),
       with: {
+        industryRef: { columns: { id: true, name: true } },
         contacts: true,
         revenues: true,
         counterparties: {
@@ -122,6 +155,7 @@ export const fetchCompany = createServerFn({ method: 'GET' })
                 name: true,
                 fullName: true,
                 tin: true,
+                bankAccount: true,
               },
             },
           },
@@ -140,6 +174,11 @@ export const fetchCompany = createServerFn({ method: 'GET' })
           with: {
             businessUnit: { columns: { id: true, name: true } },
             owner: { columns: { id: true, name: true, image: true } },
+            managers: {
+              with: {
+                user: { columns: { id: true, name: true, image: true } },
+              },
+            },
             risks: true,
             grossProfits: true,
             targetForecasts: true,
@@ -169,19 +208,27 @@ export const fetchCompany = createServerFn({ method: 'GET' })
     })
 
     if (!row) throw notFound()
-    return row
+    return {
+      ...row,
+      industry: row.industryRef?.name ?? row.industry,
+    }
   })
 
 export const addCompany = createServerFn({ method: 'POST' })
   .inputValidator(companySchema)
   .handler(async ({ data }) => {
+    const { industryId, industryName } = await normalizeIndustry(data)
+
     const [inserted] = await db
       .insert(company)
       .values({
         name: data.name,
+        scope: data.scope ?? null,
+        website: data.website ?? null,
         description: data.description,
         regionalMarketPosition: data.regionalMarketPosition,
-        industry: data.industry,
+        industryId,
+        industry: industryName,
       })
       .returning({ id: company.id })
 
@@ -191,13 +238,18 @@ export const addCompany = createServerFn({ method: 'POST' })
 export const updateCompany = createServerFn({ method: 'POST' })
   .inputValidator(updateCompanySchema)
   .handler(async ({ data }) => {
+    const { industryId, industryName } = await normalizeIndustry(data)
+
     await db
       .update(company)
       .set({
         name: data.name,
+        scope: data.scope ?? null,
+        website: data.website ?? null,
         description: data.description,
         regionalMarketPosition: data.regionalMarketPosition,
-        industry: data.industry,
+        industryId,
+        industry: industryName,
       })
       .where(eq(company.id, data.id))
   })
@@ -291,6 +343,7 @@ export const addCompanyCounterparty = createServerFn({ method: 'POST' })
           name: data.name,
           fullName: data.fullName ?? null,
           tin: data.tin ?? null,
+          bankAccount: data.bankAccount ?? null,
         })
         .returning({ id: counterparty.id })
 
@@ -310,6 +363,7 @@ export const updateCounterparty = createServerFn({ method: 'POST' })
         name: data.name,
         fullName: data.fullName ?? null,
         tin: data.tin ?? null,
+        bankAccount: data.bankAccount ?? null,
       })
       .where(eq(counterparty.id, data.id))
   })

@@ -1,5 +1,6 @@
 import { db } from '@/db'
 import { comment, commentRead } from '@/db/schema'
+import { recalculateClientClassifications } from '@/lib/client-classification'
 import { createServerFn } from '@tanstack/react-start'
 import * as z from 'zod'
 
@@ -40,6 +41,10 @@ export const addComment = createServerFn({ method: 'POST' })
         authorId: data.authorId,
       })
       .returning()
+
+    if (data.entityType === 'companyAccount') {
+      await recalculateClientClassifications([data.entityId])
+    }
 
     return inserted
   })

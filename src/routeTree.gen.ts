@@ -19,6 +19,7 @@ import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as MeetingRoomBookingRouteImport } from './routes/meeting-room-booking'
 import { Route as MailingListsRouteImport } from './routes/mailing-lists'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IndustriesRouteImport } from './routes/industries'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CompaniesRouteImport } from './routes/companies'
 import { Route as ClientsRouteImport } from './routes/clients'
@@ -28,6 +29,7 @@ import { Route as WishlistNewRouteImport } from './routes/wishlist.new'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
+import { Route as IndustriesNewRouteImport } from './routes/industries.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
 import { Route as ChangelogNewRouteImport } from './routes/changelog.new'
@@ -44,6 +46,8 @@ import { Route as TodosIdDeleteRouteImport } from './routes/todos.$id.delete'
 import { Route as MyCompanyIdViewRouteImport } from './routes/my-company_.$id.view'
 import { Route as MyCompanyIdUpdateRouteImport } from './routes/my-company.$id.update'
 import { Route as MyCompanyIdDeleteRouteImport } from './routes/my-company.$id.delete'
+import { Route as IndustriesIdUpdateRouteImport } from './routes/industries.$id.update'
+import { Route as IndustriesIdDeleteRouteImport } from './routes/industries.$id.delete'
 import { Route as CompaniesIdViewRouteImport } from './routes/companies_.$id.view'
 import { Route as CompaniesIdUpdateRouteImport } from './routes/companies.$id.update'
 import { Route as CompaniesIdDeleteRouteImport } from './routes/companies.$id.delete'
@@ -106,6 +110,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndustriesRoute = IndustriesRouteImport.update({
+  id: '/industries',
+  path: '/industries',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -150,6 +159,11 @@ const MyCompanyNewRoute = MyCompanyNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => MyCompanyRoute,
+} as any)
+const IndustriesNewRoute = IndustriesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => IndustriesRoute,
 } as any)
 const CompaniesNewRoute = CompaniesNewRouteImport.update({
   id: '/new',
@@ -231,6 +245,16 @@ const MyCompanyIdDeleteRoute = MyCompanyIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => MyCompanyRoute,
 } as any)
+const IndustriesIdUpdateRoute = IndustriesIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => IndustriesRoute,
+} as any)
+const IndustriesIdDeleteRoute = IndustriesIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => IndustriesRoute,
+} as any)
 const CompaniesIdViewRoute = CompaniesIdViewRouteImport.update({
   id: '/companies_/$id/view',
   path: '/companies/$id/view',
@@ -293,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/industries': typeof IndustriesRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
@@ -306,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/industries/new': typeof IndustriesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
@@ -321,6 +347,8 @@ export interface FileRoutesByFullPath {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies/$id/view': typeof CompaniesIdViewRoute
+  '/industries/$id/delete': typeof IndustriesIdDeleteRoute
+  '/industries/$id/update': typeof IndustriesIdUpdateRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company/$id/view': typeof MyCompanyIdViewRoute
@@ -341,6 +369,7 @@ export interface FileRoutesByTo {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/industries': typeof IndustriesRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
@@ -354,6 +383,7 @@ export interface FileRoutesByTo {
   '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/industries/new': typeof IndustriesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
@@ -369,6 +399,8 @@ export interface FileRoutesByTo {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies/$id/view': typeof CompaniesIdViewRoute
+  '/industries/$id/delete': typeof IndustriesIdDeleteRoute
+  '/industries/$id/update': typeof IndustriesIdUpdateRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company/$id/view': typeof MyCompanyIdViewRoute
@@ -390,6 +422,7 @@ export interface FileRoutesById {
   '/clients': typeof ClientsRouteWithChildren
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
+  '/industries': typeof IndustriesRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
@@ -403,6 +436,7 @@ export interface FileRoutesById {
   '/changelog/new': typeof ChangelogNewRoute
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
+  '/industries/new': typeof IndustriesNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
@@ -418,6 +452,8 @@ export interface FileRoutesById {
   '/companies/$id/delete': typeof CompaniesIdDeleteRoute
   '/companies/$id/update': typeof CompaniesIdUpdateRoute
   '/companies_/$id/view': typeof CompaniesIdViewRoute
+  '/industries/$id/delete': typeof IndustriesIdDeleteRoute
+  '/industries/$id/update': typeof IndustriesIdUpdateRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company_/$id/view': typeof MyCompanyIdViewRoute
@@ -440,6 +476,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
+    | '/industries'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
@@ -453,6 +490,7 @@ export interface FileRouteTypes {
     | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
+    | '/industries/new'
     | '/my-company/new'
     | '/todos/new'
     | '/users/new'
@@ -468,6 +506,8 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies/$id/view'
+    | '/industries/$id/delete'
+    | '/industries/$id/update'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company/$id/view'
@@ -488,6 +528,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
+    | '/industries'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
@@ -501,6 +542,7 @@ export interface FileRouteTypes {
     | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
+    | '/industries/new'
     | '/my-company/new'
     | '/todos/new'
     | '/users/new'
@@ -516,6 +558,8 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies/$id/view'
+    | '/industries/$id/delete'
+    | '/industries/$id/update'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company/$id/view'
@@ -536,6 +580,7 @@ export interface FileRouteTypes {
     | '/clients'
     | '/companies'
     | '/dashboard'
+    | '/industries'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
@@ -549,6 +594,7 @@ export interface FileRouteTypes {
     | '/changelog/new'
     | '/clients/new'
     | '/companies/new'
+    | '/industries/new'
     | '/my-company/new'
     | '/todos/new'
     | '/users/new'
@@ -564,6 +610,8 @@ export interface FileRouteTypes {
     | '/companies/$id/delete'
     | '/companies/$id/update'
     | '/companies_/$id/view'
+    | '/industries/$id/delete'
+    | '/industries/$id/update'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company_/$id/view'
@@ -585,6 +633,7 @@ export interface RootRouteChildren {
   ClientsRoute: typeof ClientsRouteWithChildren
   CompaniesRoute: typeof CompaniesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
+  IndustriesRoute: typeof IndustriesRouteWithChildren
   LoginRoute: typeof LoginRoute
   MailingListsRoute: typeof MailingListsRoute
   MeetingRoomBookingRoute: typeof MeetingRoomBookingRoute
@@ -677,6 +726,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/industries': {
+      id: '/industries'
+      path: '/industries'
+      fullPath: '/industries'
+      preLoaderRoute: typeof IndustriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -739,6 +795,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/my-company/new'
       preLoaderRoute: typeof MyCompanyNewRouteImport
       parentRoute: typeof MyCompanyRoute
+    }
+    '/industries/new': {
+      id: '/industries/new'
+      path: '/new'
+      fullPath: '/industries/new'
+      preLoaderRoute: typeof IndustriesNewRouteImport
+      parentRoute: typeof IndustriesRoute
     }
     '/companies/new': {
       id: '/companies/new'
@@ -851,6 +914,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/my-company/$id/delete'
       preLoaderRoute: typeof MyCompanyIdDeleteRouteImport
       parentRoute: typeof MyCompanyRoute
+    }
+    '/industries/$id/update': {
+      id: '/industries/$id/update'
+      path: '/$id/update'
+      fullPath: '/industries/$id/update'
+      preLoaderRoute: typeof IndustriesIdUpdateRouteImport
+      parentRoute: typeof IndustriesRoute
+    }
+    '/industries/$id/delete': {
+      id: '/industries/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/industries/$id/delete'
+      preLoaderRoute: typeof IndustriesIdDeleteRouteImport
+      parentRoute: typeof IndustriesRoute
     }
     '/companies_/$id/view': {
       id: '/companies_/$id/view'
@@ -979,6 +1056,22 @@ const CompaniesRouteWithChildren = CompaniesRoute._addFileChildren(
   CompaniesRouteChildren,
 )
 
+interface IndustriesRouteChildren {
+  IndustriesNewRoute: typeof IndustriesNewRoute
+  IndustriesIdDeleteRoute: typeof IndustriesIdDeleteRoute
+  IndustriesIdUpdateRoute: typeof IndustriesIdUpdateRoute
+}
+
+const IndustriesRouteChildren: IndustriesRouteChildren = {
+  IndustriesNewRoute: IndustriesNewRoute,
+  IndustriesIdDeleteRoute: IndustriesIdDeleteRoute,
+  IndustriesIdUpdateRoute: IndustriesIdUpdateRoute,
+}
+
+const IndustriesRouteWithChildren = IndustriesRoute._addFileChildren(
+  IndustriesRouteChildren,
+)
+
 interface MyCompanyRouteChildren {
   MyCompanyNewRoute: typeof MyCompanyNewRoute
   MyCompanyIdDeleteRoute: typeof MyCompanyIdDeleteRoute
@@ -1049,6 +1142,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientsRoute: ClientsRouteWithChildren,
   CompaniesRoute: CompaniesRouteWithChildren,
   DashboardRoute: DashboardRoute,
+  IndustriesRoute: IndustriesRouteWithChildren,
   LoginRoute: LoginRoute,
   MailingListsRoute: MailingListsRoute,
   MeetingRoomBookingRoute: MeetingRoomBookingRoute,
