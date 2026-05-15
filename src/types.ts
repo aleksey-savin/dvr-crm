@@ -287,3 +287,78 @@ export type UserFormUser = {
   position?: string | null
   phone?: string | null
 }
+
+// ─── New Business Sources ────────────────────────────────────────────────────
+
+export type LeadStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
+
+export type LeadRow = {
+  id: string
+  title: string
+  status: LeadStatus
+  source: string | null
+  budget: string | null
+  dueDate: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}
+
+export type TenderStatus =
+  | 'new'
+  | 'evaluation'
+  | 'approval'
+  | 'preparation'
+  | 'submitted'
+  | 'won'
+  | 'lost'
+  | 'rejected'
+  | 'archived'
+
+export type TenderRow = {
+  id: string
+  title: string
+  status: TenderStatus
+  amount: string | null
+  deadline: string | null
+  platform: string | null
+  url: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  approverUserId: string | null
+  approverUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}
+
+export type SignalType = 'recommendation' | 'news' | 'direct_contact' | 'other'
+
+export type SignalStatus = 'new' | 'in_progress' | 'converted' | 'archived'
+
+export type SignalRow = {
+  id: string
+  title: string
+  status: SignalStatus
+  signalType: SignalType
+  rating: number | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}

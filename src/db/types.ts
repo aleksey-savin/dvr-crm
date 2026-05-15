@@ -27,6 +27,9 @@ import type {
   apiKey,
   clientClassificationSettings,
   changelogRelease,
+  lead,
+  tender,
+  signal,
 } from './schema'
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -234,3 +237,17 @@ export type InsertChangelogRelease = InferInsertModel<typeof changelogRelease>
 export type UpdateChangelogRelease = Partial<
   Omit<InsertChangelogRelease, 'id' | 'createdAt' | 'updatedAt'>
 >
+
+// ─── New Business Sources ─────────────────────────────────────────────────────
+
+export type SelectLead = InferSelectModel<typeof lead>
+export type InsertLead = InferInsertModel<typeof lead>
+export type UpdateLead = Partial<Omit<InsertLead, 'id' | 'createdAt' | 'updatedAt'>>
+
+export type SelectTender = InferSelectModel<typeof tender>
+export type InsertTender = InferInsertModel<typeof tender>
+export type UpdateTender = Partial<Omit<InsertTender, 'id' | 'createdAt' | 'updatedAt'>>
+
+export type SelectSignal = InferSelectModel<typeof signal>
+export type InsertSignal = InferInsertModel<typeof signal>
+export type UpdateSignal = Partial<Omit<InsertSignal, 'id' | 'createdAt' | 'updatedAt'>>

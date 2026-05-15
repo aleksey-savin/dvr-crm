@@ -59,6 +59,24 @@ const navMain = [
       },
     ],
   },
+  {
+    title: 'Новый бизнес',
+    url: '#',
+    items: [
+      {
+        title: 'Лиды',
+        url: '/leads',
+      },
+      {
+        title: 'Тендеры',
+        url: '/tenders',
+      },
+      {
+        title: 'Сигналы',
+        url: '/signals',
+      },
+    ],
+  },
   /* {
     title: 'AI-сервисы',
     url: '#',

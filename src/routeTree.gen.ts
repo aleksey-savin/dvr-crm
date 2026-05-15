@@ -12,13 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as TodosRouteImport } from './routes/todos'
+import { Route as TendersRouteImport } from './routes/tenders'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SignalsRouteImport } from './routes/signals'
 import { Route as PreferencesRouteImport } from './routes/preferences'
 import { Route as MyCompanyRouteImport } from './routes/my-company'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as MeetingRoomBookingRouteImport } from './routes/meeting-room-booking'
 import { Route as MailingListsRouteImport } from './routes/mailing-lists'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as IndustriesRouteImport } from './routes/industries'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as CompaniesRouteImport } from './routes/companies'
@@ -28,7 +31,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as WishlistNewRouteImport } from './routes/wishlist.new'
 import { Route as UsersNewRouteImport } from './routes/users.new'
 import { Route as TodosNewRouteImport } from './routes/todos.new'
+import { Route as TendersNewRouteImport } from './routes/tenders.new'
+import { Route as SignalsNewRouteImport } from './routes/signals.new'
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
+import { Route as LeadsNewRouteImport } from './routes/leads.new'
 import { Route as IndustriesNewRouteImport } from './routes/industries.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
 import { Route as ClientsNewRouteImport } from './routes/clients.new'
@@ -43,9 +49,18 @@ import { Route as UsersIdBanRouteImport } from './routes/users.$id.ban'
 import { Route as TodosIdViewRouteImport } from './routes/todos_.$id.view'
 import { Route as TodosIdUpdateRouteImport } from './routes/todos.$id.update'
 import { Route as TodosIdDeleteRouteImport } from './routes/todos.$id.delete'
+import { Route as TendersIdViewRouteImport } from './routes/tenders_.$id.view'
+import { Route as TendersIdUpdateRouteImport } from './routes/tenders.$id.update'
+import { Route as TendersIdDeleteRouteImport } from './routes/tenders.$id.delete'
+import { Route as SignalsIdViewRouteImport } from './routes/signals_.$id.view'
+import { Route as SignalsIdUpdateRouteImport } from './routes/signals.$id.update'
+import { Route as SignalsIdDeleteRouteImport } from './routes/signals.$id.delete'
 import { Route as MyCompanyIdViewRouteImport } from './routes/my-company_.$id.view'
 import { Route as MyCompanyIdUpdateRouteImport } from './routes/my-company.$id.update'
 import { Route as MyCompanyIdDeleteRouteImport } from './routes/my-company.$id.delete'
+import { Route as LeadsIdViewRouteImport } from './routes/leads_.$id.view'
+import { Route as LeadsIdUpdateRouteImport } from './routes/leads.$id.update'
+import { Route as LeadsIdDeleteRouteImport } from './routes/leads.$id.delete'
 import { Route as IndustriesIdUpdateRouteImport } from './routes/industries.$id.update'
 import { Route as IndustriesIdDeleteRouteImport } from './routes/industries.$id.delete'
 import { Route as CompaniesIdViewRouteImport } from './routes/companies_.$id.view'
@@ -75,9 +90,19 @@ const TodosRoute = TodosRouteImport.update({
   path: '/todos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TendersRoute = TendersRouteImport.update({
+  id: '/tenders',
+  path: '/tenders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignalsRoute = SignalsRouteImport.update({
+  id: '/signals',
+  path: '/signals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreferencesRoute = PreferencesRouteImport.update({
@@ -108,6 +133,11 @@ const MailingListsRoute = MailingListsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndustriesRoute = IndustriesRouteImport.update({
@@ -155,10 +185,25 @@ const TodosNewRoute = TodosNewRouteImport.update({
   path: '/new',
   getParentRoute: () => TodosRoute,
 } as any)
+const TendersNewRoute = TendersNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => TendersRoute,
+} as any)
+const SignalsNewRoute = SignalsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => SignalsRoute,
+} as any)
 const MyCompanyNewRoute = MyCompanyNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => MyCompanyRoute,
+} as any)
+const LeadsNewRoute = LeadsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => LeadsRoute,
 } as any)
 const IndustriesNewRoute = IndustriesNewRouteImport.update({
   id: '/new',
@@ -230,6 +275,36 @@ const TodosIdDeleteRoute = TodosIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => TodosRoute,
 } as any)
+const TendersIdViewRoute = TendersIdViewRouteImport.update({
+  id: '/tenders_/$id/view',
+  path: '/tenders/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TendersIdUpdateRoute = TendersIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => TendersRoute,
+} as any)
+const TendersIdDeleteRoute = TendersIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => TendersRoute,
+} as any)
+const SignalsIdViewRoute = SignalsIdViewRouteImport.update({
+  id: '/signals_/$id/view',
+  path: '/signals/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignalsIdUpdateRoute = SignalsIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => SignalsRoute,
+} as any)
+const SignalsIdDeleteRoute = SignalsIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => SignalsRoute,
+} as any)
 const MyCompanyIdViewRoute = MyCompanyIdViewRouteImport.update({
   id: '/my-company_/$id/view',
   path: '/my-company/$id/view',
@@ -244,6 +319,21 @@ const MyCompanyIdDeleteRoute = MyCompanyIdDeleteRouteImport.update({
   id: '/$id/delete',
   path: '/$id/delete',
   getParentRoute: () => MyCompanyRoute,
+} as any)
+const LeadsIdViewRoute = LeadsIdViewRouteImport.update({
+  id: '/leads_/$id/view',
+  path: '/leads/$id/view',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsIdUpdateRoute = LeadsIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => LeadsRoute,
+} as any)
+const LeadsIdDeleteRoute = LeadsIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => LeadsRoute,
 } as any)
 const IndustriesIdUpdateRoute = IndustriesIdUpdateRouteImport.update({
   id: '/$id/update',
@@ -318,13 +408,16 @@ export interface FileRoutesByFullPath {
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
   '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
+  '/signals': typeof SignalsRouteWithChildren
   '/signup': typeof SignupRoute
+  '/tenders': typeof TendersRouteWithChildren
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
@@ -332,7 +425,10 @@ export interface FileRoutesByFullPath {
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/leads/new': typeof LeadsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
+  '/signals/new': typeof SignalsNewRoute
+  '/tenders/new': typeof TendersNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -349,9 +445,18 @@ export interface FileRoutesByFullPath {
   '/companies/$id/view': typeof CompaniesIdViewRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/leads/$id/delete': typeof LeadsIdDeleteRoute
+  '/leads/$id/update': typeof LeadsIdUpdateRoute
+  '/leads/$id/view': typeof LeadsIdViewRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company/$id/view': typeof MyCompanyIdViewRoute
+  '/signals/$id/delete': typeof SignalsIdDeleteRoute
+  '/signals/$id/update': typeof SignalsIdUpdateRoute
+  '/signals/$id/view': typeof SignalsIdViewRoute
+  '/tenders/$id/delete': typeof TendersIdDeleteRoute
+  '/tenders/$id/update': typeof TendersIdUpdateRoute
+  '/tenders/$id/view': typeof TendersIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -370,13 +475,16 @@ export interface FileRoutesByTo {
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
   '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
+  '/signals': typeof SignalsRouteWithChildren
   '/signup': typeof SignupRoute
+  '/tenders': typeof TendersRouteWithChildren
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
@@ -384,7 +492,10 @@ export interface FileRoutesByTo {
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/leads/new': typeof LeadsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
+  '/signals/new': typeof SignalsNewRoute
+  '/tenders/new': typeof TendersNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -401,9 +512,18 @@ export interface FileRoutesByTo {
   '/companies/$id/view': typeof CompaniesIdViewRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/leads/$id/delete': typeof LeadsIdDeleteRoute
+  '/leads/$id/update': typeof LeadsIdUpdateRoute
+  '/leads/$id/view': typeof LeadsIdViewRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company/$id/view': typeof MyCompanyIdViewRoute
+  '/signals/$id/delete': typeof SignalsIdDeleteRoute
+  '/signals/$id/update': typeof SignalsIdUpdateRoute
+  '/signals/$id/view': typeof SignalsIdViewRoute
+  '/tenders/$id/delete': typeof TendersIdDeleteRoute
+  '/tenders/$id/update': typeof TendersIdUpdateRoute
+  '/tenders/$id/view': typeof TendersIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos/$id/view': typeof TodosIdViewRoute
@@ -423,13 +543,16 @@ export interface FileRoutesById {
   '/companies': typeof CompaniesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
   '/meeting-room-booking': typeof MeetingRoomBookingRoute
   '/meetings': typeof MeetingsRoute
   '/my-company': typeof MyCompanyRouteWithChildren
   '/preferences': typeof PreferencesRoute
+  '/signals': typeof SignalsRouteWithChildren
   '/signup': typeof SignupRoute
+  '/tenders': typeof TendersRouteWithChildren
   '/todos': typeof TodosRouteWithChildren
   '/users': typeof UsersRouteWithChildren
   '/wishlist': typeof WishlistRouteWithChildren
@@ -437,7 +560,10 @@ export interface FileRoutesById {
   '/clients/new': typeof ClientsNewRoute
   '/companies/new': typeof CompaniesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/leads/new': typeof LeadsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
+  '/signals/new': typeof SignalsNewRoute
+  '/tenders/new': typeof TendersNewRoute
   '/todos/new': typeof TodosNewRoute
   '/users/new': typeof UsersNewRoute
   '/wishlist/new': typeof WishlistNewRoute
@@ -454,9 +580,18 @@ export interface FileRoutesById {
   '/companies_/$id/view': typeof CompaniesIdViewRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/leads/$id/delete': typeof LeadsIdDeleteRoute
+  '/leads/$id/update': typeof LeadsIdUpdateRoute
+  '/leads_/$id/view': typeof LeadsIdViewRoute
   '/my-company/$id/delete': typeof MyCompanyIdDeleteRoute
   '/my-company/$id/update': typeof MyCompanyIdUpdateRoute
   '/my-company_/$id/view': typeof MyCompanyIdViewRoute
+  '/signals/$id/delete': typeof SignalsIdDeleteRoute
+  '/signals/$id/update': typeof SignalsIdUpdateRoute
+  '/signals_/$id/view': typeof SignalsIdViewRoute
+  '/tenders/$id/delete': typeof TendersIdDeleteRoute
+  '/tenders/$id/update': typeof TendersIdUpdateRoute
+  '/tenders_/$id/view': typeof TendersIdViewRoute
   '/todos/$id/delete': typeof TodosIdDeleteRoute
   '/todos/$id/update': typeof TodosIdUpdateRoute
   '/todos_/$id/view': typeof TodosIdViewRoute
@@ -477,13 +612,16 @@ export interface FileRouteTypes {
     | '/companies'
     | '/dashboard'
     | '/industries'
+    | '/leads'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
     | '/my-company'
     | '/preferences'
+    | '/signals'
     | '/signup'
+    | '/tenders'
     | '/todos'
     | '/users'
     | '/wishlist'
@@ -491,7 +629,10 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/companies/new'
     | '/industries/new'
+    | '/leads/new'
     | '/my-company/new'
+    | '/signals/new'
+    | '/tenders/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -508,9 +649,18 @@ export interface FileRouteTypes {
     | '/companies/$id/view'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/leads/$id/delete'
+    | '/leads/$id/update'
+    | '/leads/$id/view'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company/$id/view'
+    | '/signals/$id/delete'
+    | '/signals/$id/update'
+    | '/signals/$id/view'
+    | '/tenders/$id/delete'
+    | '/tenders/$id/update'
+    | '/tenders/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -529,13 +679,16 @@ export interface FileRouteTypes {
     | '/companies'
     | '/dashboard'
     | '/industries'
+    | '/leads'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
     | '/my-company'
     | '/preferences'
+    | '/signals'
     | '/signup'
+    | '/tenders'
     | '/todos'
     | '/users'
     | '/wishlist'
@@ -543,7 +696,10 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/companies/new'
     | '/industries/new'
+    | '/leads/new'
     | '/my-company/new'
+    | '/signals/new'
+    | '/tenders/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -560,9 +716,18 @@ export interface FileRouteTypes {
     | '/companies/$id/view'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/leads/$id/delete'
+    | '/leads/$id/update'
+    | '/leads/$id/view'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company/$id/view'
+    | '/signals/$id/delete'
+    | '/signals/$id/update'
+    | '/signals/$id/view'
+    | '/tenders/$id/delete'
+    | '/tenders/$id/update'
+    | '/tenders/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos/$id/view'
@@ -581,13 +746,16 @@ export interface FileRouteTypes {
     | '/companies'
     | '/dashboard'
     | '/industries'
+    | '/leads'
     | '/login'
     | '/mailing-lists'
     | '/meeting-room-booking'
     | '/meetings'
     | '/my-company'
     | '/preferences'
+    | '/signals'
     | '/signup'
+    | '/tenders'
     | '/todos'
     | '/users'
     | '/wishlist'
@@ -595,7 +763,10 @@ export interface FileRouteTypes {
     | '/clients/new'
     | '/companies/new'
     | '/industries/new'
+    | '/leads/new'
     | '/my-company/new'
+    | '/signals/new'
+    | '/tenders/new'
     | '/todos/new'
     | '/users/new'
     | '/wishlist/new'
@@ -612,9 +783,18 @@ export interface FileRouteTypes {
     | '/companies_/$id/view'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/leads/$id/delete'
+    | '/leads/$id/update'
+    | '/leads_/$id/view'
     | '/my-company/$id/delete'
     | '/my-company/$id/update'
     | '/my-company_/$id/view'
+    | '/signals/$id/delete'
+    | '/signals/$id/update'
+    | '/signals_/$id/view'
+    | '/tenders/$id/delete'
+    | '/tenders/$id/update'
+    | '/tenders_/$id/view'
     | '/todos/$id/delete'
     | '/todos/$id/update'
     | '/todos_/$id/view'
@@ -634,13 +814,16 @@ export interface RootRouteChildren {
   CompaniesRoute: typeof CompaniesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   IndustriesRoute: typeof IndustriesRouteWithChildren
+  LeadsRoute: typeof LeadsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MailingListsRoute: typeof MailingListsRoute
   MeetingRoomBookingRoute: typeof MeetingRoomBookingRoute
   MeetingsRoute: typeof MeetingsRoute
   MyCompanyRoute: typeof MyCompanyRouteWithChildren
   PreferencesRoute: typeof PreferencesRoute
+  SignalsRoute: typeof SignalsRouteWithChildren
   SignupRoute: typeof SignupRoute
+  TendersRoute: typeof TendersRouteWithChildren
   TodosRoute: typeof TodosRouteWithChildren
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRouteWithChildren
@@ -649,7 +832,10 @@ export interface RootRouteChildren {
   ApiPingSplatRoute: typeof ApiPingSplatRoute
   ClientsIdViewRoute: typeof ClientsIdViewRoute
   CompaniesIdViewRoute: typeof CompaniesIdViewRoute
+  LeadsIdViewRoute: typeof LeadsIdViewRoute
   MyCompanyIdViewRoute: typeof MyCompanyIdViewRoute
+  SignalsIdViewRoute: typeof SignalsIdViewRoute
+  TendersIdViewRoute: typeof TendersIdViewRoute
   TodosIdViewRoute: typeof TodosIdViewRoute
   WishlistIdViewRoute: typeof WishlistIdViewRoute
 }
@@ -677,11 +863,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tenders': {
+      id: '/tenders'
+      path: '/tenders'
+      fullPath: '/tenders'
+      preLoaderRoute: typeof TendersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signals': {
+      id: '/signals'
+      path: '/signals'
+      fullPath: '/signals'
+      preLoaderRoute: typeof SignalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preferences': {
@@ -724,6 +924,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/industries': {
@@ -789,12 +996,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosNewRouteImport
       parentRoute: typeof TodosRoute
     }
+    '/tenders/new': {
+      id: '/tenders/new'
+      path: '/new'
+      fullPath: '/tenders/new'
+      preLoaderRoute: typeof TendersNewRouteImport
+      parentRoute: typeof TendersRoute
+    }
+    '/signals/new': {
+      id: '/signals/new'
+      path: '/new'
+      fullPath: '/signals/new'
+      preLoaderRoute: typeof SignalsNewRouteImport
+      parentRoute: typeof SignalsRoute
+    }
     '/my-company/new': {
       id: '/my-company/new'
       path: '/new'
       fullPath: '/my-company/new'
       preLoaderRoute: typeof MyCompanyNewRouteImport
       parentRoute: typeof MyCompanyRoute
+    }
+    '/leads/new': {
+      id: '/leads/new'
+      path: '/new'
+      fullPath: '/leads/new'
+      preLoaderRoute: typeof LeadsNewRouteImport
+      parentRoute: typeof LeadsRoute
     }
     '/industries/new': {
       id: '/industries/new'
@@ -894,6 +1122,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TodosIdDeleteRouteImport
       parentRoute: typeof TodosRoute
     }
+    '/tenders_/$id/view': {
+      id: '/tenders_/$id/view'
+      path: '/tenders/$id/view'
+      fullPath: '/tenders/$id/view'
+      preLoaderRoute: typeof TendersIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tenders/$id/update': {
+      id: '/tenders/$id/update'
+      path: '/$id/update'
+      fullPath: '/tenders/$id/update'
+      preLoaderRoute: typeof TendersIdUpdateRouteImport
+      parentRoute: typeof TendersRoute
+    }
+    '/tenders/$id/delete': {
+      id: '/tenders/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/tenders/$id/delete'
+      preLoaderRoute: typeof TendersIdDeleteRouteImport
+      parentRoute: typeof TendersRoute
+    }
+    '/signals_/$id/view': {
+      id: '/signals_/$id/view'
+      path: '/signals/$id/view'
+      fullPath: '/signals/$id/view'
+      preLoaderRoute: typeof SignalsIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signals/$id/update': {
+      id: '/signals/$id/update'
+      path: '/$id/update'
+      fullPath: '/signals/$id/update'
+      preLoaderRoute: typeof SignalsIdUpdateRouteImport
+      parentRoute: typeof SignalsRoute
+    }
+    '/signals/$id/delete': {
+      id: '/signals/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/signals/$id/delete'
+      preLoaderRoute: typeof SignalsIdDeleteRouteImport
+      parentRoute: typeof SignalsRoute
+    }
     '/my-company_/$id/view': {
       id: '/my-company_/$id/view'
       path: '/my-company/$id/view'
@@ -914,6 +1184,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/my-company/$id/delete'
       preLoaderRoute: typeof MyCompanyIdDeleteRouteImport
       parentRoute: typeof MyCompanyRoute
+    }
+    '/leads_/$id/view': {
+      id: '/leads_/$id/view'
+      path: '/leads/$id/view'
+      fullPath: '/leads/$id/view'
+      preLoaderRoute: typeof LeadsIdViewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads/$id/update': {
+      id: '/leads/$id/update'
+      path: '/$id/update'
+      fullPath: '/leads/$id/update'
+      preLoaderRoute: typeof LeadsIdUpdateRouteImport
+      parentRoute: typeof LeadsRoute
+    }
+    '/leads/$id/delete': {
+      id: '/leads/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/leads/$id/delete'
+      preLoaderRoute: typeof LeadsIdDeleteRouteImport
+      parentRoute: typeof LeadsRoute
     }
     '/industries/$id/update': {
       id: '/industries/$id/update'
@@ -1072,6 +1363,20 @@ const IndustriesRouteWithChildren = IndustriesRoute._addFileChildren(
   IndustriesRouteChildren,
 )
 
+interface LeadsRouteChildren {
+  LeadsNewRoute: typeof LeadsNewRoute
+  LeadsIdDeleteRoute: typeof LeadsIdDeleteRoute
+  LeadsIdUpdateRoute: typeof LeadsIdUpdateRoute
+}
+
+const LeadsRouteChildren: LeadsRouteChildren = {
+  LeadsNewRoute: LeadsNewRoute,
+  LeadsIdDeleteRoute: LeadsIdDeleteRoute,
+  LeadsIdUpdateRoute: LeadsIdUpdateRoute,
+}
+
+const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
+
 interface MyCompanyRouteChildren {
   MyCompanyNewRoute: typeof MyCompanyNewRoute
   MyCompanyIdDeleteRoute: typeof MyCompanyIdDeleteRoute
@@ -1087,6 +1392,36 @@ const MyCompanyRouteChildren: MyCompanyRouteChildren = {
 const MyCompanyRouteWithChildren = MyCompanyRoute._addFileChildren(
   MyCompanyRouteChildren,
 )
+
+interface SignalsRouteChildren {
+  SignalsNewRoute: typeof SignalsNewRoute
+  SignalsIdDeleteRoute: typeof SignalsIdDeleteRoute
+  SignalsIdUpdateRoute: typeof SignalsIdUpdateRoute
+}
+
+const SignalsRouteChildren: SignalsRouteChildren = {
+  SignalsNewRoute: SignalsNewRoute,
+  SignalsIdDeleteRoute: SignalsIdDeleteRoute,
+  SignalsIdUpdateRoute: SignalsIdUpdateRoute,
+}
+
+const SignalsRouteWithChildren =
+  SignalsRoute._addFileChildren(SignalsRouteChildren)
+
+interface TendersRouteChildren {
+  TendersNewRoute: typeof TendersNewRoute
+  TendersIdDeleteRoute: typeof TendersIdDeleteRoute
+  TendersIdUpdateRoute: typeof TendersIdUpdateRoute
+}
+
+const TendersRouteChildren: TendersRouteChildren = {
+  TendersNewRoute: TendersNewRoute,
+  TendersIdDeleteRoute: TendersIdDeleteRoute,
+  TendersIdUpdateRoute: TendersIdUpdateRoute,
+}
+
+const TendersRouteWithChildren =
+  TendersRoute._addFileChildren(TendersRouteChildren)
 
 interface TodosRouteChildren {
   TodosNewRoute: typeof TodosNewRoute
@@ -1143,13 +1478,16 @@ const rootRouteChildren: RootRouteChildren = {
   CompaniesRoute: CompaniesRouteWithChildren,
   DashboardRoute: DashboardRoute,
   IndustriesRoute: IndustriesRouteWithChildren,
+  LeadsRoute: LeadsRouteWithChildren,
   LoginRoute: LoginRoute,
   MailingListsRoute: MailingListsRoute,
   MeetingRoomBookingRoute: MeetingRoomBookingRoute,
   MeetingsRoute: MeetingsRoute,
   MyCompanyRoute: MyCompanyRouteWithChildren,
   PreferencesRoute: PreferencesRoute,
+  SignalsRoute: SignalsRouteWithChildren,
   SignupRoute: SignupRoute,
+  TendersRoute: TendersRouteWithChildren,
   TodosRoute: TodosRouteWithChildren,
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRouteWithChildren,
@@ -1158,7 +1496,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPingSplatRoute: ApiPingSplatRoute,
   ClientsIdViewRoute: ClientsIdViewRoute,
   CompaniesIdViewRoute: CompaniesIdViewRoute,
+  LeadsIdViewRoute: LeadsIdViewRoute,
   MyCompanyIdViewRoute: MyCompanyIdViewRoute,
+  SignalsIdViewRoute: SignalsIdViewRoute,
+  TendersIdViewRoute: TendersIdViewRoute,
   TodosIdViewRoute: TodosIdViewRoute,
   WishlistIdViewRoute: WishlistIdViewRoute,
 }

@@ -10,6 +10,8 @@ import {
   numeric,
   integer,
   unique,
+  smallint,
+  date,
 } from 'drizzle-orm/pg-core'
 
 // ---------------------------------------------------------------------------
@@ -719,6 +721,173 @@ export const changelogRelease = pgTable(
   ],
 )
 
+// ---------------------------------------------------------------------------
+// Lead (входящая коммерческая возможность)
+// ---------------------------------------------------------------------------
+
+export const lead = pgTable(
+  'lead',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text('title').notNull(),
+    companyId: text('company_id').references(() => company.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    responsibleUserId: text('responsible_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    industryId: text('industry_id').references(() => industry.id, {
+      onDelete: 'set null',
+    }),
+    source: text('source'),
+    status: text('status', {
+      enum: ['new', 'in_progress', 'converted', 'rejected'],
+    })
+      .notNull()
+      .default('new'),
+    budget: numeric('budget', { precision: 15, scale: 2 }),
+    description: text('description'),
+    dueDate: date('due_date'),
+    lostReason: text('lost_reason'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('lead_company_id_idx').on(table.companyId),
+    index('lead_department_id_idx').on(table.departmentId),
+    index('lead_responsible_user_id_idx').on(table.responsibleUserId),
+    index('lead_industry_id_idx').on(table.industryId),
+    index('lead_status_idx').on(table.status),
+    index('lead_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Tender (тендерная возможность)
+// ---------------------------------------------------------------------------
+
+export const tender = pgTable(
+  'tender',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text('title').notNull(),
+    companyId: text('company_id').references(() => company.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    responsibleUserId: text('responsible_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    approverUserId: text('approver_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    industryId: text('industry_id').references(() => industry.id, {
+      onDelete: 'set null',
+    }),
+    status: text('status', {
+      enum: [
+        'new',
+        'evaluation',
+        'approval',
+        'preparation',
+        'submitted',
+        'won',
+        'lost',
+        'rejected',
+        'archived',
+      ],
+    })
+      .notNull()
+      .default('new'),
+    amount: numeric('amount', { precision: 15, scale: 2 }),
+    description: text('description'),
+    deadline: date('deadline'),
+    platform: text('platform'),
+    url: text('url'),
+    lostReason: text('lost_reason'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('tender_company_id_idx').on(table.companyId),
+    index('tender_department_id_idx').on(table.departmentId),
+    index('tender_responsible_user_id_idx').on(table.responsibleUserId),
+    index('tender_approver_user_id_idx').on(table.approverUserId),
+    index('tender_industry_id_idx').on(table.industryId),
+    index('tender_status_idx').on(table.status),
+    index('tender_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Signal (сигнал — повод для коммерческой проработки)
+// ---------------------------------------------------------------------------
+
+export const signal = pgTable(
+  'signal',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text('title').notNull(),
+    companyId: text('company_id').references(() => company.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    responsibleUserId: text('responsible_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    industryId: text('industry_id').references(() => industry.id, {
+      onDelete: 'set null',
+    }),
+    signalType: text('signal_type', {
+      enum: ['recommendation', 'news', 'direct_contact', 'other'],
+    })
+      .notNull()
+      .default('other'),
+    status: text('status', {
+      enum: ['new', 'in_progress', 'converted', 'archived'],
+    })
+      .notNull()
+      .default('new'),
+    rating: smallint('rating'),
+    description: text('description'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('signal_company_id_idx').on(table.companyId),
+    index('signal_department_id_idx').on(table.departmentId),
+    index('signal_responsible_user_id_idx').on(table.responsibleUserId),
+    index('signal_industry_id_idx').on(table.industryId),
+    index('signal_status_idx').on(table.status),
+    index('signal_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
 // ===========================================================================
 // Relations
 // ===========================================================================
@@ -766,6 +935,10 @@ export const userRelations = relations(user, ({ one, many }) => ({
   commentReads: many(commentRead),
   apiKeys: many(apiKey),
   changelogReleases: many(changelogRelease),
+  responsibleLeads: many(lead, { relationName: 'leadResponsible' }),
+  responsibleTenders: many(tender, { relationName: 'tenderResponsible' }),
+  approverTenders: many(tender, { relationName: 'tenderApprover' }),
+  responsibleSignals: many(signal, { relationName: 'signalResponsible' }),
   department: one(department, {
     fields: [user.departmentId],
     references: [department.id],
@@ -858,6 +1031,9 @@ export const accountHookRelations = relations(accountHook, ({ one }) => ({
 
 export const industryRelations = relations(industry, ({ many }) => ({
   companies: many(company),
+  leads: many(lead),
+  tenders: many(tender),
+  signals: many(signal),
 }))
 
 export const companyRelations = relations(company, ({ one, many }) => ({
@@ -869,6 +1045,9 @@ export const companyRelations = relations(company, ({ one, many }) => ({
   revenues: many(companyRevenue),
   contacts: many(companyContact),
   counterparties: many(companyCounterparty),
+  leads: many(lead),
+  tenders: many(tender),
+  signals: many(signal),
 }))
 
 export const counterpartyRelations = relations(counterparty, ({ many }) => ({
@@ -922,6 +1101,9 @@ export const departmentRelations = relations(department, ({ one, many }) => ({
   users: many(user, {
     relationName: 'departmentUsers',
   }),
+  leads: many(lead),
+  tenders: many(tender),
+  signals: many(signal),
 }))
 
 export const meetingRelations = relations(meeting, ({ one }) => ({
@@ -991,3 +1173,68 @@ export const changelogReleaseRelations = relations(
     }),
   }),
 )
+
+export const leadRelations = relations(lead, ({ one }) => ({
+  company: one(company, {
+    fields: [lead.companyId],
+    references: [company.id],
+  }),
+  department: one(department, {
+    fields: [lead.departmentId],
+    references: [department.id],
+  }),
+  responsible: one(user, {
+    fields: [lead.responsibleUserId],
+    references: [user.id],
+    relationName: 'leadResponsible',
+  }),
+  industry: one(industry, {
+    fields: [lead.industryId],
+    references: [industry.id],
+  }),
+}))
+
+export const tenderRelations = relations(tender, ({ one }) => ({
+  company: one(company, {
+    fields: [tender.companyId],
+    references: [company.id],
+  }),
+  department: one(department, {
+    fields: [tender.departmentId],
+    references: [department.id],
+  }),
+  responsible: one(user, {
+    fields: [tender.responsibleUserId],
+    references: [user.id],
+    relationName: 'tenderResponsible',
+  }),
+  approver: one(user, {
+    fields: [tender.approverUserId],
+    references: [user.id],
+    relationName: 'tenderApprover',
+  }),
+  industry: one(industry, {
+    fields: [tender.industryId],
+    references: [industry.id],
+  }),
+}))
+
+export const signalRelations = relations(signal, ({ one }) => ({
+  company: one(company, {
+    fields: [signal.companyId],
+    references: [company.id],
+  }),
+  department: one(department, {
+    fields: [signal.departmentId],
+    references: [department.id],
+  }),
+  responsible: one(user, {
+    fields: [signal.responsibleUserId],
+    references: [user.id],
+    relationName: 'signalResponsible',
+  }),
+  industry: one(industry, {
+    fields: [signal.industryId],
+    references: [industry.id],
+  }),
+}))

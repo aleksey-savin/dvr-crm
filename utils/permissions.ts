@@ -24,3 +24,9 @@ export const manager = ac.newRole({
   company: ['create', 'update', 'delete'],
   task: ['create', 'update', 'delete', 'assign', 'unassign'],
 })
+
+export const tenderSpecialist = ac.newRole({
+  ...adminAc.statements,
+  company: ['create', 'update', 'delete'],
+  task: ['create', 'update', 'delete', 'assign', 'unassign'],
+})
