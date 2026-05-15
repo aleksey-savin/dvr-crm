@@ -1,0 +1,59 @@
+name: Require version bump
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  require-version-bump:
+    name: package.json version changed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare package version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "Skipping version check because there is no previous commit to compare."
+            exit 0
+          fi
+
+          read_json_version='
+            let input = "";
+            process.stdin.on("data", (chunk) => input += chunk);
+            process.stdin.on("end", () => {
+              const version = JSON.parse(input).version;
+              if (!version) {
+                process.exit(1);
+              }
+              console.log(version);
+            });
+          '
+
+          BASE_VERSION="$(git show "$BASE_SHA:package.json" | node -e "$read_json_version")"
+          HEAD_VERSION="$(node -p "require('./package.json').version")"
+
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            echo "package.json version must be changed before merging to main."
+            echo "Current version: $HEAD_VERSION"
+            exit 1
+          fi
+
+          echo "package.json version changed: $BASE_VERSION -> $HEAD_VERSION"
