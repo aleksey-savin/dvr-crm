@@ -103,18 +103,19 @@ export type WishlistAccountRow = {
   id: string
   companyId: string
   companyName: string
-  /** Single business unit name */
-  businessUnit: string
+  businessUnitIds: string[]
+  businessUnits: string[]
   industry: string | null
   regionalMarketPosition: string | null
   revenueLastYear: string | null
   revenueTwoYearsAgo: string | null
   why: string | null
+  wishlistOffer: string | null
+  contactNotes: string | null
   hooks: string[]
   todos: WishlistTodo[]
   commentsCount: number
-  /** Single responsible user name */
-  responsible: string | null
+  responsibles: string[]
   wishlistState: WishlistState | null
   position: number | null
 }
@@ -244,6 +245,8 @@ export type Contact = {
   email: string | null
   telegram: string | null
   max: string | null
+  contactRoleId: string | null
+  contactRoleName: string | null
 }
 
 export type Counterparty = {
@@ -290,13 +293,61 @@ export type UserFormUser = {
 
 // ─── New Business Sources ────────────────────────────────────────────────────
 
+export type UserRow = {
+  id: string
+  name: string
+  email: string
+  role: string | null
+  banned: boolean | null
+  createdAt: Date
+}
+
+export type IndustryRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type ContactRoleRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type SignalTypeRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type SourceRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type RefusalReasonRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type TagRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
 export type LeadStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
 
 export type LeadRow = {
   id: string
   title: string
   status: LeadStatus
-  source: string | null
+  sourceId: string | null
+  sourceName: string | null
+  lostReasonId: string | null
+  lostReasonName: string | null
   budget: string | null
   dueDate: string | null
   companyId: string | null
@@ -329,6 +380,8 @@ export type TenderRow = {
   deadline: string | null
   platform: string | null
   url: string | null
+  lostReasonId: string | null
+  lostReasonName: string | null
   companyId: string | null
   companyName: string | null
   departmentId: string | null
@@ -342,15 +395,14 @@ export type TenderRow = {
   createdAt: Date
 }
 
-export type SignalType = 'recommendation' | 'news' | 'direct_contact' | 'other'
-
 export type SignalStatus = 'new' | 'in_progress' | 'converted' | 'archived'
 
 export type SignalRow = {
   id: string
   title: string
   status: SignalStatus
-  signalType: SignalType
+  signalTypeId: string | null
+  signalTypeName: string | null
   rating: number | null
   companyId: string | null
   companyName: string | null
@@ -360,5 +412,74 @@ export type SignalRow = {
   responsibleUserName: string | null
   industryId: string | null
   industryName: string | null
+  createdAt: Date
+}
+
+// ─── Activity ─────────────────────────────────────────────────────────────────
+
+export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled'
+
+export type MeetingType = 'client' | 'internal'
+
+export type TargetActionStatus = 'planned' | 'completed' | 'cancelled'
+
+export type MeetingRow = {
+  id: string
+  title: string
+  scheduledAt: Date
+  endedAt: Date | null
+  status: MeetingStatus
+  meetingType: MeetingType
+  summary: string | null
+  organizerId: string | null
+  organizerName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  companyId: string | null
+  companyName: string | null
+  participantCount: number
+  createdAt: Date
+}
+
+export type MeetingParticipant = {
+  userId: string
+  name: string
+}
+
+export type MeetingExternalParticipant = {
+  id: string
+  name: string
+  contactId: string | null
+}
+
+export type MeetingDetail = MeetingRow & {
+  participants: MeetingParticipant[]
+  externalParticipants: MeetingExternalParticipant[]
+  leadId: string | null
+  tenderId: string | null
+  accountId: string | null
+}
+
+export type TargetActionTypeRow = {
+  id: string
+  name: string
+  slug: string
+  isSystem: boolean
+  createdAt: Date
+}
+
+export type TargetActionRow = {
+  id: string
+  typeName: string
+  typeSlug: string
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  plannedAt: string
+  completedAt: Date | null
+  status: TargetActionStatus
+  sourceType: string
+  sourceId: string | null
   createdAt: Date
 }

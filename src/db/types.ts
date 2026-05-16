@@ -8,10 +8,16 @@ import type {
   todoResponsibleUsers,
   department,
   industry,
+  contactRole,
+  signalTypeTable,
+  source,
+  refusalReason,
+  tag,
   company,
   counterparty,
   companyCounterparty,
   companyAccount,
+  companyAccountDepartments,
   companyAccountManagers,
   accountRisk,
   accountGrossProfit,
@@ -19,11 +25,16 @@ import type {
   accountUpsellingOpportunity,
   accountHook,
   companyRevenue,
+  grossProfitFact,
   companyContact,
   comment,
   commentAttachment,
   commentRead,
   meeting,
+  meetingParticipant,
+  meetingExternalParticipant,
+  targetActionType,
+  targetAction,
   apiKey,
   clientClassificationSettings,
   changelogRelease,
@@ -106,6 +117,19 @@ export type SelectCompanyAccountManager = InferSelectModel<
 >
 export type InsertCompanyAccountManager = InferInsertModel<
   typeof companyAccountManagers
+>
+
+export type SelectCompanyAccountDepartment = InferSelectModel<
+  typeof companyAccountDepartments
+>
+export type InsertCompanyAccountDepartment = InferInsertModel<
+  typeof companyAccountDepartments
+>
+
+export type SelectGrossProfitFact = InferSelectModel<typeof grossProfitFact>
+export type InsertGrossProfitFact = InferInsertModel<typeof grossProfitFact>
+export type UpdateGrossProfitFact = Partial<
+  Omit<InsertGrossProfitFact, 'id' | 'createdAt' | 'updatedAt'>
 >
 
 // ─── Account sub-entities ────────────────────────────────────────────────────
@@ -208,7 +232,39 @@ export type UpdateCommentRead = Partial<
 
 export type SelectMeeting = InferSelectModel<typeof meeting>
 export type InsertMeeting = InferInsertModel<typeof meeting>
-export type UpdateMeeting = Partial<Omit<InsertMeeting, 'id'>>
+export type UpdateMeeting = Partial<
+  Omit<InsertMeeting, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectMeetingParticipant = InferSelectModel<
+  typeof meetingParticipant
+>
+export type InsertMeetingParticipant = InferInsertModel<
+  typeof meetingParticipant
+>
+
+export type SelectMeetingExternalParticipant = InferSelectModel<
+  typeof meetingExternalParticipant
+>
+export type InsertMeetingExternalParticipant = InferInsertModel<
+  typeof meetingExternalParticipant
+>
+
+// ─── Target Action Type ───────────────────────────────────────────────────────
+
+export type SelectTargetActionType = InferSelectModel<typeof targetActionType>
+export type InsertTargetActionType = InferInsertModel<typeof targetActionType>
+export type UpdateTargetActionType = Partial<
+  Omit<InsertTargetActionType, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+// ─── Target Action ────────────────────────────────────────────────────────────
+
+export type SelectTargetAction = InferSelectModel<typeof targetAction>
+export type InsertTargetAction = InferInsertModel<typeof targetAction>
+export type UpdateTargetAction = Partial<
+  Omit<InsertTargetAction, 'id' | 'createdAt' | 'updatedAt'>
+>
 
 // ─── API Key ─────────────────────────────────────────────────────────────────
 
@@ -238,16 +294,54 @@ export type UpdateChangelogRelease = Partial<
   Omit<InsertChangelogRelease, 'id' | 'createdAt' | 'updatedAt'>
 >
 
+// ─── Classifiers (справочники) ────────────────────────────────────────────────
+
+export type SelectContactRole = InferSelectModel<typeof contactRole>
+export type InsertContactRole = InferInsertModel<typeof contactRole>
+export type UpdateContactRole = Partial<
+  Omit<InsertContactRole, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectSignalType = InferSelectModel<typeof signalTypeTable>
+export type InsertSignalType = InferInsertModel<typeof signalTypeTable>
+export type UpdateSignalType = Partial<
+  Omit<InsertSignalType, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectSource = InferSelectModel<typeof source>
+export type InsertSource = InferInsertModel<typeof source>
+export type UpdateSource = Partial<
+  Omit<InsertSource, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectRefusalReason = InferSelectModel<typeof refusalReason>
+export type InsertRefusalReason = InferInsertModel<typeof refusalReason>
+export type UpdateRefusalReason = Partial<
+  Omit<InsertRefusalReason, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectTag = InferSelectModel<typeof tag>
+export type InsertTag = InferInsertModel<typeof tag>
+export type UpdateTag = Partial<
+  Omit<InsertTag, 'id' | 'createdAt' | 'updatedAt'>
+>
+
 // ─── New Business Sources ─────────────────────────────────────────────────────
 
 export type SelectLead = InferSelectModel<typeof lead>
 export type InsertLead = InferInsertModel<typeof lead>
-export type UpdateLead = Partial<Omit<InsertLead, 'id' | 'createdAt' | 'updatedAt'>>
+export type UpdateLead = Partial<
+  Omit<InsertLead, 'id' | 'createdAt' | 'updatedAt'>
+>
 
 export type SelectTender = InferSelectModel<typeof tender>
 export type InsertTender = InferInsertModel<typeof tender>
-export type UpdateTender = Partial<Omit<InsertTender, 'id' | 'createdAt' | 'updatedAt'>>
+export type UpdateTender = Partial<
+  Omit<InsertTender, 'id' | 'createdAt' | 'updatedAt'>
+>
 
 export type SelectSignal = InferSelectModel<typeof signal>
 export type InsertSignal = InferInsertModel<typeof signal>
-export type UpdateSignal = Partial<Omit<InsertSignal, 'id' | 'createdAt' | 'updatedAt'>>
+export type UpdateSignal = Partial<
+  Omit<InsertSignal, 'id' | 'createdAt' | 'updatedAt'>
+>

@@ -1,24 +1,18 @@
 import * as React from 'react'
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { FileTextIcon, PlusIcon } from 'lucide-react'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { FileTextIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/tables/tender-cols'
+import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
+import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchTenders } from '@/components/tenders/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import type { TenderStatus } from '@/types'
 
 export const Route = createFileRoute('/tenders')({
@@ -26,61 +20,83 @@ export const Route = createFileRoute('/tenders')({
   component: RouteComponent,
 })
 
-const STATUS_LABELS: Record<TenderStatus | 'all', string> = {
-  all: 'Все статусы',
-  new: 'Новый',
-  evaluation: 'Оценка',
-  approval: 'Согласование',
-  preparation: 'Подготовка',
-  submitted: 'Подан',
-  won: 'Выигран',
-  lost: 'Проигран',
-  rejected: 'Отклонён',
-  archived: 'Архив',
-}
+const STATUS_OPTIONS: Array<TableFilterOption<TenderStatus>> = [
+  { value: 'new', label: 'Новый' },
+  { value: 'evaluation', label: 'Оценка' },
+  { value: 'approval', label: 'Согласование' },
+  { value: 'preparation', label: 'Подготовка' },
+  { value: 'submitted', label: 'Подан' },
+  { value: 'won', label: 'Выигран' },
+  { value: 'lost', label: 'Проигран' },
+  { value: 'rejected', label: 'Отклонён' },
+  { value: 'archived', label: 'Архив' },
+]
 
 function RouteComponent() {
   const tenders = Route.useLoaderData()
 
-  const [statusFilter, setStatusFilter] = React.useState<TenderStatus | 'all'>('all')
-  const [departmentFilter, setDepartmentFilter] = React.useState<string>('all')
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string>('all')
-  const [industryFilter, setIndustryFilter] = React.useState<string>('all')
+  const [statusFilter, setStatusFilter] = React.useState<TenderStatus[]>([])
+  const [departmentFilter, setDepartmentFilter] = React.useState<string[]>([])
+  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
+  const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
 
-  const departments = React.useMemo(() => {
-    const entries = tenders
-      .filter((t) => t.departmentId !== null && t.departmentName !== null)
-      .map((t) => ({ id: t.departmentId!, name: t.departmentName! }))
+  const departmentOptions: Array<TableFilterOption> = (() => {
     const seen = new Map<string, string>()
-    for (const e of entries) seen.set(e.id, e.name)
+    for (const t of tenders) {
+      if (t.departmentId !== null && t.departmentName !== null)
+        seen.set(t.departmentId, t.departmentName)
+    }
     return Array.from(seen.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-  }, [tenders])
+      .map(([id, name]) => ({ value: id, label: name }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+  })()
 
-  const responsibles = React.useMemo(() => {
-    const names = tenders
-      .map((t) => t.responsibleUserName)
-      .filter((n): n is string => n !== null)
-    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, 'ru'))
-  }, [tenders])
+  const responsibleOptions: Array<TableFilterOption> = Array.from(
+    new Set(
+      tenders
+        .map((t) => t.responsibleUserName)
+        .filter((n): n is string => n !== null),
+    ),
+  )
+    .sort((a, b) => a.localeCompare(b, 'ru'))
+    .map((name) => ({ value: name, label: name }))
 
-  const industries = React.useMemo(() => {
-    const entries = tenders
-      .filter((t) => t.industryId !== null && t.industryName !== null)
-      .map((t) => ({ id: t.industryId!, name: t.industryName! }))
+  const industryOptions: Array<TableFilterOption> = (() => {
     const seen = new Map<string, string>()
-    for (const e of entries) seen.set(e.id, e.name)
+    for (const t of tenders) {
+      if (t.industryId !== null && t.industryName !== null)
+        seen.set(t.industryId, t.industryName)
+    }
     return Array.from(seen.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-  }, [tenders])
+      .map(([id, name]) => ({ value: id, label: name }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+  })()
+
+  const hasFilters =
+    statusFilter.length > 0 ||
+    departmentFilter.length > 0 ||
+    responsibleFilter.length > 0 ||
+    industryFilter.length > 0
 
   const filtered = tenders.filter((t) => {
-    if (statusFilter !== 'all' && t.status !== statusFilter) return false
-    if (departmentFilter !== 'all' && t.departmentId !== departmentFilter) return false
-    if (responsibleFilter !== 'all' && t.responsibleUserName !== responsibleFilter) return false
-    if (industryFilter !== 'all' && t.industryId !== industryFilter) return false
+    if (statusFilter.length > 0 && !statusFilter.includes(t.status))
+      return false
+    if (
+      departmentFilter.length > 0 &&
+      (!t.departmentId || !departmentFilter.includes(t.departmentId))
+    )
+      return false
+    if (
+      responsibleFilter.length > 0 &&
+      (!t.responsibleUserName ||
+        !responsibleFilter.includes(t.responsibleUserName))
+    )
+      return false
+    if (
+      industryFilter.length > 0 &&
+      (!t.industryId || !industryFilter.includes(t.industryId))
+    )
+      return false
     return true
   })
 
@@ -94,14 +110,6 @@ function RouteComponent() {
             </EmptyMedia>
           </EmptyHeader>
           <EmptyDescription>Тендеров пока нет</EmptyDescription>
-          <EmptyContent>
-            <Button asChild>
-              <Link to="/tenders/new" className="flex items-center gap-2">
-                <PlusIcon className="size-4" />
-                Создать
-              </Link>
-            </Button>
-          </EmptyContent>
         </Empty>
       ) : (
         <DataTable
@@ -109,68 +117,58 @@ function RouteComponent() {
           data={filtered}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
-              <Select
+              <MultiFilterCombobox
+                options={STATUS_OPTIONS}
                 value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v as TenderStatus | 'all')}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(STATUS_LABELS) as Array<keyof typeof STATUS_LABELS>).map((k) => (
-                    <SelectItem key={k} value={k}>{STATUS_LABELS[k]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={setStatusFilter}
+                placeholder="Статусы"
+                emptyText="Статусы не найдены"
+              />
 
-              {departments.length > 0 && (
-                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Все подразделения" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все подразделения</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {departmentOptions.length > 0 && (
+                <MultiFilterCombobox
+                  options={departmentOptions}
+                  value={departmentFilter}
+                  onValueChange={setDepartmentFilter}
+                  placeholder="Подразделения"
+                  emptyText="Подразделения не найдены"
+                />
               )}
 
-              {responsibles.length > 0 && (
-                <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Все ответственные" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все ответственные</SelectItem>
-                    {responsibles.map((r) => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {responsibleOptions.length > 0 && (
+                <MultiFilterCombobox
+                  options={responsibleOptions}
+                  value={responsibleFilter}
+                  onValueChange={setResponsibleFilter}
+                  placeholder="Ответственные"
+                  emptyText="Ответственные не найдены"
+                />
               )}
 
-              {industries.length > 0 && (
-                <Select value={industryFilter} onValueChange={setIndustryFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Все отрасли" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все отрасли</SelectItem>
-                    {industries.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {industryOptions.length > 0 && (
+                <MultiFilterCombobox
+                  options={industryOptions}
+                  value={industryFilter}
+                  onValueChange={setIndustryFilter}
+                  placeholder="Отрасли"
+                  emptyText="Отрасли не найдены"
+                />
               )}
-
-              <Button asChild className="ml-auto">
-                <Link to="/tenders/new" className="flex items-center gap-2">
-                  <PlusIcon className="size-4" />
-                  Создать
-                </Link>
-              </Button>
+              {hasFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter([])
+                    setDepartmentFilter([])
+                    setResponsibleFilter([])
+                    setIndustryFilter([])
+                  }}
+                >
+                  <XIcon className="size-4" />
+                  Сбросить
+                </Button>
+              )}
             </div>
           }
         />

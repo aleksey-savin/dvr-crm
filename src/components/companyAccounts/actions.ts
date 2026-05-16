@@ -8,8 +8,10 @@ import {
   comment,
   company,
   companyAccount,
+  companyAccountDepartments,
   companyAccountManagers,
   department,
+  grossProfitFact,
   todo,
   todoResponsibleUsers,
   user,
@@ -22,9 +24,11 @@ import {
   count,
   countDistinct,
   eq,
+  gte,
   inArray,
   isNotNull,
   isNull,
+  lt,
   ne,
   notInArray,
   sql,
@@ -48,8 +52,12 @@ const updateClientAccountSchema = clientAccountSchema.extend({
 
 const wishlistAccountSchema = z.object({
   companyId: z.string().min(1, 'Выберите компанию'),
-  businessUnitId: z.string().min(1, 'Выберите подразделение'),
+  businessUnitIds: z.array(z.string()).min(1, 'Выберите подразделение'),
   why: z.string().optional(),
+  wishlistOffer: z.string().optional(),
+  contactNotes: z.string().optional(),
+  wishlistState: z.enum(['active', 'basement', 'archived']).optional(),
+  managerUserIds: z.array(z.string()).optional(),
 })
 
 const updateWishlistAccountSchema = wishlistAccountSchema
@@ -57,6 +65,22 @@ const updateWishlistAccountSchema = wishlistAccountSchema
   .extend({
     id: z.string(),
   })
+
+const reorderWishlistAccountsSchema = z.object({
+  groups: z.array(
+    z.object({
+      groupKey: z.enum([
+        'top10',
+        'top20',
+        'top30',
+        'basement',
+        'archived',
+        'unranked',
+      ]),
+      orderedIds: z.array(z.string()),
+    }),
+  ),
+})
 
 const yearValueSchema = z.object({
   clientId: z.string(),
@@ -69,6 +93,14 @@ const textEntrySchema = z.object({
   description: z.string().min(1),
 })
 
+const grossProfitFactSchema = z.object({
+  clientId: z.string(),
+  amount: z.string().min(1, 'Укажите валовую прибыль'),
+  factDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Укажите дату факта'),
+  description: z.string().optional(),
+  managerUserId: z.string().min(1, 'Выберите менеджера'),
+})
+
 async function validateSalesDepartment(businessUnitId: string) {
   const dept = await db.query.department.findFirst({
     where: eq(department.id, businessUnitId),
@@ -79,6 +111,30 @@ async function validateSalesDepartment(businessUnitId: string) {
       'Клиентов можно привязывать только к продающим подразделениям',
     )
   }
+}
+
+async function validateSalesDepartments(businessUnitIds: string[]) {
+  const uniqueIds = Array.from(new Set(businessUnitIds))
+  if (uniqueIds.length === 0) {
+    throw new Error('Выберите хотя бы одно подразделение')
+  }
+
+  const rows = await db.query.department.findMany({
+    where: inArray(department.id, uniqueIds),
+    columns: { id: true, departmentType: true },
+  })
+
+  if (rows.length !== uniqueIds.length) {
+    throw new Error('Одно из подразделений не найдено')
+  }
+
+  if (rows.some((row) => row.departmentType !== 'sales')) {
+    throw new Error(
+      'Wishlist можно привязывать только к продающим подразделениям',
+    )
+  }
+
+  return uniqueIds
 }
 
 async function setCompanyAccountManagers(
@@ -99,6 +155,44 @@ async function setCompanyAccountManagers(
       userId,
     })),
   )
+}
+
+async function setCompanyAccountDepartments(
+  companyAccountId: string,
+  departmentIds: string[],
+) {
+  await db
+    .delete(companyAccountDepartments)
+    .where(eq(companyAccountDepartments.companyAccountId, companyAccountId))
+
+  if (departmentIds.length === 0) return
+
+  await db.insert(companyAccountDepartments).values(
+    departmentIds.map((departmentId) => ({
+      companyAccountId,
+      departmentId,
+    })),
+  )
+}
+
+async function getNextWishlistPosition(
+  state: 'active' | 'basement' | 'archived',
+) {
+  const [row] = await db
+    .select({
+      value: sql<number | null>`cast(max(${companyAccount.position}) as int)`,
+    })
+    .from(companyAccount)
+    .where(
+      and(
+        eq(companyAccount.accountType, 'wishlist'),
+        state === 'active'
+          ? eq(companyAccount.wishlistState, 'active')
+          : eq(companyAccount.wishlistState, state),
+      ),
+    )
+
+  return (row.value ?? 0) + 1
 }
 
 export const fetchClients = createServerFn().handler(async () => {
@@ -141,6 +235,7 @@ export const fetchClients = createServerFn().handler(async () => {
     potentialForecasts,
     risks,
     upsellings,
+    grossProfitFactTotals,
     marketerTodoCounts,
     managerTodoCounts,
   ] = await Promise.all([
@@ -196,6 +291,21 @@ export const fetchClients = createServerFn().handler(async () => {
       .from(accountUpsellingOpportunity)
       .where(inArray(accountUpsellingOpportunity.companyAccountId, accountIds))
       .groupBy(accountUpsellingOpportunity.companyAccountId),
+    db
+      .select({
+        companyAccountId: grossProfitFact.companyAccountId,
+        value: sql<string | null>`sum(${grossProfitFact.amount})`,
+      })
+      .from(grossProfitFact)
+      .where(
+        and(
+          inArray(grossProfitFact.companyAccountId, accountIds),
+          gte(grossProfitFact.factDate, `${currentYear}-01-01`),
+          lt(grossProfitFact.factDate, `${currentYear + 1}-01-01`),
+          isNull(grossProfitFact.deletedAt),
+        ),
+      )
+      .groupBy(grossProfitFact.companyAccountId),
     db
       .select({
         companyAccountId: todo.companyAccountId,
@@ -254,6 +364,9 @@ export const fetchClients = createServerFn().handler(async () => {
   const upsellingByAccount = Object.fromEntries(
     upsellings.map((row) => [row.companyAccountId, row.count]),
   )
+  const grossProfitFactsByAccount = Object.fromEntries(
+    grossProfitFactTotals.map((row) => [row.companyAccountId, row.value]),
+  )
   const marketerTodos: Record<string, number> = Object.fromEntries(
     marketerTodoCounts
       .filter((row) => row.companyAccountId !== null)
@@ -270,6 +383,7 @@ export const fetchClients = createServerFn().handler(async () => {
     gpLastYear: gpByAccount[account.id] ?? null,
     forecastCurrentYear: fcByAccount[account.id] ?? null,
     potentialNextYear: potentialByAccount[account.id] ?? null,
+    grossProfitFactCurrentYear: grossProfitFactsByAccount[account.id] ?? null,
     risksCount: risksByAccount[account.id] ?? 0,
     upsellingCount: upsellingByAccount[account.id] ?? 0,
     marketerTodosCount: marketerTodos[account.id] ?? 0,
@@ -324,10 +438,7 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
 
   const [rows, commentCounts] = await Promise.all([
     db.query.companyAccount.findMany({
-      where: and(
-        eq(companyAccount.accountType, 'wishlist'),
-        inArray(companyAccount.businessUnitId, accessibleIds),
-      ),
+      where: eq(companyAccount.accountType, 'wishlist'),
       with: {
         company: {
           columns: {
@@ -342,9 +453,19 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
           },
         },
         businessUnit: { columns: { name: true } },
+        departments: {
+          with: {
+            department: { columns: { id: true, name: true } },
+          },
+        },
         hooks: { columns: { description: true } },
         todos: { columns: { id: true, name: true, status: true } },
         owner: { columns: { name: true } },
+        managers: {
+          with: {
+            user: { columns: { id: true, name: true } },
+          },
+        },
       },
       orderBy: (account, { asc }) => [asc(account.position)],
     }),
@@ -362,12 +483,85 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
     commentCounts.map((item) => [item.entityId, item.count]),
   )
 
-  return rows.map(
-    (row): WishlistAccountRow => ({
+  const visibleRows = rows.filter((row) => {
+    const departmentIds =
+      row.departments.length > 0
+        ? row.departments.map((item) => item.departmentId)
+        : [row.businessUnitId]
+    return departmentIds.some((id) => accessibleIds.includes(id))
+  })
+
+  const mergedRows = new Map<
+    string,
+    {
+      row: (typeof rows)[number]
+      businessUnits: Map<string, string>
+      hooks: Set<string>
+      todos: Map<string, WishlistAccountRow['todos'][number]>
+      commentsCount: number
+      responsibles: Set<string>
+    }
+  >()
+
+  for (const row of visibleRows) {
+    const current = mergedRows.get(row.companyId) ?? {
+      row,
+      businessUnits: new Map<string, string>(),
+      hooks: new Set<string>(),
+      todos: new Map<string, WishlistAccountRow['todos'][number]>(),
+      commentsCount: 0,
+      responsibles: new Set<string>(),
+    }
+
+    const departments =
+      row.departments.length > 0
+        ? row.departments.map((item) => ({
+            id: item.departmentId,
+            name: item.department.name,
+          }))
+        : [{ id: row.businessUnitId, name: row.businessUnit.name }]
+
+    for (const dept of departments) {
+      current.businessUnits.set(dept.id, dept.name)
+    }
+
+    for (const hook of row.hooks) {
+      current.hooks.add(hook.description)
+    }
+
+    for (const item of row.todos) {
+      current.todos.set(item.id, {
+        id: item.id,
+        name: item.name,
+        status: item.status as WishlistAccountRow['todos'][number]['status'],
+      })
+    }
+
+    current.commentsCount += countMap.get(row.id) ?? 0
+
+    const responsibles =
+      row.managers.length > 0
+        ? row.managers.map(({ user: manager }) => manager.name)
+        : row.owner
+          ? [row.owner.name]
+          : []
+
+    for (const responsible of responsibles) {
+      current.responsibles.add(responsible)
+    }
+
+    mergedRows.set(row.companyId, current)
+  }
+
+  return Array.from(mergedRows.values()).map((item): WishlistAccountRow => {
+    const row = item.row
+
+    return {
       id: row.id,
       companyId: row.companyId,
       companyName: row.company.name,
-      businessUnit: row.businessUnit.name,
+      businessUnitIds: Array.from(item.businessUnits.keys()),
+      businessUnits: Array.from(item.businessUnits.values()),
       industry: row.company.industryRef?.name ?? row.company.industry,
       regionalMarketPosition: row.company.regionalMarketPosition,
       revenueLastYear:
@@ -377,19 +571,17 @@ export const fetchWishlistAccounts = createServerFn().handler(async () => {
         row.company.revenues.find((revenue) => revenue.year === currentYear - 2)
           ?.value ?? null,
       why: row.why,
-      hooks: row.hooks.map((hook) => hook.description),
-      todos: row.todos.map((item) => ({
-        id: item.id,
-        name: item.name,
-        status: item.status as WishlistAccountRow['todos'][number]['status'],
-      })),
-      commentsCount: countMap.get(row.id) ?? 0,
-      responsible: row.owner?.name ?? null,
+      wishlistOffer: row.wishlistOffer,
+      contactNotes: row.contactNotes,
+      hooks: Array.from(item.hooks),
+      todos: Array.from(item.todos.values()),
+      commentsCount: item.commentsCount,
+      responsibles: Array.from(item.responsibles),
       wishlistState:
         (row.wishlistState as WishlistAccountRow['wishlistState']) ?? null,
       position: row.position,
-    }),
-  )
+    }
+  })
 })
 
 export const fetchWishlistClient = createServerFn({ method: 'GET' })
@@ -409,7 +601,17 @@ export const fetchWishlistClient = createServerFn({ method: 'GET' })
           },
         },
         businessUnit: { columns: { id: true, name: true } },
+        departments: {
+          with: {
+            department: { columns: { id: true, name: true } },
+          },
+        },
         owner: { columns: { id: true, name: true } },
+        managers: {
+          with: {
+            user: { columns: { id: true, name: true } },
+          },
+        },
         hooks: true,
         todos: {
           columns: {
@@ -450,6 +652,21 @@ export const getFilteredUsers = createServerFn({ method: 'GET' })
       .from(user)
       .where(
         and(ne(user.role, 'user'), eq(user.departmentId, data.businessUnitId)),
+      )
+      .orderBy(user.name)
+  })
+
+export const getFilteredUsersByDepartments = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ businessUnitIds: z.array(z.string()).min(1) }))
+  .handler(async ({ data }) => {
+    return db
+      .select({ id: user.id, name: user.name })
+      .from(user)
+      .where(
+        and(
+          ne(user.role, 'user'),
+          inArray(user.departmentId, Array.from(new Set(data.businessUnitIds))),
+        ),
       )
       .orderBy(user.name)
   })
@@ -635,6 +852,54 @@ export const deleteClient = createServerFn({ method: 'POST' })
     await db.delete(companyAccount).where(eq(companyAccount.id, id))
   })
 
+export const addGrossProfitFact = createServerFn({ method: 'POST' })
+  .inputValidator(grossProfitFactSchema)
+  .handler(async ({ data }) => {
+    const manager = await db.query.user.findFirst({
+      where: eq(user.id, data.managerUserId),
+      columns: { id: true, departmentId: true },
+    })
+
+    if (!manager) {
+      throw new Error('Менеджер не найден')
+    }
+
+    if (!manager.departmentId) {
+      throw new Error('У выбранного менеджера не указано подразделение')
+    }
+
+    const account = await db.query.companyAccount.findFirst({
+      where: and(
+        eq(companyAccount.id, data.clientId),
+        eq(companyAccount.accountType, 'client'),
+      ),
+      columns: { id: true },
+    })
+
+    if (!account) {
+      throw new Error('Клиент не найден')
+    }
+
+    await db.insert(grossProfitFact).values({
+      companyAccountId: data.clientId,
+      amount: data.amount,
+      factDate: data.factDate,
+      description: data.description?.trim() || null,
+      managerUserId: manager.id,
+      departmentId: manager.departmentId,
+      source: 'manual',
+    })
+  })
+
+export const deleteGrossProfitFact = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    await db
+      .update(grossProfitFact)
+      .set({ deletedAt: new Date() })
+      .where(eq(grossProfitFact.id, data.id))
+  })
+
 export const getFilteredWishlistCompanies = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ excludeWishlistClientId: z.string().optional() }))
   .handler(async ({ data }) => {
@@ -660,17 +925,38 @@ export const getFilteredWishlistCompanies = createServerFn({ method: 'GET' })
 export const addWishlistClient = createServerFn({ method: 'POST' })
   .inputValidator(wishlistAccountSchema)
   .handler(async ({ data }) => {
-    await validateSalesDepartment(data.businessUnitId)
+    const businessUnitIds = await validateSalesDepartments(data.businessUnitIds)
+    const existing = await db.query.companyAccount.findFirst({
+      where: and(
+        eq(companyAccount.companyId, data.companyId),
+        eq(companyAccount.accountType, 'wishlist'),
+      ),
+      columns: { id: true },
+    })
+
+    if (existing) {
+      throw new Error('Компания уже есть в вишлисте')
+    }
+
+    const wishlistState = data.wishlistState ?? 'active'
+    const position = await getNextWishlistPosition(wishlistState)
 
     const [inserted] = await db
       .insert(companyAccount)
       .values({
         companyId: data.companyId,
-        businessUnitId: data.businessUnitId,
+        businessUnitId: businessUnitIds[0],
         accountType: 'wishlist',
+        wishlistState,
+        position,
         why: data.why ?? null,
+        wishlistOffer: data.wishlistOffer ?? null,
+        contactNotes: data.contactNotes ?? null,
       })
       .returning({ id: companyAccount.id })
+
+    await setCompanyAccountDepartments(inserted.id, businessUnitIds)
+    await setCompanyAccountManagers(inserted.id, data.managerUserIds ?? [])
 
     return inserted.id
   })
@@ -678,15 +964,182 @@ export const addWishlistClient = createServerFn({ method: 'POST' })
 export const updateWishlistClient = createServerFn({ method: 'POST' })
   .inputValidator(updateWishlistAccountSchema)
   .handler(async ({ data }) => {
-    await validateSalesDepartment(data.businessUnitId)
+    const businessUnitIds = await validateSalesDepartments(data.businessUnitIds)
 
     await db
       .update(companyAccount)
       .set({
-        businessUnitId: data.businessUnitId,
+        businessUnitId: businessUnitIds[0],
+        wishlistState: data.wishlistState ?? 'active',
         why: data.why ?? null,
+        wishlistOffer: data.wishlistOffer ?? null,
+        contactNotes: data.contactNotes ?? null,
       })
       .where(eq(companyAccount.id, data.id))
+
+    await setCompanyAccountDepartments(data.id, businessUnitIds)
+    await setCompanyAccountManagers(data.id, data.managerUserIds ?? [])
+  })
+
+export const joinWishlistDepartment = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      wishlistAccountId: z.string(),
+      departmentId: z.string(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    await validateSalesDepartment(data.departmentId)
+
+    const accessibleIds = await getAccessibleDepartmentIds()
+    if (!accessibleIds.includes(data.departmentId)) {
+      throw new Error('Нет доступа к выбранному подразделению')
+    }
+
+    const account = await db.query.companyAccount.findFirst({
+      where: and(
+        eq(companyAccount.id, data.wishlistAccountId),
+        eq(companyAccount.accountType, 'wishlist'),
+      ),
+      columns: { id: true },
+    })
+
+    if (!account) throw new Error('Запись вишлиста не найдена')
+
+    await db
+      .insert(companyAccountDepartments)
+      .values({
+        companyAccountId: data.wishlistAccountId,
+        departmentId: data.departmentId,
+      })
+      .onConflictDoNothing()
+  })
+
+export const joinWishlistDepartments = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      wishlistAccountId: z.string(),
+      departmentIds: z.array(z.string()).min(1),
+      managerUserIds: z.array(z.string()).optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const departmentIds = await validateSalesDepartments(data.departmentIds)
+    const managerUserIds = Array.from(new Set(data.managerUserIds ?? []))
+
+    const accessibleIds = await getAccessibleDepartmentIds()
+    if (
+      departmentIds.some(
+        (departmentId) => !accessibleIds.includes(departmentId),
+      )
+    ) {
+      throw new Error('Нет доступа к одному из выбранных подразделений')
+    }
+
+    const account = await db.query.companyAccount.findFirst({
+      where: and(
+        eq(companyAccount.id, data.wishlistAccountId),
+        eq(companyAccount.accountType, 'wishlist'),
+      ),
+      columns: { id: true },
+    })
+
+    if (!account) throw new Error('Запись вишлиста не найдена')
+
+    if (managerUserIds.length > 0) {
+      const managers = await db.query.user.findMany({
+        where: and(
+          inArray(user.id, managerUserIds),
+          inArray(user.departmentId, departmentIds),
+          ne(user.role, 'user'),
+        ),
+        columns: { id: true },
+      })
+
+      if (managers.length !== managerUserIds.length) {
+        throw new Error(
+          'Один из ответственных недоступен для выбранных подразделений',
+        )
+      }
+    }
+
+    await db
+      .insert(companyAccountDepartments)
+      .values(
+        departmentIds.map((departmentId) => ({
+          companyAccountId: data.wishlistAccountId,
+          departmentId,
+        })),
+      )
+      .onConflictDoNothing()
+
+    if (managerUserIds.length > 0) {
+      await db
+        .insert(companyAccountManagers)
+        .values(
+          managerUserIds.map((userId) => ({
+            companyAccountId: data.wishlistAccountId,
+            userId,
+          })),
+        )
+        .onConflictDoNothing()
+    }
+  })
+
+export const reorderWishlistAccounts = createServerFn({ method: 'POST' })
+  .inputValidator(reorderWishlistAccountsSchema)
+  .handler(async ({ data }) => {
+    const allIds = data.groups.flatMap((group) => group.orderedIds)
+    if (allIds.length === 0) return
+
+    const accessibleIds = await getAccessibleDepartmentIds()
+    if (accessibleIds.length === 0) throw new Error('Нет доступа к вишлисту')
+
+    const rows = await db.query.companyAccount.findMany({
+      where: and(
+        eq(companyAccount.accountType, 'wishlist'),
+        inArray(companyAccount.id, allIds),
+      ),
+      columns: { id: true, businessUnitId: true },
+      with: {
+        departments: { columns: { departmentId: true } },
+      },
+    })
+
+    const accessibleRows = rows.filter((row) => {
+      const departmentIds =
+        row.departments.length > 0
+          ? row.departments.map((item) => item.departmentId)
+          : [row.businessUnitId]
+      return departmentIds.some((id) => accessibleIds.includes(id))
+    })
+
+    if (accessibleRows.length !== new Set(allIds).size) {
+      throw new Error('Не удалось обновить порядок части записей')
+    }
+
+    await db.transaction(async (tx) => {
+      for (const group of data.groups) {
+        const startPosition =
+          group.groupKey === 'top20' ? 11 : group.groupKey === 'top30' ? 21 : 1
+
+        for (const [index, id] of group.orderedIds.entries()) {
+          await tx
+            .update(companyAccount)
+            .set({
+              wishlistState:
+                group.groupKey === 'basement'
+                  ? 'basement'
+                  : group.groupKey === 'archived'
+                    ? 'archived'
+                    : 'active',
+              position:
+                group.groupKey === 'unranked' ? null : startPosition + index,
+            })
+            .where(eq(companyAccount.id, id))
+        }
+      }
+    })
   })
 
 export const deleteWishlistClient = createServerFn({ method: 'POST' })
@@ -727,11 +1180,13 @@ export const addGrossProfit = createServerFn({ method: 'POST' })
 export const deleteGrossProfit = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [existing] = await db
-      .select({ companyAccountId: accountGrossProfit.companyAccountId })
-      .from(accountGrossProfit)
-      .where(eq(accountGrossProfit.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: accountGrossProfit.companyAccountId })
+        .from(accountGrossProfit)
+        .where(eq(accountGrossProfit.id, data.id))
+        .limit(1)
+    )[0] as { companyAccountId: string } | undefined
 
     await db
       .delete(accountGrossProfit)
@@ -774,11 +1229,13 @@ export const addTargetForecast = createServerFn({ method: 'POST' })
 export const deleteTargetForecast = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [existing] = await db
-      .select({ companyAccountId: accountTargetForecast.companyAccountId })
-      .from(accountTargetForecast)
-      .where(eq(accountTargetForecast.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: accountTargetForecast.companyAccountId })
+        .from(accountTargetForecast)
+        .where(eq(accountTargetForecast.id, data.id))
+        .limit(1)
+    )[0] as { companyAccountId: string } | undefined
 
     await db
       .delete(accountTargetForecast)
@@ -803,11 +1260,13 @@ export const addRisk = createServerFn({ method: 'POST' })
 export const deleteRisk = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [existing] = await db
-      .select({ companyAccountId: accountRisk.companyAccountId })
-      .from(accountRisk)
-      .where(eq(accountRisk.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: accountRisk.companyAccountId })
+        .from(accountRisk)
+        .where(eq(accountRisk.id, data.id))
+        .limit(1)
+    )[0] as { companyAccountId: string } | undefined
 
     await db.delete(accountRisk).where(eq(accountRisk.id, data.id))
 
@@ -830,13 +1289,15 @@ export const addUpselling = createServerFn({ method: 'POST' })
 export const deleteUpselling = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const [existing] = await db
-      .select({
-        companyAccountId: accountUpsellingOpportunity.companyAccountId,
-      })
-      .from(accountUpsellingOpportunity)
-      .where(eq(accountUpsellingOpportunity.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({
+          companyAccountId: accountUpsellingOpportunity.companyAccountId,
+        })
+        .from(accountUpsellingOpportunity)
+        .where(eq(accountUpsellingOpportunity.id, data.id))
+        .limit(1)
+    )[0] as { companyAccountId: string } | undefined
 
     await db
       .delete(accountUpsellingOpportunity)

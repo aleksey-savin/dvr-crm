@@ -18,9 +18,17 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     clients: { label: 'Клиенты', showAddButton: true },
     companies: { label: 'Компании', showAddButton: true },
     wishlist: { label: 'Вишлист', showAddButton: true },
+    leads: { label: 'Лиды', showAddButton: true },
+    tenders: { label: 'Тендеры', showAddButton: true },
+    signals: { label: 'Сигналы', showAddButton: true },
     todos: { label: 'Задачи', showAddButton: true },
     users: { label: 'Пользователи', showAddButton: true },
     industries: { label: 'Отрасли', showAddButton: true },
+    'contact-roles': { label: 'Роли контактов', showAddButton: true },
+    'signal-types': { label: 'Типы сигналов', showAddButton: true },
+    sources: { label: 'Источники', showAddButton: true },
+    'refusal-reasons': { label: 'Причины отказа', showAddButton: true },
+    tags: { label: 'Теги', showAddButton: true },
     changelog: { label: 'Обновления', showAddButton: true },
     'my-company': { label: 'Моя компания', showAddButton: false },
     preferences: { label: 'Настройки', showAddButton: false },
@@ -78,6 +86,7 @@ export function AppBreadcrumb() {
         canManage?: boolean
         company?: { name?: string }
         name?: string
+        title?: string
         accounts?: Array<{ id: string; accountType: string }>
       }
     | undefined
@@ -112,7 +121,7 @@ export function AppBreadcrumb() {
       entityName = loaderData.company?.name || loaderData.name || ''
     } else {
       // For all other entities - use entity.name
-      entityName = loaderData.name || ''
+      entityName = loaderData.name || loaderData.title || ''
     }
   }
 

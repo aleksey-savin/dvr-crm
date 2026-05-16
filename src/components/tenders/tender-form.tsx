@@ -29,18 +29,24 @@ import {
   fetchUsers,
   fetchIndustries,
 } from '@/components/tenders/actions'
+import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
 import type { SelectTender } from '@/db/types'
-import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
-import type { TenderStatus } from '@/types'
+import type {
+  CompanyOption,
+  DepartmentOption,
+  TenderStatus,
+  UserOption,
+} from '@/types'
 
 type IndustryOption = { id: string; name: string }
+type RefusalReasonOption = { id: string; name: string }
 
 const ALLOWED_NEXT: Record<TenderStatus, TenderStatus[]> = {
   new: ['new', 'evaluation'],
-  evaluation: ['evaluation', 'approval', 'rejected', 'archived'],
-  approval: ['approval', 'preparation', 'rejected', 'archived'],
-  preparation: ['preparation', 'submitted', 'archived'],
-  submitted: ['submitted', 'won', 'lost', 'archived'],
+  evaluation: ['evaluation', 'approval', 'rejected'],
+  approval: ['approval', 'preparation', 'rejected'],
+  preparation: ['preparation', 'submitted'],
+  submitted: ['submitted', 'won', 'lost'],
   won: ['won'],
   lost: ['lost'],
   rejected: ['rejected'],
@@ -66,13 +72,23 @@ const formSchema = z.object({
   responsibleUserId: z.string().nullable(),
   approverUserId: z.string().nullable(),
   industryId: z.string().nullable(),
-  status: z.enum(['new', 'evaluation', 'approval', 'preparation', 'submitted', 'won', 'lost', 'rejected', 'archived']),
+  status: z.enum([
+    'new',
+    'evaluation',
+    'approval',
+    'preparation',
+    'submitted',
+    'won',
+    'lost',
+    'rejected',
+    'archived',
+  ]),
   amount: z.string().nullable(),
   description: z.string().nullable(),
   deadline: z.string().nullable(),
   platform: z.string().nullable(),
   url: z.string().nullable(),
-  lostReason: z.string().nullable(),
+  lostReasonId: z.string().nullable(),
 })
 
 const NULLABLE_PLACEHOLDER = '__none__'
@@ -88,15 +104,17 @@ export function TenderForm({
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [industries, setIndustries] = React.useState<IndustryOption[]>([])
+  const [refusalReasons, setRefusalReasons] = React.useState<RefusalReasonOption[]>([])
 
   React.useEffect(() => {
     fetchCompanies().then(setCompanies).catch(console.error)
     fetchDepartments().then(setDepartments).catch(console.error)
     fetchUsers().then(setUsers).catch(console.error)
     fetchIndustries().then(setIndustries).catch(console.error)
+    fetchRefusalReasons().then(setRefusalReasons).catch(console.error)
   }, [])
 
-  const initialStatus = (item?.status as TenderStatus) ?? 'new'
+  const initialStatus = item ? (item.status as TenderStatus) : 'new'
 
   const form = useForm({
     defaultValues: {
@@ -112,7 +130,7 @@ export function TenderForm({
       deadline: item?.deadline ?? null,
       platform: item?.platform ?? null,
       url: item?.url ?? null,
-      lostReason: item?.lostReason ?? null,
+      lostReasonId: item?.lostReasonId ?? null,
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
@@ -129,7 +147,9 @@ export function TenderForm({
         deadline: value.deadline || null,
         platform: value.platform || null,
         url: value.url || null,
-        lostReason: ['rejected', 'lost'].includes(value.status) ? (value.lostReason || null) : null,
+        lostReasonId: ['rejected', 'lost'].includes(value.status)
+          ? value.lostReasonId || null
+          : null,
       }
       try {
         if (item) {
@@ -159,7 +179,11 @@ export function TenderForm({
     >
       <form.Field name="title">
         {(field) => (
-          <Field data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}>
+          <Field
+            data-invalid={
+              field.state.meta.isTouched && !field.state.meta.isValid
+            }
+          >
             <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
             <Input
               id={field.name}
@@ -188,7 +212,11 @@ export function TenderForm({
               <ComboboxContent>
                 <ComboboxEmpty>Компании не найдены</ComboboxEmpty>
                 <ComboboxList>
-                  {(c) => <ComboboxItem key={c.id} value={c}>{c.name}</ComboboxItem>}
+                  {(c) => (
+                    <ComboboxItem key={c.id} value={c}>
+                      {c.name}
+                    </ComboboxItem>
+                  )}
                 </ComboboxList>
               </ComboboxContent>
             </Combobox>
@@ -203,13 +231,21 @@ export function TenderForm({
               <FieldLabel>Отрасль</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрана" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрана</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
                   {industries.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -225,10 +261,14 @@ export function TenderForm({
                 value={field.state.value}
                 onValueChange={(v) => field.handleChange(v as TenderStatus)}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   {allowedStatuses.map((s) => (
-                    <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                    <SelectItem key={s} value={s} disabled={s === 'archived'}>
+                      {STATUS_LABELS[s]}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -244,13 +284,21 @@ export function TenderForm({
               <FieldLabel>Подразделение</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрано" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрано" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрано</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрано
+                  </SelectItem>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -264,13 +312,21 @@ export function TenderForm({
               <FieldLabel>Ответственный</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбран" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбран" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбран
+                  </SelectItem>
                   {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -285,13 +341,19 @@ export function TenderForm({
             <FieldLabel>Согласующий</FieldLabel>
             <Select
               value={field.state.value ?? NULLABLE_PLACEHOLDER}
-              onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+              onValueChange={(v) =>
+                field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+              }
             >
-              <SelectTrigger><SelectValue placeholder="Не выбран" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Не выбран" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
                 {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -377,17 +439,32 @@ export function TenderForm({
       </form.Field>
 
       {(currentStatus === 'rejected' || currentStatus === 'lost') && (
-        <form.Field name="lostReason">
+        <form.Field name="lostReasonId">
           {(field) => (
             <Field>
-              <FieldLabel>Причина {currentStatus === 'lost' ? 'проигрыша' : 'отказа'}</FieldLabel>
-              <Textarea
-                id={field.name}
-                value={field.state.value ?? ''}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="Почему тендер не был выигран?"
-                rows={2}
-              />
+              <FieldLabel>
+                Причина {currentStatus === 'lost' ? 'проигрыша' : 'отказа'}
+              </FieldLabel>
+              <Select
+                value={field.state.value ?? NULLABLE_PLACEHOLDER}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
+                  {refusalReasons.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
         </form.Field>

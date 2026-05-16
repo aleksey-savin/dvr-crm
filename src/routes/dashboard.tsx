@@ -23,11 +23,7 @@ function RouteComponent() {
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-normal">Дашборд</h1>
-      </div>
-
-      <Card className="rounded-lg">
+      <Card className="rounded-lg w-full">
         <CardHeader>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <FileTextIcon className="size-4" />

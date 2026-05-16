@@ -29,10 +29,14 @@ import {
   fetchUsers,
   fetchIndustries,
 } from '@/components/leads/actions'
+import { fetchSources } from '@/components/sources/actions'
+import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
 import type { SelectLead } from '@/db/types'
 import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
 
 type IndustryOption = { id: string; name: string }
+type SourceOption = { id: string; name: string }
+type RefusalReasonOption = { id: string; name: string }
 
 const formSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
@@ -40,12 +44,12 @@ const formSchema = z.object({
   departmentId: z.string().nullable(),
   responsibleUserId: z.string().nullable(),
   industryId: z.string().nullable(),
-  source: z.string().nullable(),
+  sourceId: z.string().nullable(),
   status: z.enum(['new', 'in_progress', 'converted', 'rejected']),
   budget: z.string().nullable(),
   description: z.string().nullable(),
   dueDate: z.string().nullable(),
-  lostReason: z.string().nullable(),
+  lostReasonId: z.string().nullable(),
 })
 
 const NULLABLE_PLACEHOLDER = '__none__'
@@ -61,12 +65,16 @@ export function LeadForm({
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [industries, setIndustries] = React.useState<IndustryOption[]>([])
+  const [sources, setSources] = React.useState<SourceOption[]>([])
+  const [refusalReasons, setRefusalReasons] = React.useState<RefusalReasonOption[]>([])
 
   React.useEffect(() => {
     fetchCompanies().then(setCompanies).catch(console.error)
     fetchDepartments().then(setDepartments).catch(console.error)
     fetchUsers().then(setUsers).catch(console.error)
     fetchIndustries().then(setIndustries).catch(console.error)
+    fetchSources().then(setSources).catch(console.error)
+    fetchRefusalReasons().then(setRefusalReasons).catch(console.error)
   }, [])
 
   const form = useForm({
@@ -76,12 +84,12 @@ export function LeadForm({
       departmentId: item?.departmentId ?? null,
       responsibleUserId: item?.responsibleUserId ?? null,
       industryId: item?.industryId ?? null,
-      source: item?.source ?? null,
-      status: (item?.status as z.infer<typeof formSchema>['status']) ?? 'new',
+      sourceId: item?.sourceId ?? null,
+      status: item ? item.status : 'new',
       budget: item?.budget ?? null,
       description: item?.description ?? null,
       dueDate: item?.dueDate ?? null,
-      lostReason: item?.lostReason ?? null,
+      lostReasonId: item?.lostReasonId ?? null,
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
@@ -91,12 +99,13 @@ export function LeadForm({
         departmentId: value.departmentId || null,
         responsibleUserId: value.responsibleUserId || null,
         industryId: value.industryId || null,
-        source: value.source || null,
+        sourceId: value.sourceId || null,
         status: value.status,
         budget: value.budget || null,
         description: value.description || null,
         dueDate: value.dueDate || null,
-        lostReason: value.status === 'rejected' ? (value.lostReason || null) : null,
+        lostReasonId:
+          value.status === 'rejected' ? value.lostReasonId || null : null,
       }
       try {
         if (item) {
@@ -125,7 +134,11 @@ export function LeadForm({
     >
       <form.Field name="title">
         {(field) => (
-          <Field data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}>
+          <Field
+            data-invalid={
+              field.state.meta.isTouched && !field.state.meta.isValid
+            }
+          >
             <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
             <Input
               id={field.name}
@@ -154,7 +167,11 @@ export function LeadForm({
               <ComboboxContent>
                 <ComboboxEmpty>Компании не найдены</ComboboxEmpty>
                 <ComboboxList>
-                  {(c) => <ComboboxItem key={c.id} value={c}>{c.name}</ComboboxItem>}
+                  {(c) => (
+                    <ComboboxItem key={c.id} value={c}>
+                      {c.name}
+                    </ComboboxItem>
+                  )}
                 </ComboboxList>
               </ComboboxContent>
             </Combobox>
@@ -169,13 +186,21 @@ export function LeadForm({
               <FieldLabel>Отрасль</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрана" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрана</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
                   {industries.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -189,13 +214,21 @@ export function LeadForm({
               <FieldLabel>Статус</FieldLabel>
               <Select
                 value={field.state.value}
-                onValueChange={(v) => field.handleChange(v as typeof field.state.value)}
+                onValueChange={(v) =>
+                  field.handleChange(v as typeof field.state.value)
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">Новый</SelectItem>
                   <SelectItem value="in_progress">В работе</SelectItem>
-                  <SelectItem value="converted">Конвертирован</SelectItem>
+                  {field.state.value === 'converted' && (
+                    <SelectItem value="converted" disabled>
+                      Конвертирован
+                    </SelectItem>
+                  )}
                   <SelectItem value="rejected">Отклонён</SelectItem>
                 </SelectContent>
               </Select>
@@ -211,13 +244,21 @@ export function LeadForm({
               <FieldLabel>Подразделение</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрано" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрано" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрано</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрано
+                  </SelectItem>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -231,13 +272,21 @@ export function LeadForm({
               <FieldLabel>Ответственный</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбран" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбран" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбран
+                  </SelectItem>
                   {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -247,16 +296,30 @@ export function LeadForm({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <form.Field name="source">
+        <form.Field name="sourceId">
           {(field) => (
             <Field>
               <FieldLabel>Источник</FieldLabel>
-              <Input
-                id={field.name}
-                value={field.state.value ?? ''}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="Сайт, звонок, реклама..."
-              />
+              <Select
+                value={field.state.value ?? NULLABLE_PLACEHOLDER}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбран" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбран
+                  </SelectItem>
+                  {sources.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
         </form.Field>
@@ -307,17 +370,30 @@ export function LeadForm({
       </form.Field>
 
       {currentStatus === 'rejected' && (
-        <form.Field name="lostReason">
+        <form.Field name="lostReasonId">
           {(field) => (
             <Field>
               <FieldLabel>Причина отказа</FieldLabel>
-              <Textarea
-                id={field.name}
-                value={field.state.value ?? ''}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="Почему лид отклонён?"
-                rows={2}
-              />
+              <Select
+                value={field.state.value ?? NULLABLE_PLACEHOLDER}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
+                  {refusalReasons.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
           )}
         </form.Field>

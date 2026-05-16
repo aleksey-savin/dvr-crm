@@ -5,12 +5,13 @@ import {
   companyCounterparty,
   companyRevenue,
   counterparty,
+  grossProfitFact,
   industry,
 } from '@/db/schema'
 import type { CompanyRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { notFound } from '@tanstack/react-router'
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, isNull } from 'drizzle-orm'
 import * as z from 'zod'
 
 const companySchema = z.object({
@@ -47,6 +48,7 @@ const addContactSchema = z.object({
   email: z.string().optional(),
   telegram: z.string().optional(),
   max: z.string().optional(),
+  contactRoleId: z.string().nullable().optional(),
 })
 
 const updateContactSchema = addContactSchema.omit({ companyId: true }).extend({
@@ -145,7 +147,9 @@ export const fetchCompany = createServerFn({ method: 'GET' })
       where: eq(company.id, data.id),
       with: {
         industryRef: { columns: { id: true, name: true } },
-        contacts: true,
+        contacts: {
+          with: { role: { columns: { id: true, name: true } } },
+        },
         revenues: true,
         counterparties: {
           with: {
@@ -169,10 +173,18 @@ export const fetchCompany = createServerFn({ method: 'GET' })
             isLost: true,
             lostReasons: true,
             why: true,
+            wishlistOffer: true,
+            contactNotes: true,
             wishlistState: true,
+            position: true,
           },
           with: {
             businessUnit: { columns: { id: true, name: true } },
+            departments: {
+              with: {
+                department: { columns: { id: true, name: true } },
+              },
+            },
             owner: { columns: { id: true, name: true, image: true } },
             managers: {
               with: {
@@ -181,6 +193,17 @@ export const fetchCompany = createServerFn({ method: 'GET' })
             },
             risks: true,
             grossProfits: true,
+            grossProfitFacts: {
+              where: isNull(grossProfitFact.deletedAt),
+              with: {
+                manager: { columns: { id: true, name: true } },
+                department: { columns: { id: true, name: true } },
+              },
+              orderBy: (fact, { desc }) => [
+                desc(fact.factDate),
+                desc(fact.createdAt),
+              ],
+            },
             targetForecasts: true,
             upsellingOpportunities: true,
             hooks: true,
@@ -306,6 +329,7 @@ export const addCompanyContact = createServerFn({ method: 'POST' })
       email: data.email ?? null,
       telegram: data.telegram ?? null,
       max: data.max ?? null,
+      contactRoleId: data.contactRoleId ?? null,
     })
   })
 
@@ -323,6 +347,7 @@ export const updateCompanyContact = createServerFn({ method: 'POST' })
         email: data.email ?? null,
         telegram: data.telegram ?? null,
         max: data.max ?? null,
+        contactRoleId: data.contactRoleId ?? null,
       })
       .where(eq(companyContact.id, data.id))
   })

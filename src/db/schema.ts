@@ -158,6 +158,90 @@ export const industry = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Classifiers (справочники)
+// ---------------------------------------------------------------------------
+
+export const contactRole = pgTable(
+  'contact_role',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('contact_role_name_unique').on(t.name)],
+)
+
+export const signalTypeTable = pgTable(
+  'signal_type',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('signal_type_name_unique').on(t.name)],
+)
+
+export const source = pgTable(
+  'source',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('source_name_unique').on(t.name)],
+)
+
+export const refusalReason = pgTable(
+  'refusal_reason',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('refusal_reason_name_unique').on(t.name)],
+)
+
+export const tag = pgTable(
+  'tag',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('tag_name_unique').on(t.name)],
+)
+
+// ---------------------------------------------------------------------------
 // Company (1.1.1)
 // ---------------------------------------------------------------------------
 
@@ -271,6 +355,8 @@ export const companyAccount = pgTable(
 
     // Free-form context fields
     why: text('why'),
+    wishlistOffer: text('wishlist_offer'),
+    contactNotes: text('contact_notes'),
     notes: text('notes'),
 
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -304,6 +390,28 @@ export const companyAccountManagers = pgTable(
       table.companyAccountId,
     ),
     index('company_account_managers_userId_idx').on(table.userId),
+  ],
+)
+
+export const companyAccountDepartments = pgTable(
+  'company_account_departments',
+  {
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'cascade' }),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+    assignedAt: timestamp('assigned_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.companyAccountId, table.departmentId] }),
+    index('company_account_departments_companyAccountId_idx').on(
+      table.companyAccountId,
+    ),
+    index('company_account_departments_departmentId_idx').on(
+      table.departmentId,
+    ),
   ],
 )
 
@@ -392,6 +500,56 @@ export const companyRevenue = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Gross Profit Fact (факт валовой прибыли)
+// ---------------------------------------------------------------------------
+
+export const grossProfitFact = pgTable(
+  'gross_profit_fact',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    companyAccountId: text('company_account_id')
+      .notNull()
+      .references(() => companyAccount.id, { onDelete: 'restrict' }),
+    amount: numeric('amount', { precision: 15, scale: 2 }).notNull(),
+    factDate: date('fact_date').notNull(),
+    description: text('description'),
+    managerUserId: text('manager_user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'restrict' }),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'restrict' }),
+    source: text('source', { enum: ['manual', 'one_c'] })
+      .notNull()
+      .default('manual'),
+    externalSource: text('external_source'),
+    externalId: text('external_id'),
+    matchedAt: timestamp('matched_at'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('gross_profit_fact_company_account_id_idx').on(
+      table.companyAccountId,
+    ),
+    index('gross_profit_fact_fact_date_idx').on(table.factDate),
+    index('gross_profit_fact_manager_user_id_idx').on(table.managerUserId),
+    index('gross_profit_fact_department_id_idx').on(table.departmentId),
+    index('gross_profit_fact_source_external_id_idx').on(
+      table.externalSource,
+      table.externalId,
+    ),
+    index('gross_profit_fact_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
+// ---------------------------------------------------------------------------
 // Account Hooks — engagement hooks (was: clientHook on wishlistClient)
 // ---------------------------------------------------------------------------
 
@@ -429,6 +587,9 @@ export const companyContact = pgTable(
     companyId: text('company_id')
       .notNull()
       .references(() => company.id, { onDelete: 'cascade' }),
+    contactRoleId: text('contact_role_id').references(() => contactRole.id, {
+      onDelete: 'set null',
+    }),
     name: text('name').notNull(),
     position: text('position'),
     description: text('description'),
@@ -443,7 +604,10 @@ export const companyContact = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('company_contacts_companyId_idx').on(table.companyId)],
+  (table) => [
+    index('company_contacts_companyId_idx').on(table.companyId),
+    index('company_contacts_contactRoleId_idx').on(table.contactRoleId),
+  ],
 )
 
 // ---------------------------------------------------------------------------
@@ -626,18 +790,187 @@ export const commentRead = pgTable(
 )
 
 // ---------------------------------------------------------------------------
-// Meeting (linked to company, not to account)
+// Meeting
 // ---------------------------------------------------------------------------
 
-export const meeting = pgTable('meeting', {
-  id: text('id').notNull().primaryKey(),
-  title: text('title').notNull(),
-  summary: text('summary'),
-  transcription: text('transcription'),
-  companyId: text('company_id').references(() => company.id, {
-    onDelete: 'cascade',
-  }),
-})
+export const meeting = pgTable(
+  'meeting',
+  {
+    id: text('id')
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text('title').notNull(),
+    summary: text('summary'),
+    transcription: text('transcription'),
+    companyId: text('company_id').references(() => company.id, {
+      onDelete: 'set null',
+    }),
+    scheduledAt: timestamp('scheduled_at').notNull().defaultNow(),
+    endedAt: timestamp('ended_at'),
+    status: text('status', {
+      enum: ['scheduled', 'completed', 'cancelled'],
+    })
+      .notNull()
+      .default('scheduled'),
+    meetingType: text('meeting_type', { enum: ['client', 'internal'] })
+      .notNull()
+      .default('client'),
+    organizerId: text('organizer_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    accountId: text('account_id').references(() => companyAccount.id, {
+      onDelete: 'set null',
+    }),
+    leadId: text('lead_id').references(() => lead.id, {
+      onDelete: 'set null',
+    }),
+    tenderId: text('tender_id').references(() => tender.id, {
+      onDelete: 'set null',
+    }),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('meeting_organizer_id_idx').on(table.organizerId),
+    index('meeting_department_id_idx').on(table.departmentId),
+    index('meeting_status_idx').on(table.status),
+    index('meeting_scheduled_at_idx').on(table.scheduledAt),
+    index('meeting_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
+export const meetingParticipant = pgTable(
+  'meeting_participant',
+  {
+    meetingId: text('meeting_id')
+      .notNull()
+      .references(() => meeting.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.meetingId, table.userId] }),
+    index('meeting_participant_meeting_id_idx').on(table.meetingId),
+    index('meeting_participant_user_id_idx').on(table.userId),
+  ],
+)
+
+export const meetingExternalParticipant = pgTable(
+  'meeting_external_participant',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    meetingId: text('meeting_id')
+      .notNull()
+      .references(() => meeting.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    contactId: text('contact_id').references(() => companyContact.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('meeting_external_participant_meeting_id_idx').on(table.meetingId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Target Action Type (справочник типов целевых действий)
+// ---------------------------------------------------------------------------
+
+export const targetActionType = pgTable(
+  'target_action_type',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    isSystem: boolean('is_system').notNull().default(false),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique('target_action_type_slug_unique').on(table.slug),
+    index('target_action_type_deleted_at_idx').on(table.deletedAt),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Target Action (целевое действие — KPI-событие)
+// ---------------------------------------------------------------------------
+
+export const targetAction = pgTable(
+  'target_action',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    typeId: text('type_id')
+      .notNull()
+      .references(() => targetActionType.id, { onDelete: 'restrict' }),
+    responsibleUserId: text('responsible_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    plannedAt: date('planned_at').notNull(),
+    completedAt: timestamp('completed_at'),
+    status: text('status', {
+      enum: ['planned', 'completed', 'cancelled'],
+    })
+      .notNull()
+      .default('planned'),
+    result: text('result'),
+    sourceType: text('source_type', {
+      enum: ['meeting', 'initiative', 'tender', 'lead', 'signal', 'manual'],
+    }).notNull(),
+    sourceId: text('source_id'),
+    accountId: text('account_id').references(() => companyAccount.id, {
+      onDelete: 'set null',
+    }),
+    leadId: text('lead_id').references(() => lead.id, {
+      onDelete: 'set null',
+    }),
+    tenderId: text('tender_id').references(() => tender.id, {
+      onDelete: 'set null',
+    }),
+    signalId: text('signal_id').references(() => signal.id, {
+      onDelete: 'set null',
+    }),
+    initiativeId: text('initiative_id'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('target_action_type_id_idx').on(table.typeId),
+    index('target_action_responsible_user_id_idx').on(table.responsibleUserId),
+    index('target_action_department_id_idx').on(table.departmentId),
+    index('target_action_status_idx').on(table.status),
+    index('target_action_planned_at_idx').on(table.plannedAt),
+    index('target_action_deleted_at_idx').on(table.deletedAt),
+    index('target_action_source_idx').on(table.sourceType, table.sourceId),
+  ],
+)
 
 // ---------------------------------------------------------------------------
 // API Key
@@ -744,7 +1077,9 @@ export const lead = pgTable(
     industryId: text('industry_id').references(() => industry.id, {
       onDelete: 'set null',
     }),
-    source: text('source'),
+    sourceId: text('source_id').references(() => source.id, {
+      onDelete: 'set null',
+    }),
     status: text('status', {
       enum: ['new', 'in_progress', 'converted', 'rejected'],
     })
@@ -753,7 +1088,9 @@ export const lead = pgTable(
     budget: numeric('budget', { precision: 15, scale: 2 }),
     description: text('description'),
     dueDate: date('due_date'),
-    lostReason: text('lost_reason'),
+    lostReasonId: text('lost_reason_id').references(() => refusalReason.id, {
+      onDelete: 'set null',
+    }),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -766,6 +1103,8 @@ export const lead = pgTable(
     index('lead_department_id_idx').on(table.departmentId),
     index('lead_responsible_user_id_idx').on(table.responsibleUserId),
     index('lead_industry_id_idx').on(table.industryId),
+    index('lead_source_id_idx').on(table.sourceId),
+    index('lead_lost_reason_id_idx').on(table.lostReasonId),
     index('lead_status_idx').on(table.status),
     index('lead_deleted_at_idx').on(table.deletedAt),
   ],
@@ -817,7 +1156,9 @@ export const tender = pgTable(
     deadline: date('deadline'),
     platform: text('platform'),
     url: text('url'),
-    lostReason: text('lost_reason'),
+    lostReasonId: text('lost_reason_id').references(() => refusalReason.id, {
+      onDelete: 'set null',
+    }),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -831,6 +1172,7 @@ export const tender = pgTable(
     index('tender_responsible_user_id_idx').on(table.responsibleUserId),
     index('tender_approver_user_id_idx').on(table.approverUserId),
     index('tender_industry_id_idx').on(table.industryId),
+    index('tender_lost_reason_id_idx').on(table.lostReasonId),
     index('tender_status_idx').on(table.status),
     index('tender_deleted_at_idx').on(table.deletedAt),
   ],
@@ -859,11 +1201,9 @@ export const signal = pgTable(
     industryId: text('industry_id').references(() => industry.id, {
       onDelete: 'set null',
     }),
-    signalType: text('signal_type', {
-      enum: ['recommendation', 'news', 'direct_contact', 'other'],
-    })
-      .notNull()
-      .default('other'),
+    signalTypeId: text('signal_type_id').references(() => signalTypeTable.id, {
+      onDelete: 'set null',
+    }),
     status: text('status', {
       enum: ['new', 'in_progress', 'converted', 'archived'],
     })
@@ -883,6 +1223,7 @@ export const signal = pgTable(
     index('signal_department_id_idx').on(table.departmentId),
     index('signal_responsible_user_id_idx').on(table.responsibleUserId),
     index('signal_industry_id_idx').on(table.industryId),
+    index('signal_signal_type_id_idx').on(table.signalTypeId),
     index('signal_status_idx').on(table.status),
     index('signal_deleted_at_idx').on(table.deletedAt),
   ],
@@ -927,6 +1268,9 @@ export const userRelations = relations(user, ({ one, many }) => ({
   accounts: many(account),
   ownedCompanyAccounts: many(companyAccount),
   managedCompanyAccounts: many(companyAccountManagers),
+  grossProfitFacts: many(grossProfitFact, {
+    relationName: 'grossProfitFactManager',
+  }),
   headedDepartments: many(department, {
     relationName: 'departmentHead',
   }),
@@ -939,6 +1283,11 @@ export const userRelations = relations(user, ({ one, many }) => ({
   responsibleTenders: many(tender, { relationName: 'tenderResponsible' }),
   approverTenders: many(tender, { relationName: 'tenderApprover' }),
   responsibleSignals: many(signal, { relationName: 'signalResponsible' }),
+  organizedMeetings: many(meeting, { relationName: 'meetingOrganizer' }),
+  meetingParticipations: many(meetingParticipant),
+  responsibleTargetActions: many(targetAction, {
+    relationName: 'targetActionResponsible',
+  }),
   department: one(department, {
     fields: [user.departmentId],
     references: [department.id],
@@ -962,11 +1311,13 @@ export const companyAccountRelations = relations(
       references: [user.id],
     }),
     managers: many(companyAccountManagers),
+    departments: many(companyAccountDepartments),
     risks: many(accountRisk),
     grossProfits: many(accountGrossProfit),
     targetForecasts: many(accountTargetForecast),
     upsellingOpportunities: many(accountUpsellingOpportunity),
     hooks: many(accountHook),
+    grossProfitFacts: many(grossProfitFact),
     todos: many(todo),
   }),
 )
@@ -981,6 +1332,20 @@ export const companyAccountManagersRelations = relations(
     user: one(user, {
       fields: [companyAccountManagers.userId],
       references: [user.id],
+    }),
+  }),
+)
+
+export const companyAccountDepartmentsRelations = relations(
+  companyAccountDepartments,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [companyAccountDepartments.companyAccountId],
+      references: [companyAccount.id],
+    }),
+    department: one(department, {
+      fields: [companyAccountDepartments.departmentId],
+      references: [department.id],
     }),
   }),
 )
@@ -1075,10 +1440,33 @@ export const companyRevenueRelations = relations(companyRevenue, ({ one }) => ({
   }),
 }))
 
+export const grossProfitFactRelations = relations(
+  grossProfitFact,
+  ({ one }) => ({
+    account: one(companyAccount, {
+      fields: [grossProfitFact.companyAccountId],
+      references: [companyAccount.id],
+    }),
+    manager: one(user, {
+      fields: [grossProfitFact.managerUserId],
+      references: [user.id],
+      relationName: 'grossProfitFactManager',
+    }),
+    department: one(department, {
+      fields: [grossProfitFact.departmentId],
+      references: [department.id],
+    }),
+  }),
+)
+
 export const companyContactRelations = relations(companyContact, ({ one }) => ({
   company: one(company, {
     fields: [companyContact.companyId],
     references: [company.id],
+  }),
+  role: one(contactRole, {
+    fields: [companyContact.contactRoleId],
+    references: [contactRole.id],
   }),
 }))
 
@@ -1104,12 +1492,104 @@ export const departmentRelations = relations(department, ({ one, many }) => ({
   leads: many(lead),
   tenders: many(tender),
   signals: many(signal),
+  meetings: many(meeting),
+  targetActions: many(targetAction),
 }))
 
-export const meetingRelations = relations(meeting, ({ one }) => ({
+export const meetingRelations = relations(meeting, ({ one, many }) => ({
   company: one(company, {
     fields: [meeting.companyId],
     references: [company.id],
+  }),
+  organizer: one(user, {
+    fields: [meeting.organizerId],
+    references: [user.id],
+    relationName: 'meetingOrganizer',
+  }),
+  department: one(department, {
+    fields: [meeting.departmentId],
+    references: [department.id],
+  }),
+  account: one(companyAccount, {
+    fields: [meeting.accountId],
+    references: [companyAccount.id],
+  }),
+  lead: one(lead, {
+    fields: [meeting.leadId],
+    references: [lead.id],
+  }),
+  tender: one(tender, {
+    fields: [meeting.tenderId],
+    references: [tender.id],
+  }),
+  participants: many(meetingParticipant),
+  externalParticipants: many(meetingExternalParticipant),
+}))
+
+export const meetingParticipantRelations = relations(
+  meetingParticipant,
+  ({ one }) => ({
+    meeting: one(meeting, {
+      fields: [meetingParticipant.meetingId],
+      references: [meeting.id],
+    }),
+    user: one(user, {
+      fields: [meetingParticipant.userId],
+      references: [user.id],
+    }),
+  }),
+)
+
+export const meetingExternalParticipantRelations = relations(
+  meetingExternalParticipant,
+  ({ one }) => ({
+    meeting: one(meeting, {
+      fields: [meetingExternalParticipant.meetingId],
+      references: [meeting.id],
+    }),
+    contact: one(companyContact, {
+      fields: [meetingExternalParticipant.contactId],
+      references: [companyContact.id],
+    }),
+  }),
+)
+
+export const targetActionTypeRelations = relations(
+  targetActionType,
+  ({ many }) => ({
+    actions: many(targetAction),
+  }),
+)
+
+export const targetActionRelations = relations(targetAction, ({ one }) => ({
+  type: one(targetActionType, {
+    fields: [targetAction.typeId],
+    references: [targetActionType.id],
+  }),
+  responsible: one(user, {
+    fields: [targetAction.responsibleUserId],
+    references: [user.id],
+    relationName: 'targetActionResponsible',
+  }),
+  department: one(department, {
+    fields: [targetAction.departmentId],
+    references: [department.id],
+  }),
+  account: one(companyAccount, {
+    fields: [targetAction.accountId],
+    references: [companyAccount.id],
+  }),
+  lead: one(lead, {
+    fields: [targetAction.leadId],
+    references: [lead.id],
+  }),
+  tender: one(tender, {
+    fields: [targetAction.tenderId],
+    references: [tender.id],
+  }),
+  signal: one(signal, {
+    fields: [targetAction.signalId],
+    references: [signal.id],
   }),
 }))
 
@@ -1192,6 +1672,15 @@ export const leadRelations = relations(lead, ({ one }) => ({
     fields: [lead.industryId],
     references: [industry.id],
   }),
+  source: one(source, {
+    fields: [lead.sourceId],
+    references: [source.id],
+  }),
+  lostReason: one(refusalReason, {
+    fields: [lead.lostReasonId],
+    references: [refusalReason.id],
+    relationName: 'leadLostReason',
+  }),
 }))
 
 export const tenderRelations = relations(tender, ({ one }) => ({
@@ -1217,6 +1706,11 @@ export const tenderRelations = relations(tender, ({ one }) => ({
     fields: [tender.industryId],
     references: [industry.id],
   }),
+  lostReason: one(refusalReason, {
+    fields: [tender.lostReasonId],
+    references: [refusalReason.id],
+    relationName: 'tenderLostReason',
+  }),
 }))
 
 export const signalRelations = relations(signal, ({ one }) => ({
@@ -1237,4 +1731,27 @@ export const signalRelations = relations(signal, ({ one }) => ({
     fields: [signal.industryId],
     references: [industry.id],
   }),
+  signalType: one(signalTypeTable, {
+    fields: [signal.signalTypeId],
+    references: [signalTypeTable.id],
+  }),
 }))
+
+export const contactRoleRelations = relations(contactRole, ({ many }) => ({
+  contacts: many(companyContact),
+}))
+
+export const signalTypeRelations = relations(signalTypeTable, ({ many }) => ({
+  signals: many(signal),
+}))
+
+export const sourceRelations = relations(source, ({ many }) => ({
+  leads: many(lead),
+}))
+
+export const refusalReasonRelations = relations(refusalReason, ({ many }) => ({
+  leads: many(lead, { relationName: 'leadLostReason' }),
+  tenders: many(tender, { relationName: 'tenderLostReason' }),
+}))
+
+export const tagRelations = relations(tag, () => ({}))

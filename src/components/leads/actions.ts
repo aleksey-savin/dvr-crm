@@ -1,5 +1,15 @@
 import { db } from '@/db'
-import { lead, company, department, user, industry } from '@/db/schema'
+import {
+  lead,
+  company,
+  department,
+  user,
+  industry,
+  targetAction,
+  targetActionType,
+  source,
+  refusalReason,
+} from '@/db/schema'
 import type { LeadRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -26,16 +36,32 @@ const leadInputSchema = z.object({
   departmentId: z.string().nullable().optional(),
   responsibleUserId: z.string().nullable().optional(),
   industryId: z.string().nullable().optional(),
-  source: z.string().nullable().optional(),
-  status: z.enum(['new', 'in_progress', 'converted', 'rejected']).default('new'),
+  sourceId: z.string().nullable().optional(),
+  status: z
+    .enum(['new', 'in_progress', 'converted', 'rejected'])
+    .default('new'),
   budget: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
-  lostReason: z.string().nullable().optional(),
+  lostReasonId: z.string().nullable().optional(),
 })
 
 const updateLeadSchema = leadInputSchema.extend({
   id: z.string(),
+})
+
+const updateLeadStatusSchema = z.object({
+  id: z.string(),
+  status: z.enum(['new', 'in_progress', 'rejected']),
+})
+
+const createLeadInitiativeSchema = z.object({
+  id: z.string(),
+})
+
+const rejectLeadSchema = z.object({
+  id: z.string(),
+  lostReasonId: z.string().min(1, 'Выберите причину'),
 })
 
 export const fetchLeads = createServerFn({ method: 'GET' }).handler(
@@ -47,7 +73,10 @@ export const fetchLeads = createServerFn({ method: 'GET' }).handler(
         id: lead.id,
         title: lead.title,
         status: lead.status,
-        source: lead.source,
+        sourceId: lead.sourceId,
+        sourceName: source.name,
+        lostReasonId: lead.lostReasonId,
+        lostReasonName: refusalReason.name,
         budget: lead.budget,
         dueDate: lead.dueDate,
         createdAt: lead.createdAt,
@@ -65,10 +94,13 @@ export const fetchLeads = createServerFn({ method: 'GET' }).handler(
       .leftJoin(department, eq(lead.departmentId, department.id))
       .leftJoin(user, eq(lead.responsibleUserId, user.id))
       .leftJoin(industry, eq(lead.industryId, industry.id))
+      .leftJoin(source, eq(lead.sourceId, source.id))
+      .leftJoin(refusalReason, eq(lead.lostReasonId, refusalReason.id))
       .where(
         and(
           isNull(lead.deletedAt),
-          currentUser?.role === 'admin' || currentUser?.role === 'tender_specialist'
+          currentUser?.role === 'admin' ||
+            currentUser?.role === 'tender_specialist'
             ? undefined
             : currentUser?.departmentId
               ? or(
@@ -83,7 +115,10 @@ export const fetchLeads = createServerFn({ method: 'GET' }).handler(
       id: row.id,
       title: row.title,
       status: row.status as LeadRow['status'],
-      source: row.source,
+      sourceId: row.sourceId,
+      sourceName: row.sourceName ?? null,
+      lostReasonId: row.lostReasonId,
+      lostReasonName: row.lostReasonName ?? null,
       budget: row.budget,
       dueDate: row.dueDate,
       createdAt: row.createdAt,
@@ -126,12 +161,12 @@ export const addLead = createServerFn({ method: 'POST' })
         departmentId: data.departmentId ?? null,
         responsibleUserId: data.responsibleUserId ?? null,
         industryId: data.industryId ?? null,
-        source: data.source ?? null,
+        sourceId: data.sourceId ?? null,
         status: data.status,
         budget: data.budget ?? null,
         description: data.description ?? null,
         dueDate: data.dueDate ?? null,
-        lostReason: data.lostReason ?? null,
+        lostReasonId: data.lostReasonId ?? null,
       })
       .returning({ id: lead.id })
     return { id: inserted.id }
@@ -148,14 +183,87 @@ export const updateLead = createServerFn({ method: 'POST' })
         departmentId: data.departmentId ?? null,
         responsibleUserId: data.responsibleUserId ?? null,
         industryId: data.industryId ?? null,
-        source: data.source ?? null,
+        sourceId: data.sourceId ?? null,
         status: data.status,
         budget: data.budget ?? null,
         description: data.description ?? null,
         dueDate: data.dueDate ?? null,
-        lostReason: data.lostReason ?? null,
+        lostReasonId: data.lostReasonId ?? null,
       })
       .where(eq(lead.id, data.id))
+  })
+
+export const updateLeadStatus = createServerFn({ method: 'POST' })
+  .inputValidator(updateLeadStatusSchema)
+  .handler(async ({ data }) => {
+    const currentUser =
+      data.status === 'in_progress' ? await getCurrentUserWithDeptId() : null
+    if (data.status === 'in_progress' && !currentUser) {
+      throw new Error('Unauthorized')
+    }
+
+    const updatedLeads = await db
+      .update(lead)
+      .set({
+        status: data.status,
+        ...(data.status === 'in_progress'
+          ? { responsibleUserId: currentUser?.id }
+          : {}),
+      })
+      .where(and(eq(lead.id, data.id), isNull(lead.deletedAt)))
+      .returning()
+    const updatedLead = updatedLeads.at(0)
+
+    if (!updatedLead) throw notFound()
+
+    if (data.status === 'in_progress') {
+      try {
+        const type = await db.query.targetActionType.findFirst({
+          where: and(
+            eq(targetActionType.slug, 'lead_qualification'),
+            isNull(targetActionType.deletedAt),
+          ),
+        })
+        if (type) {
+          await db.insert(targetAction).values({
+            typeId: type.id,
+            responsibleUserId: currentUser?.id ?? null,
+            departmentId: updatedLead.departmentId,
+            plannedAt: new Date().toISOString().split('T')[0],
+            completedAt: new Date(),
+            status: 'completed',
+            sourceType: 'lead',
+            sourceId: data.id,
+            leadId: data.id,
+          })
+        }
+      } catch (error) {
+        console.error(
+          'Failed to create lead qualification target action',
+          error,
+        )
+      }
+    }
+
+    return { id: updatedLead.id }
+  })
+
+export const createLeadInitiative = createServerFn({ method: 'POST' })
+  .inputValidator(createLeadInitiativeSchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(lead)
+      .set({ status: 'converted' })
+      .where(and(eq(lead.id, data.id), isNull(lead.deletedAt)))
+  })
+
+export const rejectLead = createServerFn({ method: 'POST' })
+  .inputValidator(rejectLeadSchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(lead)
+      .set({ status: 'rejected', lostReasonId: data.lostReasonId })
+      .where(and(eq(lead.id, data.id), isNull(lead.deletedAt)))
   })
 
 export const softDeleteLead = createServerFn({ method: 'POST' })

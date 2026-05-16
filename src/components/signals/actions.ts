@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { signal, company, department, user, industry } from '@/db/schema'
+import { signal, company, department, user, industry, signalTypeTable } from '@/db/schema'
 import type { SignalRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
@@ -25,13 +25,34 @@ const signalInputSchema = z.object({
   departmentId: z.string().nullable().optional(),
   responsibleUserId: z.string().nullable().optional(),
   industryId: z.string().nullable().optional(),
-  signalType: z.enum(['recommendation', 'news', 'direct_contact', 'other']).default('other'),
-  status: z.enum(['new', 'in_progress', 'converted', 'archived']).default('new'),
+  signalTypeId: z.string().nullable().optional(),
+  status: z
+    .enum(['new', 'in_progress', 'converted', 'archived'])
+    .default('new'),
   rating: z.number().int().min(1).max(5).nullable().optional(),
   description: z.string().nullable().optional(),
 })
 
 const updateSignalSchema = signalInputSchema.extend({ id: z.string() })
+
+const updateSignalStatusSchema = z.object({
+  id: z.string(),
+  status: z.enum(['new', 'in_progress']),
+})
+
+const updateSignalRatingSchema = z.object({
+  id: z.string(),
+  rating: z.number().int().min(1).max(5).nullable(),
+})
+
+const createSignalInitiativeSchema = z.object({
+  id: z.string(),
+})
+
+const archiveSignalSchema = z.object({
+  id: z.string(),
+  reason: z.string().trim().min(1, 'Причина обязательна'),
+})
 
 export const fetchSignals = createServerFn({ method: 'GET' }).handler(
   async (): Promise<SignalRow[]> => {
@@ -42,7 +63,8 @@ export const fetchSignals = createServerFn({ method: 'GET' }).handler(
         id: signal.id,
         title: signal.title,
         status: signal.status,
-        signalType: signal.signalType,
+        signalTypeId: signal.signalTypeId,
+        signalTypeName: signalTypeTable.name,
         rating: signal.rating,
         createdAt: signal.createdAt,
         companyId: signal.companyId,
@@ -59,10 +81,12 @@ export const fetchSignals = createServerFn({ method: 'GET' }).handler(
       .leftJoin(department, eq(signal.departmentId, department.id))
       .leftJoin(user, eq(signal.responsibleUserId, user.id))
       .leftJoin(industry, eq(signal.industryId, industry.id))
+      .leftJoin(signalTypeTable, eq(signal.signalTypeId, signalTypeTable.id))
       .where(
         and(
           isNull(signal.deletedAt),
-          currentUser?.role === 'admin' || currentUser?.role === 'tender_specialist'
+          currentUser?.role === 'admin' ||
+            currentUser?.role === 'tender_specialist'
             ? undefined
             : currentUser?.departmentId
               ? or(
@@ -77,7 +101,8 @@ export const fetchSignals = createServerFn({ method: 'GET' }).handler(
       id: row.id,
       title: row.title,
       status: row.status as SignalRow['status'],
-      signalType: row.signalType as SignalRow['signalType'],
+      signalTypeId: row.signalTypeId,
+      signalTypeName: row.signalTypeName ?? null,
       rating: row.rating,
       createdAt: row.createdAt,
       companyId: row.companyId,
@@ -102,6 +127,7 @@ export const fetchSignal = createServerFn({ method: 'GET' })
         department: { columns: { id: true, name: true } },
         responsible: { columns: { id: true, name: true } },
         industry: { columns: { id: true, name: true } },
+        signalType: { columns: { id: true, name: true } },
       },
     })
     if (!row) throw notFound()
@@ -119,7 +145,7 @@ export const addSignal = createServerFn({ method: 'POST' })
         departmentId: data.departmentId ?? null,
         responsibleUserId: data.responsibleUserId ?? null,
         industryId: data.industryId ?? null,
-        signalType: data.signalType,
+        signalTypeId: data.signalTypeId ?? null,
         status: data.status,
         rating: data.rating ?? null,
         description: data.description ?? null,
@@ -139,12 +165,69 @@ export const updateSignal = createServerFn({ method: 'POST' })
         departmentId: data.departmentId ?? null,
         responsibleUserId: data.responsibleUserId ?? null,
         industryId: data.industryId ?? null,
-        signalType: data.signalType,
+        signalTypeId: data.signalTypeId ?? null,
         status: data.status,
         rating: data.rating ?? null,
         description: data.description ?? null,
       })
       .where(eq(signal.id, data.id))
+  })
+
+export const updateSignalStatus = createServerFn({ method: 'POST' })
+  .inputValidator(updateSignalStatusSchema)
+  .handler(async ({ data }) => {
+    const currentUser =
+      data.status === 'in_progress' ? await getCurrentUserWithDeptId() : null
+    if (data.status === 'in_progress' && !currentUser) {
+      throw new Error('Unauthorized')
+    }
+
+    await db
+      .update(signal)
+      .set({
+        status: data.status,
+        responsibleUserId: currentUser?.id,
+      })
+      .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
+  })
+
+export const createSignalInitiative = createServerFn({ method: 'POST' })
+  .inputValidator(createSignalInitiativeSchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(signal)
+      .set({ status: 'converted' })
+      .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
+  })
+
+export const archiveSignal = createServerFn({ method: 'POST' })
+  .inputValidator(archiveSignalSchema)
+  .handler(async ({ data }) => {
+    const current = await db.query.signal.findFirst({
+      where: and(eq(signal.id, data.id), isNull(signal.deletedAt)),
+      columns: { description: true },
+    })
+
+    if (!current) throw notFound()
+
+    const archiveNote = `Причина архивации: ${data.reason}`
+    const description = current.description
+      ? `${current.description}\n\n${archiveNote}`
+      : archiveNote
+
+    await db
+      .update(signal)
+      .set({ status: 'archived', description })
+      .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
+  })
+
+export const updateSignalRating = createServerFn({ method: 'POST' })
+  .inputValidator(updateSignalRatingSchema)
+  .handler(async ({ data }) => {
+    await db
+      .update(signal)
+      .set({ rating: data.rating })
+      .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
   })
 
 export const softDeleteSignal = createServerFn({ method: 'POST' })
@@ -156,18 +239,30 @@ export const softDeleteSignal = createServerFn({ method: 'POST' })
       .where(eq(signal.id, data.id))
   })
 
-export const fetchCompanies = createServerFn({ method: 'GET' }).handler(async () =>
-  db.select({ id: company.id, name: company.name }).from(company).orderBy(company.name),
+export const fetchCompanies = createServerFn({ method: 'GET' }).handler(
+  async () =>
+    db
+      .select({ id: company.id, name: company.name })
+      .from(company)
+      .orderBy(company.name),
 )
 
-export const fetchDepartments = createServerFn({ method: 'GET' }).handler(async () =>
-  db.select({ id: department.id, name: department.name }).from(department).orderBy(department.name),
+export const fetchDepartments = createServerFn({ method: 'GET' }).handler(
+  async () =>
+    db
+      .select({ id: department.id, name: department.name })
+      .from(department)
+      .orderBy(department.name),
 )
 
 export const fetchUsers = createServerFn({ method: 'GET' }).handler(async () =>
   db.select({ id: user.id, name: user.name }).from(user).orderBy(user.name),
 )
 
-export const fetchIndustries = createServerFn({ method: 'GET' }).handler(async () =>
-  db.select({ id: industry.id, name: industry.name }).from(industry).orderBy(industry.name),
+export const fetchIndustries = createServerFn({ method: 'GET' }).handler(
+  async () =>
+    db
+      .select({ id: industry.id, name: industry.name })
+      .from(industry)
+      .orderBy(industry.name),
 )

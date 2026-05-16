@@ -30,7 +30,8 @@ import {
   fetchUsers,
   fetchIndustries,
 } from '@/components/signals/actions'
-import type { SelectSignal } from '@/db/types'
+import { fetchSignalTypes } from '@/components/signal-types/actions'
+import type { SelectSignal, SelectSignalType } from '@/db/types'
 import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
 
 type IndustryOption = { id: string; name: string }
@@ -41,7 +42,7 @@ const formSchema = z.object({
   departmentId: z.string().nullable(),
   responsibleUserId: z.string().nullable(),
   industryId: z.string().nullable(),
-  signalType: z.enum(['recommendation', 'news', 'direct_contact', 'other']),
+  signalTypeId: z.string().nullable(),
   status: z.enum(['new', 'in_progress', 'converted', 'archived']),
   rating: z.number().int().min(1).max(5).nullable(),
   description: z.string().nullable(),
@@ -60,12 +61,14 @@ export function SignalForm({
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [industries, setIndustries] = React.useState<IndustryOption[]>([])
+  const [signalTypes, setSignalTypes] = React.useState<SelectSignalType[]>([])
 
   React.useEffect(() => {
     fetchCompanies().then(setCompanies).catch(console.error)
     fetchDepartments().then(setDepartments).catch(console.error)
     fetchUsers().then(setUsers).catch(console.error)
     fetchIndustries().then(setIndustries).catch(console.error)
+    fetchSignalTypes().then(setSignalTypes).catch(console.error)
   }, [])
 
   const form = useForm({
@@ -75,8 +78,8 @@ export function SignalForm({
       departmentId: item?.departmentId ?? null,
       responsibleUserId: item?.responsibleUserId ?? null,
       industryId: item?.industryId ?? null,
-      signalType: (item?.signalType as z.infer<typeof formSchema>['signalType']) ?? 'other',
-      status: (item?.status as z.infer<typeof formSchema>['status']) ?? 'new',
+      signalTypeId: item?.signalTypeId ?? null,
+      status: item ? item.status : 'new',
       rating: item?.rating ?? null,
       description: item?.description ?? null,
     },
@@ -88,7 +91,7 @@ export function SignalForm({
         departmentId: value.departmentId || null,
         responsibleUserId: value.responsibleUserId || null,
         industryId: value.industryId || null,
-        signalType: value.signalType,
+        signalTypeId: value.signalTypeId || null,
         status: value.status,
         rating: value.rating ?? null,
         description: value.description || null,
@@ -118,7 +121,11 @@ export function SignalForm({
     >
       <form.Field name="title">
         {(field) => (
-          <Field data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}>
+          <Field
+            data-invalid={
+              field.state.meta.isTouched && !field.state.meta.isValid
+            }
+          >
             <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
             <Input
               id={field.name}
@@ -147,7 +154,11 @@ export function SignalForm({
               <ComboboxContent>
                 <ComboboxEmpty>Компании не найдены</ComboboxEmpty>
                 <ComboboxList>
-                  {(c) => <ComboboxItem key={c.id} value={c}>{c.name}</ComboboxItem>}
+                  {(c) => (
+                    <ComboboxItem key={c.id} value={c}>
+                      {c.name}
+                    </ComboboxItem>
+                  )}
                 </ComboboxList>
               </ComboboxContent>
             </Combobox>
@@ -156,20 +167,26 @@ export function SignalForm({
       </form.Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <form.Field name="signalType">
+        <form.Field name="signalTypeId">
           {(field) => (
             <Field>
               <FieldLabel>Тип сигнала</FieldLabel>
               <Select
-                value={field.state.value}
-                onValueChange={(v) => field.handleChange(v as typeof field.state.value)}
+                value={field.state.value ?? NULLABLE_PLACEHOLDER}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбран" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recommendation">Рекомендация</SelectItem>
-                  <SelectItem value="news">Новость</SelectItem>
-                  <SelectItem value="direct_contact">Прямой контакт</SelectItem>
-                  <SelectItem value="other">Другое</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
+                  {signalTypes.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </Field>
@@ -182,14 +199,26 @@ export function SignalForm({
               <FieldLabel>Статус</FieldLabel>
               <Select
                 value={field.state.value}
-                onValueChange={(v) => field.handleChange(v as typeof field.state.value)}
+                onValueChange={(v) =>
+                  field.handleChange(v as typeof field.state.value)
+                }
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">Новый</SelectItem>
                   <SelectItem value="in_progress">В работе</SelectItem>
-                  <SelectItem value="converted">Конвертирован</SelectItem>
-                  <SelectItem value="archived">Архив</SelectItem>
+                  {field.state.value === 'converted' && (
+                    <SelectItem value="converted" disabled>
+                      Конвертирован
+                    </SelectItem>
+                  )}
+                  {field.state.value === 'archived' && (
+                    <SelectItem value="archived" disabled>
+                      Архив
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </Field>
@@ -204,13 +233,21 @@ export function SignalForm({
               <FieldLabel>Отрасль</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрана" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрана</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
                   {industries.map((i) => (
-                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -224,13 +261,21 @@ export function SignalForm({
               <FieldLabel>Подразделение</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
-                onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
               >
-                <SelectTrigger><SelectValue placeholder="Не выбрано" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрано" />
+                </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбрано</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрано
+                  </SelectItem>
                   {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -245,13 +290,19 @@ export function SignalForm({
             <FieldLabel>Ответственный</FieldLabel>
             <Select
               value={field.state.value ?? NULLABLE_PLACEHOLDER}
-              onValueChange={(v) => field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)}
+              onValueChange={(v) =>
+                field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+              }
             >
-              <SelectTrigger><SelectValue placeholder="Не выбран" /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue placeholder="Не выбран" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
                 {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

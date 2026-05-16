@@ -52,11 +52,6 @@ const navMain = [
         title: 'Клиенты',
         url: '/clients',
       },
-
-      {
-        title: 'Задачи',
-        url: '/todos',
-      },
     ],
   },
   {
@@ -77,8 +72,8 @@ const navMain = [
       },
     ],
   },
-  /* {
-    title: 'AI-сервисы',
+  {
+    title: 'Активность',
     url: '#',
     items: [
       {
@@ -86,15 +81,11 @@ const navMain = [
         url: '/meetings',
       },
       {
-        title: 'Мониторинг активности',
-        url: '/clients-activity',
-      },
-      {
-        title: 'Отслеживание отзывов',
-        url: '/tracking-reviews',
+        title: 'Задачи',
+        url: '/todos',
       },
     ],
-  }, */
+  },
   /* {
     title: 'Моя компания',
     url: '#',
@@ -120,6 +111,30 @@ const navMain = [
       {
         title: 'Отрасли',
         url: '/industries',
+      },
+      {
+        title: 'Целевые действия',
+        url: '/target-action-types',
+      },
+      {
+        title: 'Роли контактов',
+        url: '/contact-roles',
+      },
+      {
+        title: 'Типы сигналов',
+        url: '/signal-types',
+      },
+      {
+        title: 'Источники',
+        url: '/sources',
+      },
+      {
+        title: 'Причины отказа',
+        url: '/refusal-reasons',
+      },
+      {
+        title: 'Теги',
+        url: '/tags',
       },
       {
         title: 'Пользователи',

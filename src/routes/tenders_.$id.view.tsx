@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { EditIcon, Trash2Icon, FileTextIcon, ExternalLinkIcon } from 'lucide-react'
+import { EditIcon, Trash2Icon, ExternalLinkIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,7 +24,10 @@ const STATUS_LABELS: Record<TenderStatus, string> = {
   archived: 'Архив',
 }
 
-const STATUS_VARIANTS: Record<TenderStatus, 'secondary' | 'warning' | 'default' | 'success' | 'destructive'> = {
+const STATUS_VARIANTS: Record<
+  TenderStatus,
+  'secondary' | 'warning' | 'default' | 'success' | 'destructive'
+> = {
   new: 'secondary',
   evaluation: 'warning',
   approval: 'warning',
@@ -36,7 +39,13 @@ const STATUS_VARIANTS: Record<TenderStatus, 'secondary' | 'warning' | 'default' 
   archived: 'secondary',
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -52,35 +61,19 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <FileTextIcon className="size-6 text-muted-foreground" />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold">{tender.title}</h1>
-              {tender.url && (
-                <a href={tender.url} target="_blank" rel="noopener noreferrer">
-                  <ExternalLinkIcon className="size-4 text-muted-foreground hover:text-foreground" />
-                </a>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">Тендер</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/tenders/$id/update" params={{ id: tender.id }}>
-              <EditIcon className="mr-1.5 size-4" />
-              Редактировать
-            </Link>
-          </Button>
-          <Button asChild variant="destructive" size="sm">
-            <Link to="/tenders/$id/delete" params={{ id: tender.id }}>
-              <Trash2Icon className="mr-1.5 size-4" />
-              Удалить
-            </Link>
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link to="/tenders/$id/update" params={{ id: tender.id }}>
+            <EditIcon className="mr-1.5 size-4" />
+            Редактировать
+          </Link>
+        </Button>
+        <Button asChild variant="destructive" size="sm">
+          <Link to="/tenders/$id/delete" params={{ id: tender.id }}>
+            <Trash2Icon className="mr-1.5 size-4" />
+            Удалить
+          </Link>
+        </Button>
       </div>
 
       <Separator />
@@ -107,27 +100,35 @@ function RouteComponent() {
               </Field>
 
               <Field label="Отрасль">
-                {tender.industry?.name ?? <span className="text-muted-foreground">—</span>}
+                {tender.industry?.name ?? (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Field label="Площадка">
-                {tender.platform ?? <span className="text-muted-foreground">—</span>}
+                {tender.platform ?? (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Field label="Сумма">
-                {tender.amount
-                  ? new Intl.NumberFormat('ru-RU', {
-                      style: 'currency',
-                      currency: 'RUB',
-                      maximumFractionDigits: 0,
-                    }).format(Number(tender.amount))
-                  : <span className="text-muted-foreground">—</span>}
+                {tender.amount ? (
+                  new Intl.NumberFormat('ru-RU', {
+                    style: 'currency',
+                    currency: 'RUB',
+                    maximumFractionDigits: 0,
+                  }).format(Number(tender.amount))
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Field label="Дедлайн">
-                {tender.deadline
-                  ? new Date(tender.deadline).toLocaleDateString('ru-RU')
-                  : <span className="text-muted-foreground">—</span>}
+                {tender.deadline ? (
+                  new Date(tender.deadline).toLocaleDateString('ru-RU')
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               {tender.url && (
@@ -152,7 +153,9 @@ function RouteComponent() {
                 <CardTitle className="text-base">Описание</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{tender.description}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {tender.description}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -161,11 +164,15 @@ function RouteComponent() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {tender.status === 'lost' ? 'Причина проигрыша' : 'Причина отказа'}
+                  {tender.status === 'lost'
+                    ? 'Причина проигрыша'
+                    : 'Причина отказа'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{tender.lostReason}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {tender.lostReason}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -178,19 +185,27 @@ function RouteComponent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Field label="Статус">
-                <Badge variant={STATUS_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>
+                <Badge variant={STATUS_VARIANTS[status]}>
+                  {STATUS_LABELS[status]}
+                </Badge>
               </Field>
 
               <Field label="Подразделение">
-                {tender.department?.name ?? <span className="text-muted-foreground">—</span>}
+                {tender.department?.name ?? (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Field label="Ответственный">
-                {tender.responsible?.name ?? <span className="text-muted-foreground">—</span>}
+                {tender.responsible?.name ?? (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Field label="Согласующий">
-                {tender.approver?.name ?? <span className="text-muted-foreground">—</span>}
+                {tender.approver?.name ?? (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </Field>
 
               <Separator />

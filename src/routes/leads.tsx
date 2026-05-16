@@ -1,24 +1,18 @@
 import * as React from 'react'
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { ZapIcon, PlusIcon } from 'lucide-react'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { ZapIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/tables/lead-cols'
+import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
+import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchLeads } from '@/components/leads/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import type { LeadStatus } from '@/types'
 
 export const Route = createFileRoute('/leads')({
@@ -26,43 +20,63 @@ export const Route = createFileRoute('/leads')({
   component: RouteComponent,
 })
 
-const STATUS_LABELS: Record<LeadStatus | 'all', string> = {
-  all: 'Все статусы',
-  new: 'Новый',
-  in_progress: 'В работе',
-  converted: 'Конвертирован',
-  rejected: 'Отклонён',
-}
+const DEFAULT_LEAD_STATUS_FILTER: LeadStatus[] = ['new', 'in_progress']
+
+const STATUS_OPTIONS: Array<TableFilterOption<LeadStatus>> = [
+  { value: 'new', label: 'Новый' },
+  { value: 'in_progress', label: 'В работе' },
+  { value: 'converted', label: 'Конвертирован' },
+  { value: 'rejected', label: 'Отклонён' },
+]
 
 function RouteComponent() {
   const leads = Route.useLoaderData()
 
-  const [statusFilter, setStatusFilter] = React.useState<LeadStatus | 'all'>('all')
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string>('all')
-  const [industryFilter, setIndustryFilter] = React.useState<string>('all')
+  const [statusFilter, setStatusFilter] = React.useState<LeadStatus[]>(
+    DEFAULT_LEAD_STATUS_FILTER,
+  )
+  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
+  const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
 
-  const responsibles = React.useMemo(() => {
-    const names = leads
-      .map((l) => l.responsibleUserName)
-      .filter((n): n is string => n !== null)
-    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b, 'ru'))
-  }, [leads])
+  const responsibleOptions: Array<TableFilterOption> = Array.from(
+    new Set(
+      leads
+        .map((l) => l.responsibleUserName)
+        .filter((n): n is string => n !== null),
+    ),
+  )
+    .sort((a, b) => a.localeCompare(b, 'ru'))
+    .map((name) => ({ value: name, label: name }))
 
-  const industries = React.useMemo(() => {
-    const entries = leads
-      .filter((l) => l.industryId !== null && l.industryName !== null)
-      .map((l) => ({ id: l.industryId!, name: l.industryName! }))
+  const industryOptions: Array<TableFilterOption> = (() => {
     const seen = new Map<string, string>()
-    for (const e of entries) seen.set(e.id, e.name)
+    for (const l of leads) {
+      if (l.industryId !== null && l.industryName !== null)
+        seen.set(l.industryId, l.industryName)
+    }
     return Array.from(seen.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-  }, [leads])
+      .map(([id, name]) => ({ value: id, label: name }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+  })()
+
+  const isDefaultStatus =
+    statusFilter.length === DEFAULT_LEAD_STATUS_FILTER.length &&
+    DEFAULT_LEAD_STATUS_FILTER.every((s) => statusFilter.includes(s))
+  const hasFilters = !isDefaultStatus || responsibleFilter.length > 0 || industryFilter.length > 0
 
   const filtered = leads.filter((l) => {
-    if (statusFilter !== 'all' && l.status !== statusFilter) return false
-    if (responsibleFilter !== 'all' && l.responsibleUserName !== responsibleFilter) return false
-    if (industryFilter !== 'all' && l.industryId !== industryFilter) return false
+    if (statusFilter.length > 0 && !statusFilter.includes(l.status)) return false
+    if (
+      responsibleFilter.length > 0 &&
+      (!l.responsibleUserName ||
+        !responsibleFilter.includes(l.responsibleUserName))
+    )
+      return false
+    if (
+      industryFilter.length > 0 &&
+      (!l.industryId || !industryFilter.includes(l.industryId))
+    )
+      return false
     return true
   })
 
@@ -76,14 +90,6 @@ function RouteComponent() {
             </EmptyMedia>
           </EmptyHeader>
           <EmptyDescription>Лидов пока нет</EmptyDescription>
-          <EmptyContent>
-            <Button asChild>
-              <Link to="/leads/new" className="flex items-center gap-2">
-                <PlusIcon className="size-4" />
-                Создать
-              </Link>
-            </Button>
-          </EmptyContent>
         </Empty>
       ) : (
         <DataTable
@@ -91,54 +97,47 @@ function RouteComponent() {
           data={filtered}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
-              <Select
+              <MultiFilterCombobox
+                options={STATUS_OPTIONS}
                 value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v as LeadStatus | 'all')}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(STATUS_LABELS) as Array<keyof typeof STATUS_LABELS>).map((k) => (
-                    <SelectItem key={k} value={k}>{STATUS_LABELS[k]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={setStatusFilter}
+                placeholder="Статусы"
+                emptyText="Статусы не найдены"
+              />
 
-              {responsibles.length > 0 && (
-                <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Все ответственные" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все ответственные</SelectItem>
-                    {responsibles.map((r) => (
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {responsibleOptions.length > 0 && (
+                <MultiFilterCombobox
+                  options={responsibleOptions}
+                  value={responsibleFilter}
+                  onValueChange={setResponsibleFilter}
+                  placeholder="Ответственные"
+                  emptyText="Ответственные не найдены"
+                />
               )}
 
-              {industries.length > 0 && (
-                <Select value={industryFilter} onValueChange={setIndustryFilter}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Все отрасли" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все отрасли</SelectItem>
-                    {industries.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {industryOptions.length > 0 && (
+                <MultiFilterCombobox
+                  options={industryOptions}
+                  value={industryFilter}
+                  onValueChange={setIndustryFilter}
+                  placeholder="Отрасли"
+                  emptyText="Отрасли не найдены"
+                />
               )}
-
-              <Button asChild className="ml-auto">
-                <Link to="/leads/new" className="flex items-center gap-2">
-                  <PlusIcon className="size-4" />
-                  Создать
-                </Link>
-              </Button>
+              {hasFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStatusFilter([...DEFAULT_LEAD_STATUS_FILTER])
+                    setResponsibleFilter([])
+                    setIndustryFilter([])
+                  }}
+                >
+                  <XIcon className="size-4" />
+                  Сбросить
+                </Button>
+              )}
             </div>
           }
         />
