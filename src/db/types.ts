@@ -35,12 +35,17 @@ import type {
   meetingExternalParticipant,
   targetActionType,
   targetAction,
+  proposal,
   apiKey,
   clientClassificationSettings,
   changelogRelease,
   lead,
   tender,
   signal,
+  pipeline,
+  pipelineStage,
+  pipelineDepartment,
+  initiative,
 } from './schema'
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -266,6 +271,14 @@ export type UpdateTargetAction = Partial<
   Omit<InsertTargetAction, 'id' | 'createdAt' | 'updatedAt'>
 >
 
+// ─── Proposal (Коммерческое предложение) ─────────────────────────────────────
+
+export type SelectProposal = InferSelectModel<typeof proposal>
+export type InsertProposal = InferInsertModel<typeof proposal>
+export type UpdateProposal = Partial<
+  Omit<InsertProposal, 'id' | 'createdAt' | 'updatedAt'>
+>
+
 // ─── API Key ─────────────────────────────────────────────────────────────────
 
 export type SelectApiKey = InferSelectModel<typeof apiKey>
@@ -344,4 +357,27 @@ export type SelectSignal = InferSelectModel<typeof signal>
 export type InsertSignal = InferInsertModel<typeof signal>
 export type UpdateSignal = Partial<
   Omit<InsertSignal, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+// ─── Pipeline & Initiative ────────────────────────────────────────────────────
+
+export type SelectPipeline = InferSelectModel<typeof pipeline>
+export type InsertPipeline = InferInsertModel<typeof pipeline>
+export type UpdatePipeline = Partial<
+  Omit<InsertPipeline, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectPipelineStage = InferSelectModel<typeof pipelineStage>
+export type InsertPipelineStage = InferInsertModel<typeof pipelineStage>
+export type UpdatePipelineStage = Partial<
+  Omit<InsertPipelineStage, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectPipelineDepartment = InferSelectModel<typeof pipelineDepartment>
+export type InsertPipelineDepartment = InferInsertModel<typeof pipelineDepartment>
+
+export type SelectInitiative = InferSelectModel<typeof initiative>
+export type InsertInitiative = InferInsertModel<typeof initiative>
+export type UpdateInitiative = Partial<
+  Omit<InsertInitiative, 'id' | 'createdAt' | 'updatedAt'>
 >

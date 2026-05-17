@@ -2,10 +2,11 @@ import * as React from 'react'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { RadioIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
-import { columns } from '@/components/tables/signal-cols'
+import { getColumns } from '@/components/tables/signal-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchSignals } from '@/components/signals/actions'
+import { fetchPipelines } from '@/components/pipelines/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -16,7 +17,7 @@ import {
 import type { SignalStatus } from '@/types'
 
 export const Route = createFileRoute('/signals')({
-  loader: () => fetchSignals(),
+  loader: () => Promise.all([fetchSignals(), fetchPipelines()]),
   component: RouteComponent,
 })
 
@@ -28,7 +29,8 @@ const STATUS_OPTIONS: Array<TableFilterOption<SignalStatus>> = [
 ]
 
 function RouteComponent() {
-  const signals = Route.useLoaderData()
+  const [signals, pipelines] = Route.useLoaderData()
+  const columns = getColumns(pipelines)
 
   const [statusFilter, setStatusFilter] = React.useState<SignalStatus[]>([])
   const [typeFilter, setTypeFilter] = React.useState<string[]>([])

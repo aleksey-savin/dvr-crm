@@ -1,10 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { EditIcon, Trash2Icon } from 'lucide-react'
+import * as React from 'react'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { CalendarSyncIcon, EditIcon, Trash2Icon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { fetchMeeting } from '@/components/meetings/actions'
+import { RescheduleMeetingDialog } from '@/components/meetings/reschedule-meeting-dialog'
 import type { MeetingStatus, MeetingType } from '@/types'
 
 export const Route = createFileRoute('/meetings_/$id/view')({
@@ -16,15 +18,17 @@ const STATUS_LABELS: Record<MeetingStatus, string> = {
   scheduled: 'Запланирована',
   completed: 'Проведена',
   cancelled: 'Отменена',
+  rescheduled: 'Перенесена',
 }
 
 const STATUS_VARIANTS: Record<
   MeetingStatus,
-  'default' | 'success' | 'destructive'
+  'default' | 'success' | 'destructive' | 'warning'
 > = {
   scheduled: 'default',
   completed: 'success',
   cancelled: 'destructive',
+  rescheduled: 'warning',
 }
 
 const TYPE_LABELS: Record<MeetingType, string> = {
@@ -49,6 +53,8 @@ function InfoField({
 
 function RouteComponent() {
   const meeting = Route.useLoaderData()
+  const router = useRouter()
+  const [rescheduleOpen, setRescheduleOpen] = React.useState(false)
 
   const formatDateTime = (d: Date | null | string | undefined) => {
     if (!d) return '—'
@@ -74,6 +80,16 @@ function RouteComponent() {
           </div>
         </div>
         <div className="flex gap-2">
+          {meeting.status === 'scheduled' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRescheduleOpen(true)}
+            >
+              <CalendarSyncIcon className="mr-1.5 size-4" />
+              Перенести
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm">
             <Link to="/meetings/$id/update" params={{ id: meeting.id }}>
               <EditIcon className="mr-1.5 size-4" />
@@ -88,6 +104,13 @@ function RouteComponent() {
           </Button>
         </div>
       </div>
+
+      <RescheduleMeetingDialog
+        meetingId={meeting.id}
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        onRescheduled={() => router.invalidate()}
+      />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>

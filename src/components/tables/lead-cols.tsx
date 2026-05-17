@@ -1,14 +1,12 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Link, useRouter } from '@tanstack/react-router'
+import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { ArrowUpDown, PlusIcon, PlayIcon, XCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
-import {
-  createLeadInitiative,
-  rejectLead,
-  updateLeadStatus,
-} from '@/components/leads/actions'
+import { rejectLead, updateLeadStatus } from '@/components/leads/actions'
+import { convertLeadToInitiative } from '@/components/initiatives/actions'
+import { ConvertToInitiativeDialog } from '@/components/initiatives/convert-to-initiative-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-import type { LeadRow, LeadStatus } from '@/types'
+import type { LeadRow, LeadStatus, PipelineWithStages } from '@/types'
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
   new: 'Новый',
@@ -86,35 +84,66 @@ function StartLeadWorkAction({ lead }: { lead: LeadRow }) {
   )
 }
 
-function CreateLeadInitiativeAction({ lead }: { lead: LeadRow }) {
+function CreateLeadInitiativeAction({
+  lead,
+  pipelines,
+}: {
+  lead: LeadRow
+  pipelines: PipelineWithStages[]
+}) {
   const router = useRouter()
-  const [isPending, setIsPending] = React.useState(false)
+  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = React.useState(false)
 
-  const handleCreateInitiative = async () => {
-    setIsPending(true)
-    try {
-      await createLeadInitiative({ data: { id: lead.id } })
-      toast.success('Инициатива будет создана позже, лид конвертирован')
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось конвертировать лид')
-    } finally {
-      setIsPending(false)
-    }
+  const handleConvert = ({
+    pipelineId,
+    stageId,
+  }: {
+    pipelineId: string
+    stageId: string
+  }) =>
+    convertLeadToInitiative({
+      data: {
+        leadId: lead.id,
+        title: lead.title,
+        pipelineId,
+        stageId,
+        companyId: lead.companyId,
+        departmentId: lead.departmentId,
+        responsibleUserId: lead.responsibleUserId,
+        budget: lead.budget,
+        dueDate: lead.dueDate,
+      },
+    })
+
+  const handleSuccess = () => {
+    setIsOpen(false)
+    void router.invalidate()
+    void navigate({ to: '/initiatives' })
   }
 
   if (lead.status !== 'in_progress') return null
 
   return (
-    <Button
-      variant="outline"
-      size="xs"
-      disabled={isPending}
-      onClick={() => void handleCreateInitiative()}
-    >
-      <PlusIcon className="size-3" />
-      Инициатива
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="xs"
+        onClick={() => setIsOpen(true)}
+      >
+        <PlusIcon className="size-3" />
+        Инициатива
+      </Button>
+      <ConvertToInitiativeDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        pipelines={pipelines}
+        title="Конвертация лида в инициативу"
+        description={lead.title ? `Лид «${lead.title}»` : 'Создание инициативы на основе лида'}
+        onConvert={handleConvert}
+        onSuccess={handleSuccess}
+      />
+    </>
   )
 }
 
@@ -134,7 +163,7 @@ function RejectLeadAction({ lead }: { lead: LeadRow }) {
     setIsPending(true)
     try {
       await rejectLead({
-        data: { id: lead.id, reason: trimmedReason },
+        data: { id: lead.id, lostReasonId: trimmedReason },
       })
       toast.success('Лид отклонён')
       setOpen(false)
@@ -196,7 +225,10 @@ function RejectLeadAction({ lead }: { lead: LeadRow }) {
   )
 }
 
-export const columns: ColumnDef<LeadRow>[] = [
+export function getColumns(
+  pipelines: PipelineWithStages[],
+): ColumnDef<LeadRow>[] {
+  return [
   {
     accessorKey: 'title',
     header: ({ column }) => (
@@ -241,10 +273,10 @@ export const columns: ColumnDef<LeadRow>[] = [
       ),
   },
   {
-    accessorKey: 'source',
+    accessorKey: 'sourceName',
     header: 'Источник',
     cell: ({ row }) =>
-      row.original.source ?? <span className="text-muted-foreground">—</span>,
+      row.original.sourceName ?? <span className="text-muted-foreground">—</span>,
   },
   {
     accessorKey: 'budget',
@@ -314,9 +346,10 @@ export const columns: ColumnDef<LeadRow>[] = [
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-1">
         <StartLeadWorkAction lead={row.original} />
-        <CreateLeadInitiativeAction lead={row.original} />
+        <CreateLeadInitiativeAction lead={row.original} pipelines={pipelines} />
         <RejectLeadAction lead={row.original} />
       </div>
     ),
   },
 ]
+}

@@ -1,14 +1,19 @@
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { EditIcon, Trash2Icon } from 'lucide-react'
+import * as React from 'react'
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { EditIcon, GitMergeIcon, Trash2Icon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { fetchLead } from '@/components/leads/actions'
+import { convertLeadToInitiative } from '@/components/initiatives/actions'
+import { fetchPipelines } from '@/components/pipelines/actions'
+import { ConvertToInitiativeDialog } from '@/components/initiatives/convert-to-initiative-dialog'
 import type { LeadStatus } from '@/types'
 
 export const Route = createFileRoute('/leads_/$id/view')({
-  loader: ({ params }) => fetchLead({ data: params }),
+  loader: ({ params }) =>
+    Promise.all([fetchLead({ data: params }), fetchPipelines()]),
   component: RouteComponent,
 })
 
@@ -45,13 +50,53 @@ function Field({
 }
 
 function RouteComponent() {
-  const lead = Route.useLoaderData()
+  const [lead, pipelines] = Route.useLoaderData()
   const router = useRouter()
+  const navigate = useNavigate()
   const status = lead.status as LeadStatus
+  const [isConverting, setIsConverting] = React.useState(false)
+
+  const handleConvert = ({
+    pipelineId,
+    stageId,
+  }: {
+    pipelineId: string
+    stageId: string
+  }) =>
+    convertLeadToInitiative({
+      data: {
+        leadId: lead.id,
+        title: lead.title,
+        pipelineId,
+        stageId,
+        companyId: lead.companyId,
+        departmentId: lead.departmentId,
+        responsibleUserId: lead.responsibleUserId,
+        budget: lead.budget,
+        dueDate: lead.dueDate,
+        description: lead.description,
+      },
+    })
+
+  const handleConvertSuccess = () => {
+    setIsConverting(false)
+    void router.invalidate()
+    void navigate({ to: '/initiatives' })
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-end gap-2">
+        {status !== 'converted' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsConverting(true)}
+          >
+            <GitMergeIcon className="mr-1.5 size-4" />
+            Конвертировать в инициативу
+          </Button>
+        )}
         <Button asChild variant="outline" size="sm">
           <Link to="/leads/$id/update" params={{ id: lead.id }}>
             <EditIcon className="mr-1.5 size-4" />
@@ -96,7 +141,7 @@ function RouteComponent() {
               </Field>
 
               <Field label="Источник">
-                {lead.source ?? (
+                {lead.source?.name ?? (
                   <span className="text-muted-foreground">—</span>
                 )}
               </Field>
@@ -142,7 +187,7 @@ function RouteComponent() {
                 <CardTitle className="text-base">Причина отказа</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{lead.lostReason}</p>
+                <p className="whitespace-pre-wrap text-sm">{lead.lostReason.name}</p>
               </CardContent>
             </Card>
           )}
@@ -191,6 +236,18 @@ function RouteComponent() {
           ← Назад
         </Button>
       </div>
+
+      <ConvertToInitiativeDialog
+        open={isConverting}
+        onOpenChange={setIsConverting}
+        pipelines={pipelines}
+        title="Конвертация лида в инициативу"
+        description={
+          lead.title ? `Лид «${lead.title}»` : 'Создание инициативы на основе лида'
+        }
+        onConvert={handleConvert}
+        onSuccess={handleConvertSuccess}
+      />
     </div>
   )
 }

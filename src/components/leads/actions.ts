@@ -55,10 +55,6 @@ const updateLeadStatusSchema = z.object({
   status: z.enum(['new', 'in_progress', 'rejected']),
 })
 
-const createLeadInitiativeSchema = z.object({
-  id: z.string(),
-})
-
 const rejectLeadSchema = z.object({
   id: z.string(),
   lostReasonId: z.string().min(1, 'Выберите причину'),
@@ -144,6 +140,8 @@ export const fetchLead = createServerFn({ method: 'GET' })
         department: { columns: { id: true, name: true } },
         responsible: { columns: { id: true, name: true } },
         industry: { columns: { id: true, name: true } },
+        source: { columns: { id: true, name: true } },
+        lostReason: { columns: { id: true, name: true } },
       },
     })
     if (!row) throw notFound()
@@ -216,54 +214,45 @@ export const updateLeadStatus = createServerFn({ method: 'POST' })
 
     if (!updatedLead) throw notFound()
 
-    if (data.status === 'in_progress') {
-      try {
-        const type = await db.query.targetActionType.findFirst({
-          where: and(
-            eq(targetActionType.slug, 'lead_qualification'),
-            isNull(targetActionType.deletedAt),
-          ),
-        })
-        if (type) {
-          await db.insert(targetAction).values({
-            typeId: type.id,
-            responsibleUserId: currentUser?.id ?? null,
-            departmentId: updatedLead.departmentId,
-            plannedAt: new Date().toISOString().split('T')[0],
-            completedAt: new Date(),
-            status: 'completed',
-            sourceType: 'lead',
-            sourceId: data.id,
-            leadId: data.id,
-          })
-        }
-      } catch (error) {
-        console.error(
-          'Failed to create lead qualification target action',
-          error,
-        )
-      }
-    }
-
     return { id: updatedLead.id }
-  })
-
-export const createLeadInitiative = createServerFn({ method: 'POST' })
-  .inputValidator(createLeadInitiativeSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(lead)
-      .set({ status: 'converted' })
-      .where(and(eq(lead.id, data.id), isNull(lead.deletedAt)))
   })
 
 export const rejectLead = createServerFn({ method: 'POST' })
   .inputValidator(rejectLeadSchema)
   .handler(async ({ data }) => {
-    await db
+    const updatedRows = await db
       .update(lead)
       .set({ status: 'rejected', lostReasonId: data.lostReasonId })
       .where(and(eq(lead.id, data.id), isNull(lead.deletedAt)))
+      .returning()
+    const updated = updatedRows.at(0)
+    if (!updated) throw notFound()
+
+    const currentUser = await getCurrentUserWithDeptId()
+    const type = await db.query.targetActionType.findFirst({
+      where: and(
+        eq(targetActionType.slug, 'lead_qualification'),
+        isNull(targetActionType.deletedAt),
+      ),
+    })
+    if (!type) {
+      console.warn(
+        '[target-action] type "lead_qualification" not found — skipping.',
+      )
+      return
+    }
+    const now = new Date()
+    await db.insert(targetAction).values({
+      typeId: type.id,
+      responsibleUserId: currentUser?.id ?? updated.responsibleUserId,
+      departmentId: updated.departmentId,
+      plannedAt: now.toISOString().split('T')[0],
+      completedAt: now,
+      status: 'completed',
+      sourceType: 'lead',
+      sourceId: data.id,
+      leadId: data.id,
+    })
   })
 
 export const softDeleteLead = createServerFn({ method: 'POST' })

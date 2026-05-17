@@ -52,6 +52,7 @@ import GrossProfitFactsSection from '@/components/companyAccounts/gross-profit-f
 import { RisksSection } from '@/components/companyAccounts/client-view/risks-section'
 import { UpsellingSection } from '@/components/companyAccounts/client-view/upselling-section'
 import { ClientTodosSection } from '@/components/companyAccounts/client-view/client-todos-section'
+import { InitiativesSection } from '@/components/companyAccounts/client-view/initiatives-section'
 import { HooksSection } from '@/components/companyAccounts/wishlist-view/hooks-section'
 import { WishlistTodosSection } from '@/components/companyAccounts/wishlist-view/wishlist-todos-section'
 import { fetchCompany } from '@/components/companies/actions'
@@ -626,9 +627,11 @@ function AboutCompanyTab({
 
 function ClientAccountTab({
   account,
+  companyId,
   onRefresh,
 }: {
   account: CompanyAccount
+  companyId: string
   onRefresh: () => void
 }) {
   return (
@@ -704,6 +707,14 @@ function ClientAccountTab({
         todos={account.todos}
         clientId={account.id}
         defaultDepartmentId={account.businessUnitId}
+        onRefresh={onRefresh}
+      />
+
+      <Separator />
+
+      <InitiativesSection
+        clientId={account.id}
+        companyId={companyId}
         onRefresh={onRefresh}
       />
     </div>
@@ -991,7 +1002,7 @@ function RouteComponent() {
                 value={account.id}
                 className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
               >
-                <ClientAccountTab account={account} onRefresh={refresh} />
+                <ClientAccountTab account={account} companyId={item.id} onRefresh={refresh} />
               </TabsContent>
             ))}
 

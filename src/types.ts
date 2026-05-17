@@ -415,13 +415,82 @@ export type SignalRow = {
   createdAt: Date
 }
 
+// ─── Pipeline & Initiative ────────────────────────────────────────────────────
+
+export type InitiativeSource = 'lead' | 'signal' | 'tender' | 'account' | 'manual'
+
+export type PipelineOption = {
+  id: string
+  name: string
+}
+
+export type PipelineStageOption = {
+  id: string
+  name: string
+  color: string
+  order: number
+  isWon: boolean
+  isLost: boolean
+}
+
+export type PipelineWithStages = {
+  id: string
+  name: string
+  description: string | null
+  stages: PipelineStageOption[]
+  departmentIds: string[]
+}
+
+export type InitiativeRow = {
+  id: string
+  title: string
+  budget: string | null
+  dueDate: string | null
+  closedAt: Date | null
+  sourceType: InitiativeSource
+  sourceLeadId: string | null
+  sourceSignalId: string | null
+  pipelineId: string | null
+  pipelineName: string | null
+  stageId: string | null
+  stageName: string | null
+  stageColor: string | null
+  stageOrder: number | null
+  stageIsWon: boolean | null
+  stageIsLost: boolean | null
+  companyAccountId: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  refusalReasonId: string | null
+  refusalReasonName: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
 // ─── Activity ─────────────────────────────────────────────────────────────────
 
-export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled'
+export type MeetingStatus =
+  | 'scheduled'
+  | 'completed'
+  | 'cancelled'
+  | 'rescheduled'
 
 export type MeetingType = 'client' | 'internal'
 
 export type TargetActionStatus = 'planned' | 'completed' | 'cancelled'
+
+export type TargetActionSource =
+  | 'meeting'
+  | 'initiative'
+  | 'tender'
+  | 'lead'
+  | 'signal'
+  | 'proposal'
+  | 'manual'
 
 export type MeetingRow = {
   id: string
@@ -458,6 +527,8 @@ export type MeetingDetail = MeetingRow & {
   leadId: string | null
   tenderId: string | null
   accountId: string | null
+  initiativeId: string | null
+  rescheduledFromMeetingId: string | null
 }
 
 export type TargetActionTypeRow = {
@@ -470,6 +541,7 @@ export type TargetActionTypeRow = {
 
 export type TargetActionRow = {
   id: string
+  typeId: string
   typeName: string
   typeSlug: string
   responsibleUserId: string | null
@@ -479,7 +551,37 @@ export type TargetActionRow = {
   plannedAt: string
   completedAt: Date | null
   status: TargetActionStatus
-  sourceType: string
+  result: string | null
+  reason: string | null
+  sourceType: TargetActionSource
   sourceId: string | null
+  initiativeId: string | null
+  proposalId: string | null
   createdAt: Date
+}
+
+// ─── Proposal (Коммерческое предложение) ─────────────────────────────────────
+
+export type ProposalStatus = 'draft' | 'prepared' | 'sent'
+
+export type ProposalType = 'initial' | 'revised' | 'final'
+
+export type ProposalRow = {
+  id: string
+  initiativeId: string
+  initiativeTitle: string | null
+  title: string
+  version: number
+  status: ProposalStatus
+  proposalType: ProposalType | null
+  amount: string | null
+  validUntil: string | null
+  isCurrent: boolean
+  description: string | null
+  senderUserId: string | null
+  senderUserName: string | null
+  preparedAt: Date | null
+  sentAt: Date | null
+  createdAt: Date
+  updatedAt: Date
 }

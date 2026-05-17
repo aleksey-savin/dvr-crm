@@ -1,10 +1,19 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Link, useRouter } from '@tanstack/react-router'
-import { ArrowUpDown, CheckIcon, EditIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react'
+import {
+  ArrowUpDown,
+  CalendarSyncIcon,
+  CheckIcon,
+  EditIcon,
+  EyeIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { completeMeeting, cancelMeeting } from '@/components/meetings/actions'
+import { RescheduleMeetingDialog } from '@/components/meetings/reschedule-meeting-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { MeetingRow, MeetingStatus, MeetingType } from '@/types'
@@ -13,15 +22,17 @@ const STATUS_LABELS: Record<MeetingStatus, string> = {
   scheduled: 'Запланирована',
   completed: 'Проведена',
   cancelled: 'Отменена',
+  rescheduled: 'Перенесена',
 }
 
 const STATUS_VARIANTS: Record<
   MeetingStatus,
-  'secondary' | 'default' | 'success' | 'destructive'
+  'secondary' | 'default' | 'success' | 'destructive' | 'warning'
 > = {
   scheduled: 'default',
   completed: 'success',
   cancelled: 'destructive',
+  rescheduled: 'warning',
 }
 
 const TYPE_LABELS: Record<MeetingType, string> = {
@@ -32,6 +43,7 @@ const TYPE_LABELS: Record<MeetingType, string> = {
 function MeetingActions({ meeting }: { meeting: MeetingRow }) {
   const router = useRouter()
   const [isPending, setIsPending] = React.useState(false)
+  const [rescheduleOpen, setRescheduleOpen] = React.useState(false)
 
   const handleComplete = async () => {
     setIsPending(true)
@@ -76,6 +88,15 @@ function MeetingActions({ meeting }: { meeting: MeetingRow }) {
             variant="outline"
             size="xs"
             disabled={isPending}
+            onClick={() => setRescheduleOpen(true)}
+          >
+            <CalendarSyncIcon className="size-3" />
+            Перенести
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={isPending}
             onClick={() => void handleCancel()}
           >
             <XIcon className="size-3" />
@@ -98,6 +119,13 @@ function MeetingActions({ meeting }: { meeting: MeetingRow }) {
           <Trash2Icon className="size-4" />
         </Link>
       </Button>
+
+      <RescheduleMeetingDialog
+        meetingId={meeting.id}
+        open={rescheduleOpen}
+        onOpenChange={setRescheduleOpen}
+        onRescheduled={() => router.invalidate()}
+      />
     </div>
   )
 }

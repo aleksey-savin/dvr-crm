@@ -171,7 +171,7 @@ function RouteComponent() {
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm">
-                  {tender.lostReason}
+                  {tender.lostReason.name}
                 </p>
               </CardContent>
             </Card>

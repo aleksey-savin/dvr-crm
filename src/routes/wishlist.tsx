@@ -53,7 +53,7 @@ const WISHLIST_GROUPS: Array<{ key: WishlistGroupKey; label: string }> = [
   { key: 'unranked', label: 'Без позиции' },
 ]
 
-function getWishlistGroup(row: WishlistAccountRow): WishlistGroupFilter {
+function getWishlistGroup(row: WishlistAccountRow): WishlistGroupKey {
   if (row.wishlistState === 'basement') return 'basement'
   if (row.wishlistState === 'archived') return 'archived'
   if (!row.position || row.position < 1) return 'unranked'

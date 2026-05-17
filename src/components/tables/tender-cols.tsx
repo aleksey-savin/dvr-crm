@@ -107,7 +107,7 @@ function RejectTenderAction({ tender }: { tender: TenderRow }) {
     setIsPending(true)
     try {
       await rejectTender({
-        data: { id: tender.id, reason: trimmedReason },
+        data: { id: tender.id, lostReasonId: trimmedReason },
       })
       toast.success('Тендер отклонён')
       setOpen(false)

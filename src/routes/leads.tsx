@@ -2,10 +2,11 @@ import * as React from 'react'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { ZapIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
-import { columns } from '@/components/tables/lead-cols'
+import { getColumns } from '@/components/tables/lead-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchLeads } from '@/components/leads/actions'
+import { fetchPipelines } from '@/components/pipelines/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -16,7 +17,7 @@ import {
 import type { LeadStatus } from '@/types'
 
 export const Route = createFileRoute('/leads')({
-  loader: () => fetchLeads(),
+  loader: () => Promise.all([fetchLeads(), fetchPipelines()]),
   component: RouteComponent,
 })
 
@@ -30,7 +31,8 @@ const STATUS_OPTIONS: Array<TableFilterOption<LeadStatus>> = [
 ]
 
 function RouteComponent() {
-  const leads = Route.useLoaderData()
+  const [leads, pipelines] = Route.useLoaderData()
+  const columns = getColumns(pipelines)
 
   const [statusFilter, setStatusFilter] = React.useState<LeadStatus[]>(
     DEFAULT_LEAD_STATUS_FILTER,

@@ -27,6 +27,7 @@ import { Route as MeetingRoomBookingRouteImport } from './routes/meeting-room-bo
 import { Route as MailingListsRouteImport } from './routes/mailing-lists'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as InitiativesRouteImport } from './routes/initiatives'
 import { Route as IndustriesRouteImport } from './routes/industries'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRolesRouteImport } from './routes/contact-roles'
@@ -47,6 +48,7 @@ import { Route as RefusalReasonsNewRouteImport } from './routes/refusal-reasons.
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
 import { Route as MeetingsNewRouteImport } from './routes/meetings.new'
 import { Route as LeadsNewRouteImport } from './routes/leads.new'
+import { Route as InitiativesNewRouteImport } from './routes/initiatives.new'
 import { Route as IndustriesNewRouteImport } from './routes/industries.new'
 import { Route as ContactRolesNewRouteImport } from './routes/contact-roles.new'
 import { Route as CompaniesNewRouteImport } from './routes/companies.new'
@@ -87,6 +89,9 @@ import { Route as MeetingsIdDeleteRouteImport } from './routes/meetings.$id.dele
 import { Route as LeadsIdViewRouteImport } from './routes/leads_.$id.view'
 import { Route as LeadsIdUpdateRouteImport } from './routes/leads.$id.update'
 import { Route as LeadsIdDeleteRouteImport } from './routes/leads.$id.delete'
+import { Route as InitiativesIdViewRouteImport } from './routes/initiatives.$id.view'
+import { Route as InitiativesIdUpdateRouteImport } from './routes/initiatives.$id.update'
+import { Route as InitiativesIdDeleteRouteImport } from './routes/initiatives.$id.delete'
 import { Route as IndustriesIdUpdateRouteImport } from './routes/industries.$id.update'
 import { Route as IndustriesIdDeleteRouteImport } from './routes/industries.$id.delete'
 import { Route as ContactRolesIdUpdateRouteImport } from './routes/contact-roles.$id.update'
@@ -193,6 +198,11 @@ const LeadsRoute = LeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InitiativesRoute = InitiativesRouteImport.update({
+  id: '/initiatives',
+  path: '/initiatives',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndustriesRoute = IndustriesRouteImport.update({
   id: '/industries',
   path: '/industries',
@@ -292,6 +302,11 @@ const LeadsNewRoute = LeadsNewRouteImport.update({
   id: '/new',
   path: '/new',
   getParentRoute: () => LeadsRoute,
+} as any)
+const InitiativesNewRoute = InitiativesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => InitiativesRoute,
 } as any)
 const IndustriesNewRoute = IndustriesNewRouteImport.update({
   id: '/new',
@@ -495,6 +510,21 @@ const LeadsIdDeleteRoute = LeadsIdDeleteRouteImport.update({
   path: '/$id/delete',
   getParentRoute: () => LeadsRoute,
 } as any)
+const InitiativesIdViewRoute = InitiativesIdViewRouteImport.update({
+  id: '/$id/view',
+  path: '/$id/view',
+  getParentRoute: () => InitiativesRoute,
+} as any)
+const InitiativesIdUpdateRoute = InitiativesIdUpdateRouteImport.update({
+  id: '/$id/update',
+  path: '/$id/update',
+  getParentRoute: () => InitiativesRoute,
+} as any)
+const InitiativesIdDeleteRoute = InitiativesIdDeleteRouteImport.update({
+  id: '/$id/delete',
+  path: '/$id/delete',
+  getParentRoute: () => InitiativesRoute,
+} as any)
 const IndustriesIdUpdateRoute = IndustriesIdUpdateRouteImport.update({
   id: '/$id/update',
   path: '/$id/update',
@@ -579,6 +609,7 @@ export interface FileRoutesByFullPath {
   '/contact-roles': typeof ContactRolesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/initiatives': typeof InitiativesRouteWithChildren
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
@@ -602,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/companies/new': typeof CompaniesNewRoute
   '/contact-roles/new': typeof ContactRolesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/initiatives/new': typeof InitiativesNewRoute
   '/leads/new': typeof LeadsNewRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -630,6 +662,9 @@ export interface FileRoutesByFullPath {
   '/contact-roles/$id/update': typeof ContactRolesIdUpdateRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/initiatives/$id/delete': typeof InitiativesIdDeleteRoute
+  '/initiatives/$id/update': typeof InitiativesIdUpdateRoute
+  '/initiatives/$id/view': typeof InitiativesIdViewRoute
   '/leads/$id/delete': typeof LeadsIdDeleteRoute
   '/leads/$id/update': typeof LeadsIdUpdateRoute
   '/leads/$id/view': typeof LeadsIdViewRoute
@@ -674,6 +709,7 @@ export interface FileRoutesByTo {
   '/contact-roles': typeof ContactRolesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/initiatives': typeof InitiativesRouteWithChildren
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
@@ -697,6 +733,7 @@ export interface FileRoutesByTo {
   '/companies/new': typeof CompaniesNewRoute
   '/contact-roles/new': typeof ContactRolesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/initiatives/new': typeof InitiativesNewRoute
   '/leads/new': typeof LeadsNewRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -725,6 +762,9 @@ export interface FileRoutesByTo {
   '/contact-roles/$id/update': typeof ContactRolesIdUpdateRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/initiatives/$id/delete': typeof InitiativesIdDeleteRoute
+  '/initiatives/$id/update': typeof InitiativesIdUpdateRoute
+  '/initiatives/$id/view': typeof InitiativesIdViewRoute
   '/leads/$id/delete': typeof LeadsIdDeleteRoute
   '/leads/$id/update': typeof LeadsIdUpdateRoute
   '/leads/$id/view': typeof LeadsIdViewRoute
@@ -770,6 +810,7 @@ export interface FileRoutesById {
   '/contact-roles': typeof ContactRolesRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/industries': typeof IndustriesRouteWithChildren
+  '/initiatives': typeof InitiativesRouteWithChildren
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/mailing-lists': typeof MailingListsRoute
@@ -793,6 +834,7 @@ export interface FileRoutesById {
   '/companies/new': typeof CompaniesNewRoute
   '/contact-roles/new': typeof ContactRolesNewRoute
   '/industries/new': typeof IndustriesNewRoute
+  '/initiatives/new': typeof InitiativesNewRoute
   '/leads/new': typeof LeadsNewRoute
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
@@ -821,6 +863,9 @@ export interface FileRoutesById {
   '/contact-roles/$id/update': typeof ContactRolesIdUpdateRoute
   '/industries/$id/delete': typeof IndustriesIdDeleteRoute
   '/industries/$id/update': typeof IndustriesIdUpdateRoute
+  '/initiatives/$id/delete': typeof InitiativesIdDeleteRoute
+  '/initiatives/$id/update': typeof InitiativesIdUpdateRoute
+  '/initiatives/$id/view': typeof InitiativesIdViewRoute
   '/leads/$id/delete': typeof LeadsIdDeleteRoute
   '/leads/$id/update': typeof LeadsIdUpdateRoute
   '/leads_/$id/view': typeof LeadsIdViewRoute
@@ -867,6 +912,7 @@ export interface FileRouteTypes {
     | '/contact-roles'
     | '/dashboard'
     | '/industries'
+    | '/initiatives'
     | '/leads'
     | '/login'
     | '/mailing-lists'
@@ -890,6 +936,7 @@ export interface FileRouteTypes {
     | '/companies/new'
     | '/contact-roles/new'
     | '/industries/new'
+    | '/initiatives/new'
     | '/leads/new'
     | '/meetings/new'
     | '/my-company/new'
@@ -918,6 +965,9 @@ export interface FileRouteTypes {
     | '/contact-roles/$id/update'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/initiatives/$id/delete'
+    | '/initiatives/$id/update'
+    | '/initiatives/$id/view'
     | '/leads/$id/delete'
     | '/leads/$id/update'
     | '/leads/$id/view'
@@ -962,6 +1012,7 @@ export interface FileRouteTypes {
     | '/contact-roles'
     | '/dashboard'
     | '/industries'
+    | '/initiatives'
     | '/leads'
     | '/login'
     | '/mailing-lists'
@@ -985,6 +1036,7 @@ export interface FileRouteTypes {
     | '/companies/new'
     | '/contact-roles/new'
     | '/industries/new'
+    | '/initiatives/new'
     | '/leads/new'
     | '/meetings/new'
     | '/my-company/new'
@@ -1013,6 +1065,9 @@ export interface FileRouteTypes {
     | '/contact-roles/$id/update'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/initiatives/$id/delete'
+    | '/initiatives/$id/update'
+    | '/initiatives/$id/view'
     | '/leads/$id/delete'
     | '/leads/$id/update'
     | '/leads/$id/view'
@@ -1057,6 +1112,7 @@ export interface FileRouteTypes {
     | '/contact-roles'
     | '/dashboard'
     | '/industries'
+    | '/initiatives'
     | '/leads'
     | '/login'
     | '/mailing-lists'
@@ -1080,6 +1136,7 @@ export interface FileRouteTypes {
     | '/companies/new'
     | '/contact-roles/new'
     | '/industries/new'
+    | '/initiatives/new'
     | '/leads/new'
     | '/meetings/new'
     | '/my-company/new'
@@ -1108,6 +1165,9 @@ export interface FileRouteTypes {
     | '/contact-roles/$id/update'
     | '/industries/$id/delete'
     | '/industries/$id/update'
+    | '/initiatives/$id/delete'
+    | '/initiatives/$id/update'
+    | '/initiatives/$id/view'
     | '/leads/$id/delete'
     | '/leads/$id/update'
     | '/leads_/$id/view'
@@ -1153,6 +1213,7 @@ export interface RootRouteChildren {
   ContactRolesRoute: typeof ContactRolesRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   IndustriesRoute: typeof IndustriesRouteWithChildren
+  InitiativesRoute: typeof InitiativesRouteWithChildren
   LeadsRoute: typeof LeadsRouteWithChildren
   LoginRoute: typeof LoginRoute
   MailingListsRoute: typeof MailingListsRoute
@@ -1313,6 +1374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/initiatives': {
+      id: '/initiatives'
+      path: '/initiatives'
+      fullPath: '/initiatives'
+      preLoaderRoute: typeof InitiativesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/industries': {
       id: '/industries'
       path: '/industries'
@@ -1452,6 +1520,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/leads/new'
       preLoaderRoute: typeof LeadsNewRouteImport
       parentRoute: typeof LeadsRoute
+    }
+    '/initiatives/new': {
+      id: '/initiatives/new'
+      path: '/new'
+      fullPath: '/initiatives/new'
+      preLoaderRoute: typeof InitiativesNewRouteImport
+      parentRoute: typeof InitiativesRoute
     }
     '/industries/new': {
       id: '/industries/new'
@@ -1733,6 +1808,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsIdDeleteRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/initiatives/$id/view': {
+      id: '/initiatives/$id/view'
+      path: '/$id/view'
+      fullPath: '/initiatives/$id/view'
+      preLoaderRoute: typeof InitiativesIdViewRouteImport
+      parentRoute: typeof InitiativesRoute
+    }
+    '/initiatives/$id/update': {
+      id: '/initiatives/$id/update'
+      path: '/$id/update'
+      fullPath: '/initiatives/$id/update'
+      preLoaderRoute: typeof InitiativesIdUpdateRouteImport
+      parentRoute: typeof InitiativesRoute
+    }
+    '/initiatives/$id/delete': {
+      id: '/initiatives/$id/delete'
+      path: '/$id/delete'
+      fullPath: '/initiatives/$id/delete'
+      preLoaderRoute: typeof InitiativesIdDeleteRouteImport
+      parentRoute: typeof InitiativesRoute
+    }
     '/industries/$id/update': {
       id: '/industries/$id/update'
       path: '/$id/update'
@@ -1918,6 +2014,24 @@ const IndustriesRouteChildren: IndustriesRouteChildren = {
 
 const IndustriesRouteWithChildren = IndustriesRoute._addFileChildren(
   IndustriesRouteChildren,
+)
+
+interface InitiativesRouteChildren {
+  InitiativesNewRoute: typeof InitiativesNewRoute
+  InitiativesIdDeleteRoute: typeof InitiativesIdDeleteRoute
+  InitiativesIdUpdateRoute: typeof InitiativesIdUpdateRoute
+  InitiativesIdViewRoute: typeof InitiativesIdViewRoute
+}
+
+const InitiativesRouteChildren: InitiativesRouteChildren = {
+  InitiativesNewRoute: InitiativesNewRoute,
+  InitiativesIdDeleteRoute: InitiativesIdDeleteRoute,
+  InitiativesIdUpdateRoute: InitiativesIdUpdateRoute,
+  InitiativesIdViewRoute: InitiativesIdViewRoute,
+}
+
+const InitiativesRouteWithChildren = InitiativesRoute._addFileChildren(
+  InitiativesRouteChildren,
 )
 
 interface LeadsRouteChildren {
@@ -2128,6 +2242,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRolesRoute: ContactRolesRouteWithChildren,
   DashboardRoute: DashboardRoute,
   IndustriesRoute: IndustriesRouteWithChildren,
+  InitiativesRoute: InitiativesRouteWithChildren,
   LeadsRoute: LeadsRouteWithChildren,
   LoginRoute: LoginRoute,
   MailingListsRoute: MailingListsRoute,

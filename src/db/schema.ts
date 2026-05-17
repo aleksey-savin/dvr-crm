@@ -809,7 +809,7 @@ export const meeting = pgTable(
     scheduledAt: timestamp('scheduled_at').notNull().defaultNow(),
     endedAt: timestamp('ended_at'),
     status: text('status', {
-      enum: ['scheduled', 'completed', 'cancelled'],
+      enum: ['scheduled', 'completed', 'cancelled', 'rescheduled'],
     })
       .notNull()
       .default('scheduled'),
@@ -831,6 +831,13 @@ export const meeting = pgTable(
     tenderId: text('tender_id').references(() => tender.id, {
       onDelete: 'set null',
     }),
+    initiativeId: text('initiative_id').references(() => initiative.id, {
+      onDelete: 'set null',
+    }),
+    rescheduledFromMeetingId: text('rescheduled_from_meeting_id').references(
+      (): AnyPgColumn => meeting.id,
+      { onDelete: 'set null' },
+    ),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -844,6 +851,10 @@ export const meeting = pgTable(
     index('meeting_status_idx').on(table.status),
     index('meeting_scheduled_at_idx').on(table.scheduledAt),
     index('meeting_deleted_at_idx').on(table.deletedAt),
+    index('meeting_initiative_id_idx').on(table.initiativeId),
+    index('meeting_rescheduled_from_meeting_id_idx').on(
+      table.rescheduledFromMeetingId,
+    ),
   ],
 )
 
@@ -937,8 +948,17 @@ export const targetAction = pgTable(
       .notNull()
       .default('planned'),
     result: text('result'),
+    reason: text('reason'),
     sourceType: text('source_type', {
-      enum: ['meeting', 'initiative', 'tender', 'lead', 'signal', 'manual'],
+      enum: [
+        'meeting',
+        'initiative',
+        'tender',
+        'lead',
+        'signal',
+        'proposal',
+        'manual',
+      ],
     }).notNull(),
     sourceId: text('source_id'),
     accountId: text('account_id').references(() => companyAccount.id, {
@@ -953,7 +973,12 @@ export const targetAction = pgTable(
     signalId: text('signal_id').references(() => signal.id, {
       onDelete: 'set null',
     }),
-    initiativeId: text('initiative_id'),
+    initiativeId: text('initiative_id').references(() => initiative.id, {
+      onDelete: 'set null',
+    }),
+    proposalId: text('proposal_id').references(() => proposal.id, {
+      onDelete: 'set null',
+    }),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -969,6 +994,54 @@ export const targetAction = pgTable(
     index('target_action_planned_at_idx').on(table.plannedAt),
     index('target_action_deleted_at_idx').on(table.deletedAt),
     index('target_action_source_idx').on(table.sourceType, table.sourceId),
+    index('target_action_initiative_id_idx').on(table.initiativeId),
+    index('target_action_proposal_id_idx').on(table.proposalId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Proposal (Коммерческое предложение)
+// ---------------------------------------------------------------------------
+
+export const proposal = pgTable(
+  'proposal',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    initiativeId: text('initiative_id')
+      .notNull()
+      .references(() => initiative.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    version: integer('version').notNull().default(1),
+    status: text('status', {
+      enum: ['draft', 'prepared', 'sent'],
+    })
+      .notNull()
+      .default('draft'),
+    proposalType: text('proposal_type', {
+      enum: ['initial', 'revised', 'final'],
+    }),
+    amount: numeric('amount', { precision: 15, scale: 2 }),
+    validUntil: date('valid_until'),
+    isCurrent: boolean('is_current').notNull().default(false),
+    description: text('description'),
+    senderUserId: text('sender_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    preparedAt: timestamp('prepared_at'),
+    sentAt: timestamp('sent_at'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('proposal_initiative_id_idx').on(table.initiativeId),
+    index('proposal_status_idx').on(table.status),
+    index('proposal_deleted_at_idx').on(table.deletedAt),
   ],
 )
 
@@ -1051,6 +1124,140 @@ export const changelogRelease = pgTable(
     ),
     index('changelog_release_version_idx').on(table.version),
     index('changelog_release_author_id_idx').on(table.authorId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Pipeline (Воронка продаж)
+// ---------------------------------------------------------------------------
+
+export const pipeline = pgTable('pipeline', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+})
+
+export const pipelineDepartment = pgTable(
+  'pipeline_department',
+  {
+    pipelineId: text('pipeline_id')
+      .notNull()
+      .references(() => pipeline.id, { onDelete: 'cascade' }),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.pipelineId, table.departmentId] }),
+    index('pipeline_department_pipeline_id_idx').on(table.pipelineId),
+    index('pipeline_department_department_id_idx').on(table.departmentId),
+  ],
+)
+
+export const pipelineStage = pgTable(
+  'pipeline_stage',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    pipelineId: text('pipeline_id')
+      .notNull()
+      .references(() => pipeline.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    color: text('color').notNull().default('#6b7280'),
+    order: integer('order').notNull().default(0),
+    isWon: boolean('is_won').notNull().default(false),
+    isLost: boolean('is_lost').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('pipeline_stage_pipeline_id_idx').on(table.pipelineId),
+    index('pipeline_stage_pipeline_id_order_idx').on(
+      table.pipelineId,
+      table.order,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
+// Initiative (Инициатива — основная сущность продажной воронки)
+// ---------------------------------------------------------------------------
+
+export const initiative = pgTable(
+  'initiative',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    title: text('title').notNull(),
+    pipelineId: text('pipeline_id').references(() => pipeline.id, {
+      onDelete: 'set null',
+    }),
+    stageId: text('stage_id').references(() => pipelineStage.id, {
+      onDelete: 'set null',
+    }),
+    companyAccountId: text('company_account_id').references(
+      () => companyAccount.id,
+      { onDelete: 'set null' },
+    ),
+    companyId: text('company_id').references(() => company.id, {
+      onDelete: 'set null',
+    }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    responsibleUserId: text('responsible_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    budget: numeric('budget', { precision: 15, scale: 2 }),
+    description: text('description'),
+    dueDate: date('due_date'),
+    sourceType: text('source_type', {
+      enum: ['lead', 'signal', 'tender', 'account', 'manual'],
+    })
+      .notNull()
+      .default('manual'),
+    sourceLeadId: text('source_lead_id').references(() => lead.id, {
+      onDelete: 'set null',
+    }),
+    sourceSignalId: text('source_signal_id').references(() => signal.id, {
+      onDelete: 'set null',
+    }),
+    refusalReasonId: text('refusal_reason_id').references(
+      () => refusalReason.id,
+      { onDelete: 'set null' },
+    ),
+    closedAt: timestamp('closed_at'),
+    deletedAt: timestamp('deleted_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('initiative_pipeline_id_idx').on(table.pipelineId),
+    index('initiative_stage_id_idx').on(table.stageId),
+    index('initiative_pipeline_stage_idx').on(table.pipelineId, table.stageId),
+    index('initiative_company_account_id_idx').on(table.companyAccountId),
+    index('initiative_company_id_idx').on(table.companyId),
+    index('initiative_department_id_idx').on(table.departmentId),
+    index('initiative_responsible_user_id_idx').on(table.responsibleUserId),
+    index('initiative_source_lead_id_idx').on(table.sourceLeadId),
+    index('initiative_source_signal_id_idx').on(table.sourceSignalId),
+    index('initiative_deleted_at_idx').on(table.deletedAt),
+    index('initiative_closed_at_idx').on(table.closedAt),
   ],
 )
 
@@ -1288,6 +1495,9 @@ export const userRelations = relations(user, ({ one, many }) => ({
   responsibleTargetActions: many(targetAction, {
     relationName: 'targetActionResponsible',
   }),
+  responsibleInitiatives: many(initiative, {
+    relationName: 'initiativeResponsible',
+  }),
   department: one(department, {
     fields: [user.departmentId],
     references: [department.id],
@@ -1319,6 +1529,7 @@ export const companyAccountRelations = relations(
     hooks: many(accountHook),
     grossProfitFacts: many(grossProfitFact),
     todos: many(todo),
+    initiatives: many(initiative),
   }),
 )
 
@@ -1413,6 +1624,7 @@ export const companyRelations = relations(company, ({ one, many }) => ({
   leads: many(lead),
   tenders: many(tender),
   signals: many(signal),
+  initiatives: many(initiative),
 }))
 
 export const counterpartyRelations = relations(counterparty, ({ many }) => ({
@@ -1494,6 +1706,8 @@ export const departmentRelations = relations(department, ({ one, many }) => ({
   signals: many(signal),
   meetings: many(meeting),
   targetActions: many(targetAction),
+  initiatives: many(initiative),
+  pipelineLinks: many(pipelineDepartment),
 }))
 
 export const meetingRelations = relations(meeting, ({ one, many }) => ({
@@ -1522,6 +1736,16 @@ export const meetingRelations = relations(meeting, ({ one, many }) => ({
     fields: [meeting.tenderId],
     references: [tender.id],
   }),
+  initiative: one(initiative, {
+    fields: [meeting.initiativeId],
+    references: [initiative.id],
+  }),
+  rescheduledFrom: one(meeting, {
+    fields: [meeting.rescheduledFromMeetingId],
+    references: [meeting.id],
+    relationName: 'meetingReschedule',
+  }),
+  rescheduledTo: many(meeting, { relationName: 'meetingReschedule' }),
   participants: many(meetingParticipant),
   externalParticipants: many(meetingExternalParticipant),
 }))
@@ -1591,6 +1815,28 @@ export const targetActionRelations = relations(targetAction, ({ one }) => ({
     fields: [targetAction.signalId],
     references: [signal.id],
   }),
+  initiative: one(initiative, {
+    fields: [targetAction.initiativeId],
+    references: [initiative.id],
+    relationName: 'initiativeTargetActions',
+  }),
+  proposal: one(proposal, {
+    fields: [targetAction.proposalId],
+    references: [proposal.id],
+  }),
+}))
+
+export const proposalRelations = relations(proposal, ({ one, many }) => ({
+  initiative: one(initiative, {
+    fields: [proposal.initiativeId],
+    references: [initiative.id],
+    relationName: 'initiativeProposals',
+  }),
+  sender: one(user, {
+    fields: [proposal.senderUserId],
+    references: [user.id],
+  }),
+  targetActions: many(targetAction),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({
@@ -1755,3 +2001,77 @@ export const refusalReasonRelations = relations(refusalReason, ({ many }) => ({
 }))
 
 export const tagRelations = relations(tag, () => ({}))
+
+export const pipelineRelations = relations(pipeline, ({ many }) => ({
+  stages: many(pipelineStage),
+  departments: many(pipelineDepartment),
+  initiatives: many(initiative),
+}))
+
+export const pipelineDepartmentRelations = relations(
+  pipelineDepartment,
+  ({ one }) => ({
+    pipeline: one(pipeline, {
+      fields: [pipelineDepartment.pipelineId],
+      references: [pipeline.id],
+    }),
+    department: one(department, {
+      fields: [pipelineDepartment.departmentId],
+      references: [department.id],
+    }),
+  }),
+)
+
+export const pipelineStageRelations = relations(pipelineStage, ({ one, many }) => ({
+  pipeline: one(pipeline, {
+    fields: [pipelineStage.pipelineId],
+    references: [pipeline.id],
+  }),
+  initiatives: many(initiative),
+}))
+
+export const initiativeRelations = relations(initiative, ({ one, many }) => ({
+  pipeline: one(pipeline, {
+    fields: [initiative.pipelineId],
+    references: [pipeline.id],
+  }),
+  stage: one(pipelineStage, {
+    fields: [initiative.stageId],
+    references: [pipelineStage.id],
+  }),
+  companyAccount: one(companyAccount, {
+    fields: [initiative.companyAccountId],
+    references: [companyAccount.id],
+  }),
+  company: one(company, {
+    fields: [initiative.companyId],
+    references: [company.id],
+  }),
+  department: one(department, {
+    fields: [initiative.departmentId],
+    references: [department.id],
+  }),
+  responsible: one(user, {
+    fields: [initiative.responsibleUserId],
+    references: [user.id],
+    relationName: 'initiativeResponsible',
+  }),
+  sourceLead: one(lead, {
+    fields: [initiative.sourceLeadId],
+    references: [lead.id],
+    relationName: 'initiativeSourceLead',
+  }),
+  sourceSignal: one(signal, {
+    fields: [initiative.sourceSignalId],
+    references: [signal.id],
+    relationName: 'initiativeSourceSignal',
+  }),
+  refusalReason: one(refusalReason, {
+    fields: [initiative.refusalReasonId],
+    references: [refusalReason.id],
+    relationName: 'initiativeRefusalReason',
+  }),
+  proposals: many(proposal, { relationName: 'initiativeProposals' }),
+  meetings: many(meeting),
+  targetActions: many(targetAction, { relationName: 'initiativeTargetActions' }),
+}))

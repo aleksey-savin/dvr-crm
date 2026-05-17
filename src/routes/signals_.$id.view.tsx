@@ -1,15 +1,20 @@
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { EditIcon, Trash2Icon } from 'lucide-react'
+import * as React from 'react'
+import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { EditIcon, GitMergeIcon, Trash2Icon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { StarRating } from '@/components/ui/star-rating'
 import { fetchSignal } from '@/components/signals/actions'
-import type { SignalStatus, SignalType } from '@/types'
+import { convertSignalToInitiative } from '@/components/initiatives/actions'
+import { fetchPipelines } from '@/components/pipelines/actions'
+import { ConvertToInitiativeDialog } from '@/components/initiatives/convert-to-initiative-dialog'
+import type { SignalStatus } from '@/types'
 
 export const Route = createFileRoute('/signals_/$id/view')({
-  loader: ({ params }) => fetchSignal({ data: params }),
+  loader: ({ params }) =>
+    Promise.all([fetchSignal({ data: params }), fetchPipelines()]),
   component: RouteComponent,
 })
 
@@ -30,13 +35,6 @@ const STATUS_VARIANTS: Record<
   archived: 'secondary',
 }
 
-const TYPE_LABELS: Record<SignalType, string> = {
-  recommendation: 'Рекомендация',
-  news: 'Новость',
-  direct_contact: 'Прямой контакт',
-  other: 'Другое',
-}
-
 function Field({
   label,
   children,
@@ -53,14 +51,51 @@ function Field({
 }
 
 function RouteComponent() {
-  const signal = Route.useLoaderData()
+  const [signal, pipelines] = Route.useLoaderData()
   const router = useRouter()
+  const navigate = useNavigate()
   const status = signal.status as SignalStatus
-  const signalType = signal.signalType as SignalType
+  const [isConverting, setIsConverting] = React.useState(false)
+
+  const handleConvert = ({
+    pipelineId,
+    stageId,
+  }: {
+    pipelineId: string
+    stageId: string
+  }) =>
+    convertSignalToInitiative({
+      data: {
+        signalId: signal.id,
+        title: signal.title,
+        pipelineId,
+        stageId,
+        companyId: signal.companyId,
+        departmentId: signal.departmentId,
+        responsibleUserId: signal.responsibleUserId,
+        description: signal.description,
+      },
+    })
+
+  const handleConvertSuccess = () => {
+    setIsConverting(false)
+    void router.invalidate()
+    void navigate({ to: '/initiatives' })
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-end gap-2">
+        {status !== 'converted' && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsConverting(true)}
+          >
+            <GitMergeIcon className="mr-1.5 size-4" />
+            Конвертировать в инициативу
+          </Button>
+        )}
         <Button asChild variant="outline" size="sm">
           <Link to="/signals/$id/update" params={{ id: signal.id }}>
             <EditIcon className="mr-1.5 size-4" />
@@ -105,7 +140,7 @@ function RouteComponent() {
               </Field>
 
               <Field label="Тип сигнала">
-                <Badge variant="outline">{TYPE_LABELS[signalType]}</Badge>
+                <Badge variant="outline">{signal.signalType?.name ?? '—'}</Badge>
               </Field>
 
               <Field label="Рейтинг">
@@ -171,6 +206,20 @@ function RouteComponent() {
           ← Назад
         </Button>
       </div>
+
+      <ConvertToInitiativeDialog
+        open={isConverting}
+        onOpenChange={setIsConverting}
+        pipelines={pipelines}
+        title="Конвертация сигнала в инициативу"
+        description={
+          signal.title
+            ? `Сигнал «${signal.title}»`
+            : 'Создание инициативы на основе сигнала'
+        }
+        onConvert={handleConvert}
+        onSuccess={handleConvertSuccess}
+      />
     </div>
   )
 }

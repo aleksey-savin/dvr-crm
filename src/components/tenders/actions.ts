@@ -151,6 +151,7 @@ export const fetchTender = createServerFn({ method: 'GET' })
         responsible: { columns: { id: true, name: true } },
         approver: { columns: { id: true, name: true } },
         industry: { columns: { id: true, name: true } },
+        lostReason: { columns: { id: true, name: true } },
       },
     })
     if (!row) throw notFound()
@@ -213,7 +214,7 @@ export const updateTenderStatus = createServerFn({ method: 'POST' })
       throw new Error('Unauthorized')
     }
 
-    const [updatedTender] = await db
+    const updatedTenderRows = await db
       .update(tender)
       .set({
         status: data.status,
@@ -221,39 +222,48 @@ export const updateTenderStatus = createServerFn({ method: 'POST' })
       })
       .where(and(eq(tender.id, data.id), isNull(tender.deletedAt)))
       .returning()
+    const updatedTender = updatedTenderRows.at(0)
 
-    if (data.status === 'preparation' && updatedTender) {
-      const type = await db.query.targetActionType.findFirst({
+    // Fact: tender был проведён (выиграли или проиграли — неважно). Записываем
+    // ЦД tender_participation один раз. Защита от дубля по (sourceType, sourceId).
+    if (
+      updatedTender &&
+      (data.status === 'won' || data.status === 'lost')
+    ) {
+      const existing = await db.query.targetAction.findFirst({
         where: and(
-          eq(targetActionType.slug, 'tender_participation'),
-          isNull(targetActionType.deletedAt),
+          eq(targetAction.sourceType, 'tender'),
+          eq(targetAction.sourceId, data.id),
+          isNull(targetAction.deletedAt),
         ),
+        columns: { id: true },
       })
-      if (type) {
-        await db.insert(targetAction).values({
-          typeId: type.id,
-          responsibleUserId: updatedTender.responsibleUserId,
-          departmentId: updatedTender.departmentId,
-          plannedAt: new Date().toISOString().split('T')[0],
-          status: 'planned',
-          sourceType: 'tender',
-          sourceId: data.id,
-          tenderId: data.id,
-        })
-      }
-    }
-
-    if (data.status === 'won') {
-      await db
-        .update(targetAction)
-        .set({ status: 'completed', completedAt: new Date() })
-        .where(
-          and(
-            eq(targetAction.sourceType, 'tender'),
-            eq(targetAction.sourceId, data.id),
-            eq(targetAction.status, 'planned'),
+      if (!existing) {
+        const type = await db.query.targetActionType.findFirst({
+          where: and(
+            eq(targetActionType.slug, 'tender_participation'),
+            isNull(targetActionType.deletedAt),
           ),
-        )
+        })
+        if (type) {
+          const now = new Date()
+          await db.insert(targetAction).values({
+            typeId: type.id,
+            responsibleUserId: updatedTender.responsibleUserId,
+            departmentId: updatedTender.departmentId,
+            plannedAt: now.toISOString().split('T')[0],
+            completedAt: now,
+            status: 'completed',
+            sourceType: 'tender',
+            sourceId: data.id,
+            tenderId: data.id,
+          })
+        } else {
+          console.warn(
+            '[target-action] type "tender_participation" not found — skipping.',
+          )
+        }
+      }
     }
   })
 

@@ -21,6 +21,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     leads: { label: 'Лиды', showAddButton: true },
     tenders: { label: 'Тендеры', showAddButton: true },
     signals: { label: 'Сигналы', showAddButton: true },
+    initiatives: { label: 'Инициативы', showAddButton: false },
     todos: { label: 'Задачи', showAddButton: true },
     users: { label: 'Пользователи', showAddButton: true },
     industries: { label: 'Отрасли', showAddButton: true },

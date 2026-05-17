@@ -59,6 +59,10 @@ const navMain = [
     url: '#',
     items: [
       {
+        title: 'Инициативы',
+        url: '/initiatives',
+      },
+      {
         title: 'Лиды',
         url: '/leads',
       },

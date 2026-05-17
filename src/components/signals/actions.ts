@@ -45,10 +45,6 @@ const updateSignalRatingSchema = z.object({
   rating: z.number().int().min(1).max(5).nullable(),
 })
 
-const createSignalInitiativeSchema = z.object({
-  id: z.string(),
-})
-
 const archiveSignalSchema = z.object({
   id: z.string(),
   reason: z.string().trim().min(1, 'Причина обязательна'),
@@ -188,15 +184,6 @@ export const updateSignalStatus = createServerFn({ method: 'POST' })
         status: data.status,
         responsibleUserId: currentUser?.id,
       })
-      .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
-  })
-
-export const createSignalInitiative = createServerFn({ method: 'POST' })
-  .inputValidator(createSignalInitiativeSchema)
-  .handler(async ({ data }) => {
-    await db
-      .update(signal)
-      .set({ status: 'converted' })
       .where(and(eq(signal.id, data.id), isNull(signal.deletedAt)))
   })
 

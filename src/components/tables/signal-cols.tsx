@@ -1,15 +1,16 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
-import { Link, useRouter } from '@tanstack/react-router'
+import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { ArchiveIcon, ArrowUpDown, PlusIcon, PlayIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import {
   archiveSignal,
-  createSignalInitiative,
   updateSignalRating,
   updateSignalStatus,
 } from '@/components/signals/actions'
+import { convertSignalToInitiative } from '@/components/initiatives/actions'
+import { ConvertToInitiativeDialog } from '@/components/initiatives/convert-to-initiative-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { StarRating } from '@/components/ui/star-rating'
 import { Textarea } from '@/components/ui/textarea'
-import type { SignalRow, SignalStatus } from '@/types'
+import type { PipelineWithStages, SignalRow, SignalStatus } from '@/types'
 
 const STATUS_LABELS: Record<SignalStatus, string> = {
   new: 'Новый',
@@ -112,35 +113,68 @@ function SignalRatingCell({ signal }: { signal: SignalRow }) {
   )
 }
 
-function CreateSignalInitiativeAction({ signal }: { signal: SignalRow }) {
+function CreateSignalInitiativeAction({
+  signal,
+  pipelines,
+}: {
+  signal: SignalRow
+  pipelines: PipelineWithStages[]
+}) {
   const router = useRouter()
-  const [isPending, setIsPending] = React.useState(false)
+  const navigate = useNavigate()
+  const [isOpen, setIsOpen] = React.useState(false)
 
-  const handleCreateInitiative = async () => {
-    setIsPending(true)
-    try {
-      await createSignalInitiative({ data: { id: signal.id } })
-      toast.success('Инициатива будет создана позже, сигнал конвертирован')
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось конвертировать сигнал')
-    } finally {
-      setIsPending(false)
-    }
+  const handleConvert = ({
+    pipelineId,
+    stageId,
+  }: {
+    pipelineId: string
+    stageId: string
+  }) =>
+    convertSignalToInitiative({
+      data: {
+        signalId: signal.id,
+        title: signal.title,
+        pipelineId,
+        stageId,
+        companyId: signal.companyId,
+        departmentId: signal.departmentId,
+        responsibleUserId: signal.responsibleUserId,
+      },
+    })
+
+  const handleSuccess = () => {
+    setIsOpen(false)
+    void router.invalidate()
+    void navigate({ to: '/initiatives' })
   }
 
   if (signal.status === 'converted' || signal.status === 'archived') return null
 
   return (
-    <Button
-      variant="outline"
-      size="xs"
-      disabled={isPending}
-      onClick={() => void handleCreateInitiative()}
-    >
-      <PlusIcon className="size-3" />
-      Инициатива
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="xs"
+        onClick={() => setIsOpen(true)}
+      >
+        <PlusIcon className="size-3" />
+        Инициатива
+      </Button>
+      <ConvertToInitiativeDialog
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        pipelines={pipelines}
+        title="Конвертация сигнала в инициативу"
+        description={
+          signal.title
+            ? `Сигнал «${signal.title}»`
+            : 'Создание инициативы на основе сигнала'
+        }
+        onConvert={handleConvert}
+        onSuccess={handleSuccess}
+      />
+    </>
   )
 }
 
@@ -221,7 +255,10 @@ function ArchiveSignalAction({ signal }: { signal: SignalRow }) {
   )
 }
 
-export const columns: ColumnDef<SignalRow>[] = [
+export function getColumns(
+  pipelines: PipelineWithStages[],
+): ColumnDef<SignalRow>[] {
+  return [
   {
     accessorKey: 'title',
     header: ({ column }) => (
@@ -319,9 +356,10 @@ export const columns: ColumnDef<SignalRow>[] = [
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-1">
         <StartSignalWorkAction signal={row.original} />
-        <CreateSignalInitiativeAction signal={row.original} />
+        <CreateSignalInitiativeAction signal={row.original} pipelines={pipelines} />
         <ArchiveSignalAction signal={row.original} />
       </div>
     ),
   },
 ]
+}

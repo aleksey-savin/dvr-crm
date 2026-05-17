@@ -1,11 +1,27 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, gte, isNull, lte } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  or,
+} from 'drizzle-orm'
 import { getRequest } from '@tanstack/react-start/server'
 import * as z from 'zod'
 import { db } from '@/db'
-import { targetAction, targetActionType, department, user } from '@/db/schema'
+import {
+  targetAction,
+  targetActionType,
+  department,
+  user,
+  proposal,
+} from '@/db/schema'
 import { auth } from 'utils/auth'
-import type { TargetActionRow } from '@/types'
+import type { TargetActionRow, TargetActionTypeRow } from '@/types'
 
 async function getCurrentUserWithDeptId() {
   const request = getRequest()
@@ -16,6 +32,71 @@ async function getCurrentUserWithDeptId() {
     columns: { id: true, role: true, departmentId: true },
   })
   return dbUser ?? null
+}
+
+const TARGET_ACTION_SELECT = {
+  id: targetAction.id,
+  typeId: targetAction.typeId,
+  typeName: targetActionType.name,
+  typeSlug: targetActionType.slug,
+  responsibleUserId: targetAction.responsibleUserId,
+  responsibleUserName: user.name,
+  departmentId: targetAction.departmentId,
+  departmentName: department.name,
+  plannedAt: targetAction.plannedAt,
+  completedAt: targetAction.completedAt,
+  status: targetAction.status,
+  result: targetAction.result,
+  reason: targetAction.reason,
+  sourceType: targetAction.sourceType,
+  sourceId: targetAction.sourceId,
+  initiativeId: targetAction.initiativeId,
+  proposalId: targetAction.proposalId,
+  createdAt: targetAction.createdAt,
+} as const
+
+type RawRow = {
+  id: string
+  typeId: string
+  typeName: string | null
+  typeSlug: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  plannedAt: string
+  completedAt: Date | null
+  status: string
+  result: string | null
+  reason: string | null
+  sourceType: string
+  sourceId: string | null
+  initiativeId: string | null
+  proposalId: string | null
+  createdAt: Date
+}
+
+function mapRow(r: RawRow): TargetActionRow {
+  return {
+    id: r.id,
+    typeId: r.typeId,
+    typeName: r.typeName ?? '',
+    typeSlug: r.typeSlug ?? '',
+    responsibleUserId: r.responsibleUserId,
+    responsibleUserName: r.responsibleUserName ?? null,
+    departmentId: r.departmentId,
+    departmentName: r.departmentName ?? null,
+    plannedAt: r.plannedAt,
+    completedAt: r.completedAt,
+    status: r.status as TargetActionRow['status'],
+    result: r.result,
+    reason: r.reason,
+    sourceType: r.sourceType as TargetActionRow['sourceType'],
+    sourceId: r.sourceId,
+    initiativeId: r.initiativeId,
+    proposalId: r.proposalId,
+    createdAt: r.createdAt,
+  }
 }
 
 export const fetchMyTargetActions = createServerFn()
@@ -40,21 +121,7 @@ export const fetchMyTargetActions = createServerFn()
     const endDateStr = `${year}-${String(month).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
 
     const rows = await db
-      .select({
-        id: targetAction.id,
-        typeName: targetActionType.name,
-        typeSlug: targetActionType.slug,
-        responsibleUserId: targetAction.responsibleUserId,
-        responsibleUserName: user.name,
-        departmentId: targetAction.departmentId,
-        departmentName: department.name,
-        plannedAt: targetAction.plannedAt,
-        completedAt: targetAction.completedAt,
-        status: targetAction.status,
-        sourceType: targetAction.sourceType,
-        sourceId: targetAction.sourceId,
-        createdAt: targetAction.createdAt,
-      })
+      .select(TARGET_ACTION_SELECT)
       .from(targetAction)
       .leftJoin(targetActionType, eq(targetAction.typeId, targetActionType.id))
       .leftJoin(user, eq(targetAction.responsibleUserId, user.id))
@@ -68,21 +135,7 @@ export const fetchMyTargetActions = createServerFn()
         ),
       )
 
-    return rows.map((r) => ({
-      id: r.id,
-      typeName: r.typeName ?? '',
-      typeSlug: r.typeSlug ?? '',
-      responsibleUserId: r.responsibleUserId,
-      responsibleUserName: r.responsibleUserName ?? null,
-      departmentId: r.departmentId,
-      departmentName: r.departmentName ?? null,
-      plannedAt: r.plannedAt,
-      completedAt: r.completedAt,
-      status: r.status as TargetActionRow['status'],
-      sourceType: r.sourceType,
-      sourceId: r.sourceId,
-      createdAt: r.createdAt,
-    }))
+    return rows.map(mapRow)
   })
 
 export const fetchTargetActions = createServerFn()
@@ -118,40 +171,64 @@ export const fetchTargetActions = createServerFn()
     }
 
     const rows = await db
-      .select({
-        id: targetAction.id,
-        typeName: targetActionType.name,
-        typeSlug: targetActionType.slug,
-        responsibleUserId: targetAction.responsibleUserId,
-        responsibleUserName: user.name,
-        departmentId: targetAction.departmentId,
-        departmentName: department.name,
-        plannedAt: targetAction.plannedAt,
-        completedAt: targetAction.completedAt,
-        status: targetAction.status,
-        sourceType: targetAction.sourceType,
-        sourceId: targetAction.sourceId,
-        createdAt: targetAction.createdAt,
-      })
+      .select(TARGET_ACTION_SELECT)
       .from(targetAction)
       .leftJoin(targetActionType, eq(targetAction.typeId, targetActionType.id))
       .leftJoin(user, eq(targetAction.responsibleUserId, user.id))
       .leftJoin(department, eq(targetAction.departmentId, department.id))
       .where(and(...conditions))
 
-    return rows.map((r) => ({
-      id: r.id,
-      typeName: r.typeName ?? '',
-      typeSlug: r.typeSlug ?? '',
-      responsibleUserId: r.responsibleUserId,
-      responsibleUserName: r.responsibleUserName ?? null,
-      departmentId: r.departmentId,
-      departmentName: r.departmentName ?? null,
-      plannedAt: r.plannedAt,
-      completedAt: r.completedAt,
-      status: r.status as TargetActionRow['status'],
-      sourceType: r.sourceType,
-      sourceId: r.sourceId,
-      createdAt: r.createdAt,
-    }))
+    return rows.map(mapRow)
   })
+
+/**
+ * Returns all target actions linked to an initiative — either directly via
+ * targetAction.initiativeId, or indirectly via a proposal that belongs to the
+ * initiative. Sorted by completedAt DESC (most recent fact first); falls back
+ * to plannedAt for rows without completion.
+ */
+export const fetchActionsByInitiative = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ initiativeId: z.string() }))
+  .handler(async ({ data }): Promise<TargetActionRow[]> => {
+    const proposals = await db
+      .select({ id: proposal.id })
+      .from(proposal)
+      .where(eq(proposal.initiativeId, data.initiativeId))
+    const proposalIds = proposals.map((p) => p.id)
+
+    const linkCondition =
+      proposalIds.length > 0
+        ? or(
+            eq(targetAction.initiativeId, data.initiativeId),
+            inArray(targetAction.proposalId, proposalIds),
+          )
+        : eq(targetAction.initiativeId, data.initiativeId)
+
+    const rows = await db
+      .select(TARGET_ACTION_SELECT)
+      .from(targetAction)
+      .leftJoin(targetActionType, eq(targetAction.typeId, targetActionType.id))
+      .leftJoin(user, eq(targetAction.responsibleUserId, user.id))
+      .leftJoin(department, eq(targetAction.departmentId, department.id))
+      .where(and(isNull(targetAction.deletedAt), linkCondition))
+      .orderBy(desc(targetAction.completedAt), desc(targetAction.plannedAt))
+
+    return rows.map(mapRow)
+  })
+
+export const fetchTargetActionTypes = createServerFn({
+  method: 'GET',
+}).handler(async (): Promise<TargetActionTypeRow[]> => {
+  const rows = await db
+    .select({
+      id: targetActionType.id,
+      name: targetActionType.name,
+      slug: targetActionType.slug,
+      isSystem: targetActionType.isSystem,
+      createdAt: targetActionType.createdAt,
+    })
+    .from(targetActionType)
+    .where(isNull(targetActionType.deletedAt))
+    .orderBy(asc(targetActionType.name))
+  return rows
+})
