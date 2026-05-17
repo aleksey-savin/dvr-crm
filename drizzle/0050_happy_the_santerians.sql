@@ -6,23 +6,6 @@ CREATE TABLE "contact_role" (
 	CONSTRAINT "contact_role_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "gross_profit_fact" (
-	"id" text PRIMARY KEY NOT NULL,
-	"company_account_id" text NOT NULL,
-	"amount" numeric(15, 2) NOT NULL,
-	"fact_date" date NOT NULL,
-	"description" text,
-	"manager_user_id" text NOT NULL,
-	"department_id" text NOT NULL,
-	"source" text DEFAULT 'manual' NOT NULL,
-	"external_source" text,
-	"external_id" text,
-	"matched_at" timestamp,
-	"deleted_at" timestamp,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "initiative" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
@@ -131,9 +114,6 @@ ALTER TABLE "meeting" ADD COLUMN "initiative_id" text;--> statement-breakpoint
 ALTER TABLE "meeting" ADD COLUMN "rescheduled_from_meeting_id" text;--> statement-breakpoint
 ALTER TABLE "target_action" ADD COLUMN "reason" text;--> statement-breakpoint
 ALTER TABLE "target_action" ADD COLUMN "proposal_id" text;--> statement-breakpoint
-ALTER TABLE "gross_profit_fact" ADD CONSTRAINT "gross_profit_fact_company_account_id_company_account_id_fk" FOREIGN KEY ("company_account_id") REFERENCES "public"."company_account"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "gross_profit_fact" ADD CONSTRAINT "gross_profit_fact_manager_user_id_user_id_fk" FOREIGN KEY ("manager_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "gross_profit_fact" ADD CONSTRAINT "gross_profit_fact_department_id_department_id_fk" FOREIGN KEY ("department_id") REFERENCES "public"."department"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "initiative" ADD CONSTRAINT "initiative_pipeline_id_pipeline_id_fk" FOREIGN KEY ("pipeline_id") REFERENCES "public"."pipeline"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "initiative" ADD CONSTRAINT "initiative_stage_id_pipeline_stage_id_fk" FOREIGN KEY ("stage_id") REFERENCES "public"."pipeline_stage"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "initiative" ADD CONSTRAINT "initiative_company_account_id_company_account_id_fk" FOREIGN KEY ("company_account_id") REFERENCES "public"."company_account"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -148,12 +128,6 @@ ALTER TABLE "pipeline_department" ADD CONSTRAINT "pipeline_department_department
 ALTER TABLE "pipeline_stage" ADD CONSTRAINT "pipeline_stage_pipeline_id_pipeline_id_fk" FOREIGN KEY ("pipeline_id") REFERENCES "public"."pipeline"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proposal" ADD CONSTRAINT "proposal_initiative_id_initiative_id_fk" FOREIGN KEY ("initiative_id") REFERENCES "public"."initiative"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proposal" ADD CONSTRAINT "proposal_sender_user_id_user_id_fk" FOREIGN KEY ("sender_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_company_account_id_idx" ON "gross_profit_fact" USING btree ("company_account_id");--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_fact_date_idx" ON "gross_profit_fact" USING btree ("fact_date");--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_manager_user_id_idx" ON "gross_profit_fact" USING btree ("manager_user_id");--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_department_id_idx" ON "gross_profit_fact" USING btree ("department_id");--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_source_external_id_idx" ON "gross_profit_fact" USING btree ("external_source","external_id");--> statement-breakpoint
-CREATE INDEX "gross_profit_fact_deleted_at_idx" ON "gross_profit_fact" USING btree ("deleted_at");--> statement-breakpoint
 CREATE INDEX "initiative_pipeline_id_idx" ON "initiative" USING btree ("pipeline_id");--> statement-breakpoint
 CREATE INDEX "initiative_stage_id_idx" ON "initiative" USING btree ("stage_id");--> statement-breakpoint
 CREATE INDEX "initiative_pipeline_stage_idx" ON "initiative" USING btree ("pipeline_id","stage_id");--> statement-breakpoint
