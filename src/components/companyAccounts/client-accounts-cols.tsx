@@ -2,9 +2,16 @@ import type { Column, ColumnDef } from '@tanstack/react-table'
 import type * as React from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Link } from '@tanstack/react-router'
-import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
+import { Link, useRouter } from '@tanstack/react-router'
+import {
+  EditIcon,
+  EyeIcon,
+  Trash2Icon,
+  ArrowUpDown,
+  PlusIcon,
+} from 'lucide-react'
 import { useDepartmentStore } from '@/stores/department-store'
+import { GrossProfitFactDialog } from '@/components/companyAccounts/gross-profit-facts-section'
 
 export type ClientAccountStatus = 'target' | 'regular' | 'lost'
 
@@ -15,12 +22,14 @@ export type ClientAccountTableRow = {
   businessUnit: string
   gpLastYear: string | null
   forecastCurrentYear: string | null
+  grossProfitFactCurrentYear: string | null
   lostReasons: string | null
   risksCount: number
   upsellingCount: number
   marketerTodosCount: number
   managerTodosCount: number
   managers: string[]
+  managerOptions: Array<{ id: string; name: string }>
   status: ClientAccountStatus
 }
 
@@ -134,6 +143,33 @@ export const columns: ColumnDef<ClientAccountTableRow>[] = [
         .getFilteredRowModel()
         .rows.reduce(
           (sum, row) => sum + Number(row.getValue('forecastCurrentYear') ?? 0),
+          0,
+        )
+      return (
+        <div className="flex justify-center font-semibold">
+          {currency.format(total)}
+        </div>
+      )
+    },
+  },
+  {
+    accessorKey: 'grossProfitFactCurrentYear',
+    header: ({ column }) => (
+      <SortableHeader
+        column={column}
+      >{`ВП факт ${currentYear}`}</SortableHeader>
+    ),
+    cell: ({ row }) => (
+      <div className="flex justify-center font-medium">
+        {formatMoney(row.original.grossProfitFactCurrentYear)}
+      </div>
+    ),
+    footer: ({ table }) => {
+      const total = table
+        .getFilteredRowModel()
+        .rows.reduce(
+          (sum, row) =>
+            sum + Number(row.getValue('grossProfitFactCurrentYear') ?? 0),
           0,
         )
       return (
@@ -283,8 +319,29 @@ export const columns: ColumnDef<ClientAccountTableRow>[] = [
     header: '',
     cell: ({ row }) => {
       const item = row.original
+      const router = useRouter()
       return (
         <div className="flex items-center justify-end gap-1">
+          {item.managerOptions.length > 0 ? (
+            <GrossProfitFactDialog
+              accountId={item.id}
+              managers={item.managerOptions}
+              onRefresh={() => router.invalidate()}
+            >
+              <Button variant="ghost" size="icon-sm" title="Добавить факт ВП">
+                <PlusIcon />
+              </Button>
+            </GrossProfitFactDialog>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled
+              title="Сначала назначьте менеджера"
+            >
+              <PlusIcon />
+            </Button>
+          )}
           <Button asChild variant="ghost" size="icon-sm">
             <Link
               to="/companies/$id/view"

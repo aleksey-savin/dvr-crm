@@ -4,6 +4,7 @@ import type {
   SortingState,
   ColumnFiltersState,
   FilterFn,
+  Row,
 } from '@tanstack/react-table'
 import {
   flexRender,
@@ -26,11 +27,29 @@ import {
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
+interface GroupByConfig<TData> {
+  getKey: (row: TData) => string
+  groups: Array<{ key: string; label: string }>
+}
+
+interface RowReorderConfig<TData> {
+  getId: (row: TData) => string
+  canDrag?: (row: TData) => boolean
+  onDrop: (args: {
+    activeId: string
+    overId?: string
+    groupKey?: string
+    rows: TData[]
+  }) => void | Promise<void>
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   toolbar?: React.ReactNode
   rowClassName?: (row: TData) => string
+  groupBy?: GroupByConfig<TData>
+  rowReorder?: RowReorderConfig<TData>
 }
 
 export function DataTable<TData, TValue>({
@@ -38,6 +57,8 @@ export function DataTable<TData, TValue>({
   data,
   toolbar,
   rowClassName,
+  groupBy,
+  rowReorder,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
@@ -46,6 +67,7 @@ export function DataTable<TData, TValue>({
   )
 
   const [globalFilter, setGlobalFilter] = React.useState('')
+  const [draggingId, setDraggingId] = React.useState<string | null>(null)
 
   const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
     const searchValue = filterValue.toLowerCase()
@@ -80,12 +102,60 @@ export function DataTable<TData, TValue>({
     onGlobalFilterChange: setGlobalFilter,
   })
 
+  const renderDataRow = (row: Row<TData>, groupKey?: string) => {
+    const rowId = rowReorder?.getId(row.original)
+    const isDraggable =
+      !!rowReorder && (rowReorder.canDrag?.(row.original) ?? true)
+
+    return (
+      <TableRow
+        key={row.id}
+        data-state={row.getIsSelected() && 'selected'}
+        draggable={isDraggable}
+        onDragStart={(event) => {
+          if (!rowId || !isDraggable) return
+          event.dataTransfer.effectAllowed = 'move'
+          event.dataTransfer.setData('text/plain', rowId)
+          setDraggingId(rowId)
+        }}
+        onDragOver={(event) => {
+          if (!rowReorder || !draggingId || draggingId === rowId) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'move'
+        }}
+        onDrop={(event) => {
+          event.preventDefault()
+          if (!rowReorder || !draggingId || draggingId === rowId) return
+          void rowReorder.onDrop({
+            activeId: draggingId,
+            overId: rowId,
+            groupKey,
+            rows: table.getRowModel().rows.map((item) => item.original),
+          })
+          setDraggingId(null)
+        }}
+        onDragEnd={() => setDraggingId(null)}
+        className={cn(
+          rowClassName?.(row.original),
+          isDraggable && 'cursor-grab active:cursor-grabbing',
+          rowId && draggingId === rowId && 'opacity-50',
+        )}
+      >
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    )
+  }
+
   return (
     <>
       <div className="flex flex-col gap-2 py-4 md:flex-row md:items-center md:justify-between">
         <Input
           placeholder="Поиск..."
-          value={globalFilter ?? ''}
+          value={globalFilter}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="max-w-sm"
         />
@@ -112,33 +182,64 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className={cn(rowClassName?.(row.original))}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
+            {(() => {
+              const sortedRows = table.getRowModel().rows
+              if (!sortedRows.length) {
+                return (
+                  <TableRow>
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center"
+                    >
+                      No results.
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
+                  </TableRow>
+                )
+              }
+              if (groupBy) {
+                const buckets = new Map(
+                  groupBy.groups.map((g) => [g.key, [] as typeof sortedRows]),
+                )
+                for (const row of sortedRows) {
+                  buckets.get(groupBy.getKey(row.original))?.push(row)
+                }
+                return groupBy.groups.flatMap(({ key, label }) => {
+                  const groupRows = buckets.get(key) ?? []
+                  if (!groupRows.length) return []
+                  return [
+                    <TableRow
+                      key={`__group__${key}`}
+                      onDragOver={(event) => {
+                        if (!rowReorder || !draggingId) return
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = 'move'
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        if (!rowReorder || !draggingId) return
+                        void rowReorder.onDrop({
+                          activeId: draggingId,
+                          groupKey: key,
+                          rows: table
+                            .getRowModel()
+                            .rows.map((item) => item.original),
+                        })
+                        setDraggingId(null)
+                      }}
+                    >
+                      <TableCell
+                        colSpan={columns.length}
+                        className="bg-muted/50 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                      >
+                        {label}
+                      </TableCell>
+                    </TableRow>,
+                    ...groupRows.map((row) => renderDataRow(row, key)),
+                  ]
+                })
+              }
+              return sortedRows.map((row) => renderDataRow(row))
+            })()}
           </TableBody>
           {table
             .getFooterGroups()

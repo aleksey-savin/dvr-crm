@@ -80,6 +80,7 @@ export const Route = createFileRoute('/api/meetings/$')({
               summary: data.summary || null,
               transcription: data.transcription || null,
               companyId: data.companyId || null,
+              scheduledAt: new Date(),
             })
             .returning()
 

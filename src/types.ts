@@ -103,18 +103,19 @@ export type WishlistAccountRow = {
   id: string
   companyId: string
   companyName: string
-  /** Single business unit name */
-  businessUnit: string
+  businessUnitIds: string[]
+  businessUnits: string[]
   industry: string | null
   regionalMarketPosition: string | null
   revenueLastYear: string | null
   revenueTwoYearsAgo: string | null
   why: string | null
+  wishlistOffer: string | null
+  contactNotes: string | null
   hooks: string[]
   todos: WishlistTodo[]
   commentsCount: number
-  /** Single responsible user name */
-  responsible: string | null
+  responsibles: string[]
   wishlistState: WishlistState | null
   position: number | null
 }
@@ -244,6 +245,8 @@ export type Contact = {
   email: string | null
   telegram: string | null
   max: string | null
+  contactRoleId: string | null
+  contactRoleName: string | null
 }
 
 export type Counterparty = {
@@ -286,4 +289,299 @@ export type UserFormUser = {
   departmentId?: string | null
   position?: string | null
   phone?: string | null
+}
+
+// ─── New Business Sources ────────────────────────────────────────────────────
+
+export type UserRow = {
+  id: string
+  name: string
+  email: string
+  role: string | null
+  banned: boolean | null
+  createdAt: Date
+}
+
+export type IndustryRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type ContactRoleRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type SignalTypeRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type SourceRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type RefusalReasonRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type TagRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
+export type LeadStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
+
+export type LeadRow = {
+  id: string
+  title: string
+  status: LeadStatus
+  sourceId: string | null
+  sourceName: string | null
+  lostReasonId: string | null
+  lostReasonName: string | null
+  budget: string | null
+  dueDate: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}
+
+export type TenderStatus =
+  | 'new'
+  | 'evaluation'
+  | 'approval'
+  | 'preparation'
+  | 'submitted'
+  | 'won'
+  | 'lost'
+  | 'rejected'
+  | 'archived'
+
+export type TenderRow = {
+  id: string
+  title: string
+  status: TenderStatus
+  amount: string | null
+  deadline: string | null
+  platform: string | null
+  url: string | null
+  lostReasonId: string | null
+  lostReasonName: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  approverUserId: string | null
+  approverUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}
+
+export type SignalStatus = 'new' | 'in_progress' | 'converted' | 'archived'
+
+export type SignalRow = {
+  id: string
+  title: string
+  status: SignalStatus
+  signalTypeId: string | null
+  signalTypeName: string | null
+  rating: number | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  industryId: string | null
+  industryName: string | null
+  createdAt: Date
+}
+
+// ─── Pipeline & Initiative ────────────────────────────────────────────────────
+
+export type InitiativeSource = 'lead' | 'signal' | 'tender' | 'account' | 'manual'
+
+export type PipelineOption = {
+  id: string
+  name: string
+}
+
+export type PipelineStageOption = {
+  id: string
+  name: string
+  color: string
+  order: number
+  isWon: boolean
+  isLost: boolean
+}
+
+export type PipelineWithStages = {
+  id: string
+  name: string
+  description: string | null
+  stages: PipelineStageOption[]
+  departmentIds: string[]
+}
+
+export type InitiativeRow = {
+  id: string
+  title: string
+  budget: string | null
+  dueDate: string | null
+  closedAt: Date | null
+  sourceType: InitiativeSource
+  sourceLeadId: string | null
+  sourceSignalId: string | null
+  pipelineId: string | null
+  pipelineName: string | null
+  stageId: string | null
+  stageName: string | null
+  stageColor: string | null
+  stageOrder: number | null
+  stageIsWon: boolean | null
+  stageIsLost: boolean | null
+  companyAccountId: string | null
+  companyId: string | null
+  companyName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  refusalReasonId: string | null
+  refusalReasonName: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+// ─── Activity ─────────────────────────────────────────────────────────────────
+
+export type MeetingStatus =
+  | 'scheduled'
+  | 'completed'
+  | 'cancelled'
+  | 'rescheduled'
+
+export type MeetingType = 'client' | 'internal'
+
+export type TargetActionStatus = 'planned' | 'completed' | 'cancelled'
+
+export type TargetActionSource =
+  | 'meeting'
+  | 'initiative'
+  | 'tender'
+  | 'lead'
+  | 'signal'
+  | 'proposal'
+  | 'manual'
+
+export type MeetingRow = {
+  id: string
+  title: string
+  scheduledAt: Date
+  endedAt: Date | null
+  status: MeetingStatus
+  meetingType: MeetingType
+  summary: string | null
+  organizerId: string | null
+  organizerName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  companyId: string | null
+  companyName: string | null
+  participantCount: number
+  createdAt: Date
+}
+
+export type MeetingParticipant = {
+  userId: string
+  name: string
+}
+
+export type MeetingExternalParticipant = {
+  id: string
+  name: string
+  contactId: string | null
+}
+
+export type MeetingDetail = MeetingRow & {
+  participants: MeetingParticipant[]
+  externalParticipants: MeetingExternalParticipant[]
+  leadId: string | null
+  tenderId: string | null
+  accountId: string | null
+  initiativeId: string | null
+  rescheduledFromMeetingId: string | null
+}
+
+export type TargetActionTypeRow = {
+  id: string
+  name: string
+  slug: string
+  isSystem: boolean
+  createdAt: Date
+}
+
+export type TargetActionRow = {
+  id: string
+  typeId: string
+  typeName: string
+  typeSlug: string
+  responsibleUserId: string | null
+  responsibleUserName: string | null
+  departmentId: string | null
+  departmentName: string | null
+  plannedAt: string
+  completedAt: Date | null
+  status: TargetActionStatus
+  result: string | null
+  reason: string | null
+  sourceType: TargetActionSource
+  sourceId: string | null
+  initiativeId: string | null
+  proposalId: string | null
+  createdAt: Date
+}
+
+// ─── Proposal (Коммерческое предложение) ─────────────────────────────────────
+
+export type ProposalStatus = 'draft' | 'prepared' | 'sent'
+
+export type ProposalType = 'initial' | 'revised' | 'final'
+
+export type ProposalRow = {
+  id: string
+  initiativeId: string
+  initiativeTitle: string | null
+  title: string
+  version: number
+  status: ProposalStatus
+  proposalType: ProposalType | null
+  amount: string | null
+  validUntil: string | null
+  isCurrent: boolean
+  description: string | null
+  senderUserId: string | null
+  senderUserName: string | null
+  preparedAt: Date | null
+  sentAt: Date | null
+  createdAt: Date
+  updatedAt: Date
 }

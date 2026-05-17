@@ -6,6 +6,7 @@ import {
   ArrowUpDown,
   EditIcon,
   EyeIcon,
+  GripVerticalIcon,
   MessageSquareIcon,
   Trash2Icon,
 } from 'lucide-react'
@@ -23,6 +24,19 @@ const todoStatusVariant: Record<
 }
 
 export const columns: ColumnDef<WishlistAccountRow>[] = [
+  {
+    id: 'position',
+    accessorKey: 'position',
+    header: '№',
+    cell: ({ row }) => (
+      <div className="flex items-center gap-1 text-muted-foreground">
+        <GripVerticalIcon className="size-4" />
+        <span className="min-w-5 text-sm tabular-nums">
+          {row.original.position ?? '—'}
+        </span>
+      </div>
+    ),
+  },
   {
     id: 'companyName',
     accessorKey: 'companyName',
@@ -48,12 +62,19 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     ),
   },
   {
-    id: 'businessUnit',
-    accessorKey: 'businessUnit',
-    header: 'Подразделение',
+    id: 'businessUnits',
+    accessorKey: 'businessUnits',
+    header: 'Подразделения',
     cell: ({ row }) => {
-      const name = row.original.businessUnit
-      return <Badge variant="secondary">{name}</Badge>
+      return (
+        <div className="flex flex-wrap gap-1.5 max-w-52">
+          {row.original.businessUnits.map((name) => (
+            <Badge key={name} variant="secondary">
+              {name}
+            </Badge>
+          ))}
+        </div>
+      )
     },
   },
   {
@@ -126,6 +147,20 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     },
   },
   {
+    accessorKey: 'wishlistOffer',
+    header: 'Что предлагаем',
+    cell: ({ row }) => {
+      const value = row.getValue<string | null>('wishlistOffer')
+      return value ? (
+        <span className="text-sm line-clamp-3 max-w-56 whitespace-normal">
+          {value}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
+      )
+    },
+  },
+  {
     id: 'hooks',
     accessorFn: (row) => row.hooks,
     header: 'Хуки',
@@ -164,6 +199,20 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     },
   },
   {
+    accessorKey: 'contactNotes',
+    header: 'Контакты',
+    cell: ({ row }) => {
+      const value = row.getValue<string | null>('contactNotes')
+      return value ? (
+        <span className="text-sm line-clamp-3 max-w-52 whitespace-normal">
+          {value}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/40 text-sm">—</span>
+      )
+    },
+  },
+  {
     id: 'commentsCount',
     accessorKey: 'commentsCount',
     header: ({ column }) => (
@@ -192,14 +241,22 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     },
   },
   {
-    id: 'responsible',
-    accessorKey: 'responsible',
-    header: 'Ответственный',
+    id: 'responsibles',
+    accessorKey: 'responsibles',
+    header: 'Ответственные',
     cell: ({ row }) => {
-      const name = row.original.responsible
-      if (!name)
+      const names = row.original.responsibles
+      if (names.length === 0)
         return <span className="text-muted-foreground/40 text-sm">—</span>
-      return <Badge variant="secondary">{name}</Badge>
+      return (
+        <div className="flex flex-wrap gap-1.5 max-w-44">
+          {names.map((name) => (
+            <Badge key={name} variant="secondary">
+              {name}
+            </Badge>
+          ))}
+        </div>
+      )
     },
   },
   {

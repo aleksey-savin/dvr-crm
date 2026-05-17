@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { Column, ColumnDef, SortingState } from '@tanstack/react-table'
 import {
   flexRender,
@@ -17,12 +17,9 @@ import {
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  MultiFilterCombobox,
+  type TableFilterOption,
+} from '@/components/tables/multi-filter-combobox'
 import {
   Table,
   TableBody,
@@ -42,117 +39,116 @@ export function EmployeesTable({
 }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [search, setSearch] = useState('')
-  const [departmentFilter, setDepartmentFilter] = useState('all')
+  const [departmentFilter, setDepartmentFilter] = useState<string[]>([])
 
-  const departmentNames = useMemo(() => {
-    return new Map(departments.map((item) => [item.id, item.name]))
-  }, [departments])
+  const departmentNames = new Map(departments.map((item) => [item.id, item.name]))
 
-  const filteredUsers = useMemo(() => {
-    const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU')
+  const departmentOptions: Array<TableFilterOption> = [
+    { value: '__none__', label: 'Без подразделения' },
+    ...departments.map((d) => ({ value: d.id, label: d.name })),
+  ]
 
-    return users.filter((user) => {
-      const departmentName = user.departmentId
-        ? (departmentNames.get(user.departmentId) ?? '')
-        : ''
-      const matchesDepartment =
-        departmentFilter === 'all' ||
-        (departmentFilter === 'none'
-          ? !user.departmentId
-          : user.departmentId === departmentFilter)
-      const searchableText = [
-        user.name,
-        user.position,
-        user.phone,
-        user.email,
-        departmentName,
-        formatDateTime(user.lastActivityAt),
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLocaleLowerCase('ru-RU')
+  const normalizedSearch = search.trim().toLocaleLowerCase('ru-RU')
 
-      return (
-        matchesDepartment &&
-        (!normalizedSearch || searchableText.includes(normalizedSearch))
-      )
-    })
-  }, [departmentFilter, departmentNames, search, users])
+  const filteredUsers = users.filter((user) => {
+    const departmentName = user.departmentId
+      ? (departmentNames.get(user.departmentId) ?? '')
+      : ''
 
-  const columns = useMemo<ColumnDef<EmployeeRow>[]>(
-    () => [
-      {
-        accessorKey: 'name',
-        header: ({ column }) => <SortableHeader column={column} label="Имя" />,
-        cell: ({ row }) => (
-          <div className="font-medium">{row.original.name}</div>
-        ),
-      },
-      {
-        id: 'department',
-        accessorFn: (row) =>
-          row.departmentId ? (departmentNames.get(row.departmentId) ?? '') : '',
-        header: ({ column }) => (
-          <SortableHeader column={column} label="Подразделение" />
-        ),
-        cell: ({ row }) =>
-          row.original.departmentId
-            ? (departmentNames.get(row.original.departmentId) ?? '—')
-            : '—',
-      },
-      {
-        accessorKey: 'position',
-        header: ({ column }) => (
-          <SortableHeader column={column} label="Должность" />
-        ),
-        cell: ({ row }) => row.original.position ?? '—',
-      },
-      {
-        accessorKey: 'phone',
-        header: ({ column }) => (
-          <SortableHeader column={column} label="Телефон" />
-        ),
-        cell: ({ row }) =>
-          row.original.phone ? (
-            <a
-              href={`tel:${row.original.phone}`}
-              className="text-foreground underline-offset-4 hover:underline"
-            >
-              {row.original.phone}
-            </a>
-          ) : (
-            '—'
-          ),
-      },
-      {
-        accessorKey: 'email',
-        header: ({ column }) => (
-          <SortableHeader column={column} label="Email" />
-        ),
-        cell: ({ row }) => (
+    const matchesDepartment =
+      departmentFilter.length === 0 ||
+      (departmentFilter.includes('__none__') && !user.departmentId) ||
+      (!!user.departmentId && departmentFilter.includes(user.departmentId))
+
+    const searchableText = [
+      user.name,
+      user.position,
+      user.phone,
+      user.email,
+      departmentName,
+      formatDateTime(user.lastActivityAt),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('ru-RU')
+
+    return (
+      matchesDepartment &&
+      (!normalizedSearch || searchableText.includes(normalizedSearch))
+    )
+  })
+
+  const columns: ColumnDef<EmployeeRow>[] = [
+    {
+      accessorKey: 'name',
+      header: ({ column }) => <SortableHeader column={column} label="Имя" />,
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.name}</div>
+      ),
+    },
+    {
+      id: 'department',
+      accessorFn: (row) =>
+        row.departmentId ? (departmentNames.get(row.departmentId) ?? '') : '',
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Подразделение" />
+      ),
+      cell: ({ row }) =>
+        row.original.departmentId
+          ? (departmentNames.get(row.original.departmentId) ?? '—')
+          : '—',
+    },
+    {
+      accessorKey: 'position',
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Должность" />
+      ),
+      cell: ({ row }) => row.original.position ?? '—',
+    },
+    {
+      accessorKey: 'phone',
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Телефон" />
+      ),
+      cell: ({ row }) =>
+        row.original.phone ? (
           <a
-            href={`mailto:${row.original.email}`}
+            href={`tel:${row.original.phone}`}
             className="text-foreground underline-offset-4 hover:underline"
           >
-            {row.original.email}
+            {row.original.phone}
           </a>
+        ) : (
+          '—'
         ),
+    },
+    {
+      accessorKey: 'email',
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Email" />
+      ),
+      cell: ({ row }) => (
+        <a
+          href={`mailto:${row.original.email}`}
+          className="text-foreground underline-offset-4 hover:underline"
+        >
+          {row.original.email}
+        </a>
+      ),
+    },
+    {
+      id: 'lastActivityAt',
+      accessorFn: (row) => {
+        if (!row.lastActivityAt) return 0
+        const date = new Date(row.lastActivityAt)
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime()
       },
-      {
-        id: 'lastActivityAt',
-        accessorFn: (row) => {
-          if (!row.lastActivityAt) return 0
-          const date = new Date(row.lastActivityAt)
-          return Number.isNaN(date.getTime()) ? 0 : date.getTime()
-        },
-        header: ({ column }) => (
-          <SortableHeader column={column} label="Последняя активность" />
-        ),
-        cell: ({ row }) => formatDateTime(row.original.lastActivityAt),
-      },
-    ],
-    [departmentNames],
-  )
+      header: ({ column }) => (
+        <SortableHeader column={column} label="Последняя активность" />
+      ),
+      cell: ({ row }) => formatDateTime(row.original.lastActivityAt),
+    },
+  ]
 
   const table = useReactTable({
     data: filteredUsers,
@@ -163,7 +159,7 @@ export function EmployeesTable({
     getSortedRowModel: getSortedRowModel(),
   })
 
-  const hasFilters = search.trim().length > 0 || departmentFilter !== 'all'
+  const hasFilters = search.trim().length > 0 || departmentFilter.length > 0
 
   if (users.length === 0) {
     return (
@@ -190,29 +186,23 @@ export function EmployeesTable({
             className="pl-9"
           />
         </div>
-        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-          <SelectTrigger className="w-full md:w-56">
-            <SelectValue placeholder="Подразделение" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все подразделения</SelectItem>
-            <SelectItem value="none">Без подразделения</SelectItem>
-            {departments.map((department) => (
-              <SelectItem key={department.id} value={department.id}>
-                {department.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MultiFilterCombobox
+          options={departmentOptions}
+          value={departmentFilter}
+          onValueChange={setDepartmentFilter}
+          placeholder="Подразделения"
+          emptyText="Подразделения не найдены"
+        />
         {hasFilters && (
           <Button
             variant="outline"
+            size="sm"
             onClick={() => {
               setSearch('')
-              setDepartmentFilter('all')
+              setDepartmentFilter([])
             }}
           >
-            <XIcon />
+            <XIcon className="size-4" />
             Сбросить
           </Button>
         )}

@@ -1,122 +1,95 @@
-import { createFileRoute, Outlet, useNavigate } from '@tanstack/react-router'
-
-import { roleLabels } from '@/utils/roleLabels'
-
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { MoreHorizontalIcon } from 'lucide-react'
+import * as React from 'react'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { XIcon } from 'lucide-react'
+import { DataTable } from '@/components/tables/data-table'
+import { columns } from '@/components/tables/user-cols'
+import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
+import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchUsers } from '@/components/users/actions'
+import { Button } from '@/components/ui/button'
+import { roleLabels, roles } from '@/utils/roleLabels'
+import type { UserRow } from '@/types'
 
 export const Route = createFileRoute('/users')({
   loader: () => fetchUsers(),
   component: RouteComponent,
 })
 
+const ROLE_OPTIONS: Array<TableFilterOption> = roles.map((r) => ({
+  value: r,
+  label: roleLabels[r] ?? r,
+}))
+
+const BANNED_OPTIONS: Array<TableFilterOption> = [
+  { value: 'false', label: 'Активные' },
+  { value: 'true', label: 'Заблокированные' },
+]
+
 function RouteComponent() {
-  const users = Route.useLoaderData()
-  const navigate = useNavigate()
+  const data = Route.useLoaderData()
+
+  const userRows: UserRow[] = data.users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role ?? null,
+    banned: u.banned ?? null,
+    createdAt: new Date(u.createdAt),
+  }))
+
+  const [roleFilter, setRoleFilter] = React.useState<string[]>([])
+  const [bannedFilter, setBannedFilter] = React.useState<string[]>([])
+
+  const hasFilters = roleFilter.length > 0 || bannedFilter.length > 0
+
+  const filtered = userRows.filter((u) => {
+    if (roleFilter.length > 0 && !roleFilter.includes(u.role ?? 'user'))
+      return false
+    if (
+      bannedFilter.length > 0 &&
+      !bannedFilter.includes(String(u.banned ?? false))
+    )
+      return false
+    return true
+  })
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Имя</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Роль</TableHead>
-            <TableHead>Заблокирован</TableHead>
-            <TableHead>Дата создания</TableHead>
-            <TableHead className="text-right">Действия</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.name}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                {roleLabels[user.role ?? 'user'] ?? user.role}
-              </TableCell>
-              <TableCell>{user.banned ? 'Да' : 'Нет'}</TableCell>
-              <TableCell>
-                {new Date(user.createdAt).toLocaleString('ru-RU')}
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8">
-                      <MoreHorizontalIcon />
-                      <span className="sr-only">Открыть меню</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() =>
-                        navigate({
-                          to: '/users/$id/update',
-                          params: { id: user.id },
-                        })
-                      }
-                    >
-                      Изменить
-                    </DropdownMenuItem>
-                    {user.banned ? (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          navigate({
-                            to: '/users/$id/unban',
-                            params: { id: user.id },
-                          })
-                        }
-                      >
-                        Разблокировать
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          navigate({
-                            to: '/users/$id/ban',
-                            params: { id: user.id },
-                          })
-                        }
-                      >
-                        Заблокировать
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() =>
-                        navigate({
-                          to: '/users/$id/delete',
-                          params: { id: user.id },
-                        })
-                      }
-                    >
-                      Удалить
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-
+      <DataTable
+        columns={columns}
+        data={filtered}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <MultiFilterCombobox
+              options={ROLE_OPTIONS}
+              value={roleFilter}
+              onValueChange={setRoleFilter}
+              placeholder="Роли"
+              emptyText="Роли не найдены"
+            />
+            <MultiFilterCombobox
+              options={BANNED_OPTIONS}
+              value={bannedFilter}
+              onValueChange={setBannedFilter}
+              placeholder="Статус"
+              emptyText="Статусы не найдены"
+            />
+            {hasFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRoleFilter([])
+                  setBannedFilter([])
+                }}
+              >
+                <XIcon className="size-4" />
+                Сбросить
+              </Button>
+            )}
+          </div>
+        }
+      />
       <Outlet />
     </>
   )

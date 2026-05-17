@@ -1,8 +1,8 @@
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { EditIcon, FactoryIcon, PlusIcon, Trash2Icon } from 'lucide-react'
-
+import { FactoryIcon, PlusIcon } from 'lucide-react'
+import { DataTable } from '@/components/tables/data-table'
+import { columns } from '@/components/tables/industry-cols'
 import { fetchIndustries } from '@/components/industries/actions'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -11,14 +11,7 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import type { IndustryRow } from '@/types'
 
 export const Route = createFileRoute('/industries')({
   loader: () => fetchIndustries(),
@@ -28,9 +21,15 @@ export const Route = createFileRoute('/industries')({
 function RouteComponent() {
   const industries = Route.useLoaderData()
 
+  const rows: IndustryRow[] = industries.map((i) => ({
+    id: i.id,
+    name: i.name,
+    createdAt: new Date(i.createdAt),
+  }))
+
   return (
     <>
-      {industries.length === 0 ? (
+      {rows.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -48,47 +47,7 @@ function RouteComponent() {
           </EmptyContent>
         </Empty>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Наименование</TableHead>
-              <TableHead>Создана</TableHead>
-              <TableHead className="w-0 text-right">Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {industries.map((industry) => (
-              <TableRow key={industry.id}>
-                <TableCell>
-                  <Badge variant="secondary">{industry.name}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {new Date(industry.createdAt).toLocaleDateString('ru-RU')}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button asChild variant="ghost" size="icon-sm">
-                      <Link
-                        to="/industries/$id/update"
-                        params={{ id: industry.id }}
-                      >
-                        <EditIcon className="size-4" />
-                      </Link>
-                    </Button>
-                    <Button asChild variant="destructiveGhost" size="icon-sm">
-                      <Link
-                        to="/industries/$id/delete"
-                        params={{ id: industry.id }}
-                      >
-                        <Trash2Icon className="size-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable columns={columns} data={rows} />
       )}
 
       <Outlet />

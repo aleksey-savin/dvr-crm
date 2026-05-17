@@ -47,6 +47,17 @@ This is a CRM application (dvr-crm) built with TanStack Start, Better Auth, and 
 - Dialog/modal routes open over the parent list route — always `open` prop is hardcoded to `true`, close via `router.navigate` or `router.history.back()`
 - Avoid `useEffect`, `useMemo`, `useCallback` unless absolutely necessary — prefer derived values and loaders
 
+# Page Header / Create Action Rules
+- Page titles, breadcrumbs, and root-page create/add actions must be handled in
+  `src/components/layout/app-breadcrumb.tsx`.
+- When adding a new root entity page, add its label and `showAddButton` setting to
+  `ROUTE_LABELS` in `AppBreadcrumb`.
+- List/root route pages must NOT render their own page header/title or add/create
+  action button. Keep the page body focused on filters, tables, empty states, and
+  entity-specific content.
+- The standard create action is the `PlusIcon` button in `AppBreadcrumb`, linking to
+  `/<entity>/new`.
+
 # Drizzle ORM Rules
 - All schema lives in `src/db/schema.ts` — one file, append new tables there
 - Always define relations with `relations()` alongside the table definition
@@ -159,11 +170,13 @@ This is a CRM application (dvr-crm) built with TanStack Start, Better Auth, and 
   - `warning`     — pending/not started status
 - Array cells (e.g. managers list): render as `<div className="flex flex-wrap gap-2">`
   with a `<Badge variant="secondary">` per item
+- Entity name/title cells are the standard table view affordance and link to the
+  detail route (`.../$id/view`).
 - Actions column: always last, `id: 'actions'`, empty `header: ''`, right-aligned
-  (`flex items-center justify-end gap-1`), use icon-only buttons:
-  - View:   `<EyeIcon>` with `variant="ghost" size="icon-sm"` as `<Link to=".../$id/view">`
-  - Edit:   `<EditIcon>` with `variant="ghost" size="icon-sm"` as `<Link to=".../$id/update">`
-  - Delete: `<Trash2Icon>` with `variant="destructiveGhost" size="icon-sm"` as `<Link to=".../$id/delete">`
+  (`flex items-center justify-end gap-1`) and is reserved for entity-specific
+  workflow actions. Do not add standard View/Edit/Delete buttons to table actions
+  by default; edit/delete actions live on the detail/view page unless explicitly
+  requested.
 - Footer (aggregates): define `footer` on numeric/badge columns that benefit from
   totals; the first cell in the footer row always renders the label `'Итого'` —
   this is handled automatically by `DataTable`
@@ -173,6 +186,9 @@ This is a CRM application (dvr-crm) built with TanStack Start, Better Auth, and 
 ## DataTable component (`data-table.tsx`)
 - Already supports: global search, per-column filters, sorting, footer aggregates
 - Global filter already handles array-valued cells (searches inside arrays)
+- Table filtering controls must use `<MultiFilterCombobox>` from `@/components/tables/multi-filter-combobox`. Never use `<Select>` for table filters — every filter must support multi-selection.
+- Filter state lives in the route component as arrays (e.g. `useState<StatusType[]>([])`). Static option lists (statuses, types) are module-level constants; dynamic lists (users, industries) are derived inline from loader data each render — no `useMemo` — and are only rendered when `options.length > 0`.
+- Pre-filter `data` before passing to `<DataTable>` — apply all active filters in a single `.filter()` call on loader data.
 - Do not add client-side pagination unless the dataset is confirmed to be large
   (>500 rows) — loaders should filter/limit server-side in that case
 - Do not add row selection unless a bulk-action feature is explicitly required

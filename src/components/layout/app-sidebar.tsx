@@ -52,15 +52,32 @@ const navMain = [
         title: 'Клиенты',
         url: '/clients',
       },
-
+    ],
+  },
+  {
+    title: 'Новый бизнес',
+    url: '#',
+    items: [
       {
-        title: 'Задачи',
-        url: '/todos',
+        title: 'Инициативы',
+        url: '/initiatives',
+      },
+      {
+        title: 'Лиды',
+        url: '/leads',
+      },
+      {
+        title: 'Тендеры',
+        url: '/tenders',
+      },
+      {
+        title: 'Сигналы',
+        url: '/signals',
       },
     ],
   },
-  /* {
-    title: 'AI-сервисы',
+  {
+    title: 'Активность',
     url: '#',
     items: [
       {
@@ -68,15 +85,11 @@ const navMain = [
         url: '/meetings',
       },
       {
-        title: 'Мониторинг активности',
-        url: '/clients-activity',
-      },
-      {
-        title: 'Отслеживание отзывов',
-        url: '/tracking-reviews',
+        title: 'Задачи',
+        url: '/todos',
       },
     ],
-  }, */
+  },
   /* {
     title: 'Моя компания',
     url: '#',
@@ -102,6 +115,30 @@ const navMain = [
       {
         title: 'Отрасли',
         url: '/industries',
+      },
+      {
+        title: 'Целевые действия',
+        url: '/target-action-types',
+      },
+      {
+        title: 'Роли контактов',
+        url: '/contact-roles',
+      },
+      {
+        title: 'Типы сигналов',
+        url: '/signal-types',
+      },
+      {
+        title: 'Источники',
+        url: '/sources',
+      },
+      {
+        title: 'Причины отказа',
+        url: '/refusal-reasons',
+      },
+      {
+        title: 'Теги',
+        url: '/tags',
       },
       {
         title: 'Пользователи',
