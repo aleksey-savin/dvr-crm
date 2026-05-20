@@ -19,7 +19,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
-    "db:seed:target-action-types": "tsx scripts/seed-target-action-types.ts"
+    "db:seed:target-action-types": "tsx scripts/seed-target-action-types.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -79,6 +80,15 @@
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/devtools-vite": "^0.3.11",
@@ -92,7 +102,9 @@
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^16.0.0",
     "drizzle-kit": "^0.31.8",
+    "husky": "^9.1.7",
     "jsdom": "^27.0.0",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.5.3",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.0.0",
