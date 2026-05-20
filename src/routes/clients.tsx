@@ -12,15 +12,17 @@ import {
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import { InfoIcon, ListTodoIcon, Plus, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
-import {
-  columns,
-  type ClientAccountStatus,
-  type ClientAccountTableRow,
+import { columns } from '@/components/companyAccounts/client-accounts-cols'
+import type {
+  ClientAccountStatus,
+  ClientAccountTableRow,
 } from '@/components/companyAccounts/client-accounts-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
+import { collectDepartmentDescendants } from '@/lib/department-tree'
 import { fetchClients } from '@/components/companyAccounts/actions'
 
 export const Route = createFileRoute('/clients')({
@@ -30,39 +32,22 @@ export const Route = createFileRoute('/clients')({
 
 type StatusFilter = 'all' | ClientAccountStatus
 
-function collectDescendantIds(
-  departments: Array<{ id: string; parentId?: string | null }>,
-  rootId: string,
-): string[] {
-  const result = new Set([rootId])
-  const queue = [rootId]
-  while (queue.length > 0) {
-    const current = queue.shift()!
-    for (const d of departments) {
-      if (d.parentId === current && !result.has(d.id)) {
-        result.add(d.id)
-        queue.push(d.id)
-      }
-    }
-  }
-  return Array.from(result)
-}
-
 function RouteComponent() {
   const { accounts } = Route.useLoaderData()
   const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
   const departments = useDepartmentStore((s) => s.departments)
   const selectedDept = departments.find((d) => d.id === selectedDepartmentId)
+  const scopedDeptIds = useScopedDepartmentIds()
 
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
   const [managerFilter, setManagerFilter] = React.useState<string[]>([])
 
-  // Derived — no useMemo
+  // Only allow adding a client when the scope is (or contains) a sales dept.
   const canAddClient = (() => {
     if (!selectedDepartmentId) return true
     if (selectedDept?.departmentType === 'sales') return true
     if (selectedDept?.departmentType === 'administrative') {
-      const ids = collectDescendantIds(departments, selectedDepartmentId)
+      const ids = collectDepartmentDescendants(departments, [selectedDepartmentId])
       return ids.some(
         (id) =>
           departments.find((d) => d.id === id)?.departmentType === 'sales',
@@ -71,17 +56,9 @@ function RouteComponent() {
     return false
   })()
 
-  const filterIds = (() => {
-    if (!selectedDepartmentId) return null
-    if (selectedDept?.departmentType === 'administrative') {
-      return collectDescendantIds(departments, selectedDepartmentId)
-    }
-    return [selectedDepartmentId]
-  })()
-
-  const filtered = filterIds
-    ? accounts.filter((a) => filterIds.includes(a.businessUnitId))
-    : accounts
+  const filtered = accounts.filter((a) =>
+    matchesDepartmentScope(scopedDeptIds, a.businessUnitId),
+  )
 
   const rows: ClientAccountTableRow[] = filtered.map((a) => ({
     id: a.id,

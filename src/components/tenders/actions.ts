@@ -4,8 +4,9 @@ import type { TenderRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { notFound } from '@tanstack/react-router'
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { auth } from 'utils/auth'
+import { buildDepartmentScopeFilter } from '@/lib/department-scope'
 import * as z from 'zod'
 
 async function getCurrentUserWithDeptId() {
@@ -70,7 +71,9 @@ const rejectTenderSchema = z.object({
 
 export const fetchTenders = createServerFn({ method: 'GET' }).handler(
   async (): Promise<TenderRow[]> => {
-    const currentUser = await getCurrentUserWithDeptId()
+    const deptFilter = await buildDepartmentScopeFilter(tender.departmentId, {
+      bypassRoles: ['admin', 'tender_specialist'],
+    })
 
     const rows = await db
       .select({
@@ -100,20 +103,7 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
       .leftJoin(user, eq(tender.responsibleUserId, user.id))
       .leftJoin(industry, eq(tender.industryId, industry.id))
       .leftJoin(refusalReason, eq(tender.lostReasonId, refusalReason.id))
-      .where(
-        and(
-          isNull(tender.deletedAt),
-          currentUser?.role === 'admin' ||
-            currentUser?.role === 'tender_specialist'
-            ? undefined
-            : currentUser?.departmentId
-              ? or(
-                  eq(tender.departmentId, currentUser.departmentId),
-                  isNull(tender.departmentId),
-                )
-              : isNull(tender.departmentId),
-        ),
-      )
+      .where(and(isNull(tender.deletedAt), deptFilter))
 
     return rows.map((row) => ({
       id: row.id,

@@ -6,7 +6,7 @@ import { columns } from '@/components/todos/todos-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchTodos } from '@/components/todos/actions'
-import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,14 +31,14 @@ const STATUS_OPTIONS: Array<TableFilterOption<TodoStatus>> = [
 
 function RouteComponent() {
   const todos = Route.useLoaderData()
-  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
+  const scopedDeptIds = useScopedDepartmentIds()
 
   const [statusFilter, setStatusFilter] = React.useState<TodoStatus[]>([])
   const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
 
-  const byDepartment = selectedDepartmentId
-    ? todos.filter((t) => t.departmentId === selectedDepartmentId)
-    : todos
+  const byDepartment = todos.filter((t) =>
+    matchesDepartmentScope(scopedDeptIds, t.departmentId),
+  )
 
   const responsibleOptions: Array<TableFilterOption> = Array.from(
     new Set(byDepartment.flatMap((t) => t.responsibles)),

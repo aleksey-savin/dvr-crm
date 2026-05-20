@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { WishlistAccountRow } from '@/types'
 import { toast } from 'sonner'
-import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds } from '@/hooks/use-department-scope'
 
 export const Route = createFileRoute('/wishlist')({
   component: RouteComponent,
@@ -61,24 +61,6 @@ function getWishlistGroup(row: WishlistAccountRow): WishlistGroupKey {
   if (row.position <= 20) return 'top20'
   if (row.position <= 30) return 'top30'
   return 'unranked'
-}
-
-function collectDescendantIds(
-  departments: Array<{ id: string; parentId?: string | null }>,
-  rootId: string,
-): string[] {
-  const result = new Set([rootId])
-  const queue = [rootId]
-  while (queue.length > 0) {
-    const current = queue.shift()!
-    for (const d of departments) {
-      if (d.parentId === current && !result.has(d.id)) {
-        result.add(d.id)
-        queue.push(d.id)
-      }
-    }
-  }
-  return Array.from(result)
 }
 
 function normalizeRankedGroups(
@@ -149,28 +131,18 @@ function buildWishlistReorderGroups({
 function RouteComponent() {
   const items = Route.useLoaderData()
   const router = useRouter()
-  const selectedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
-  const departments = useDepartmentStore((s) => s.departments)
-  const selectedDept = departments.find((d) => d.id === selectedDepartmentId)
+  const scopedDeptIds = useScopedDepartmentIds()
 
   const [groupFilter, setGroupFilter] =
     React.useState<WishlistGroupFilter>('all')
   const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
   const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
 
-  const filterIds = (() => {
-    if (!selectedDepartmentId) return null
-    if (selectedDept?.departmentType === 'administrative') {
-      return collectDescendantIds(departments, selectedDepartmentId)
-    }
-    return [selectedDepartmentId]
-  })()
-
-  const departmentFiltered = filterIds
-    ? items.filter((item) =>
-        item.businessUnitIds.some((id) => filterIds.includes(id)),
+  const departmentFiltered = !scopedDeptIds
+    ? items
+    : items.filter((item) =>
+        item.businessUnitIds.some((id) => scopedDeptIds.has(id)),
       )
-    : items
 
   const industryOptions: Array<TableFilterOption> = Array.from(
     new Set(

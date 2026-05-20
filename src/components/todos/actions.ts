@@ -14,6 +14,7 @@ import { notFound } from '@tanstack/react-router'
 import { and, asc, eq } from 'drizzle-orm'
 import * as z from 'zod'
 import { recalculateClientClassifications } from '@/lib/client-classification'
+import { buildDepartmentScopeFilter } from '@/lib/department-scope'
 
 const todoInputSchema = z.object({
   name: z.string().min(2, 'Задача должна содержать минимум 2 символа'),
@@ -35,7 +36,9 @@ const updateTodoSchema = todoInputSchema.extend({
 
 export const fetchTodos = createServerFn().handler(
   async (): Promise<Todo[]> => {
+    const deptFilter = await buildDepartmentScopeFilter(todo.departmentId)
     const rows = await db.query.todo.findMany({
+      where: deptFilter,
       with: {
         creator: { columns: { name: true } },
         department: { columns: { name: true } },
@@ -194,11 +197,13 @@ export const updateTodo = createServerFn({ method: 'POST' })
   .inputValidator(updateTodoSchema)
   .handler(async ({ data }) => {
     const companyAccountId = data.clientId ?? data.wishlistClientId ?? null
-    const [existing] = await db
-      .select({ companyAccountId: todo.companyAccountId })
-      .from(todo)
-      .where(eq(todo.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: todo.companyAccountId })
+        .from(todo)
+        .where(eq(todo.id, data.id))
+        .limit(1)
+    ).at(0)
 
     await db
       .update(todo)
@@ -261,11 +266,13 @@ export const updateTodoStatus = createServerFn({ method: 'POST' })
     }),
   )
   .handler(async ({ data }) => {
-    const [existing] = await db
-      .select({ companyAccountId: todo.companyAccountId })
-      .from(todo)
-      .where(eq(todo.id, data.id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: todo.companyAccountId })
+        .from(todo)
+        .where(eq(todo.id, data.id))
+        .limit(1)
+    ).at(0)
 
     await db
       .update(todo)
@@ -284,11 +291,13 @@ export const updateTodoStatus = createServerFn({ method: 'POST' })
 export const deleteTodo = createServerFn({ method: 'POST' })
   .inputValidator(z.string())
   .handler(async ({ data: id }) => {
-    const [existing] = await db
-      .select({ companyAccountId: todo.companyAccountId })
-      .from(todo)
-      .where(eq(todo.id, id))
-      .limit(1)
+    const existing = (
+      await db
+        .select({ companyAccountId: todo.companyAccountId })
+        .from(todo)
+        .where(eq(todo.id, id))
+        .limit(1)
+    ).at(0)
 
     await db.delete(todo).where(eq(todo.id, id))
 

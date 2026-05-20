@@ -1,4 +1,5 @@
 import { useForm, useStore } from '@tanstack/react-form'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,11 +14,12 @@ import {
 } from '@/components/ui/select'
 import { addInitiative, updateInitiative } from './actions'
 import type { InitiativeSource, PipelineStageOption } from '@/types'
+import { useDepartmentStore } from '@/stores/department-store'
 import type { SelectInitiative } from '@/db/types'
 
 const NULLABLE = '__none__'
 
-type PipelineOption = { id: string; name: string; stages: PipelineStageOption[] }
+type PipelineOption = { id: string; name: string; departmentIds: string[]; stages: PipelineStageOption[] }
 
 export type InitiativeFormPayload = {
   title: string
@@ -60,8 +62,8 @@ type InitiativeFormProps = {
   }
   options: {
     pipelines: PipelineOption[]
-    departments: Array<{ id: string; name: string }>
-    users: Array<{ id: string; name: string }>
+    departments: Array<{ id: string; name: string; parentId: string | null }>
+    users: Array<{ id: string; name: string; departmentId: string | null; role: string }>
     companies: Array<{ id: string; name: string }>
     refusalReasons: Array<{ id: string; name: string }>
   }
@@ -80,6 +82,37 @@ export function InitiativeForm({
   onSuccess,
   hidePipelineStage = false,
 }: InitiativeFormProps) {
+  const scopedDepartmentId = useDepartmentStore((s) => s.selectedDepartmentId)
+
+  const visibleDepartments = useMemo(() => {
+    if (!scopedDepartmentId) return options.departments
+    const collectWithDescendants = (ids: string[]): string[] => {
+      const childIds = options.departments
+        .filter((d) => d.parentId !== null && ids.includes(d.parentId) && !ids.includes(d.id))
+        .map((d) => d.id)
+      return childIds.length === 0 ? ids : collectWithDescendants([...ids, ...childIds])
+    }
+    const allowed = new Set(collectWithDescendants([scopedDepartmentId]))
+    return options.departments.filter((d) => allowed.has(d.id))
+  }, [options.departments, scopedDepartmentId])
+
+  const singleDept = visibleDepartments.length === 1 ? visibleDepartments[0] : null
+
+  const visibleDepartmentIds = useMemo(
+    () => new Set(visibleDepartments.map((d) => d.id)),
+    [visibleDepartments],
+  )
+
+  const visiblePipelines = useMemo(
+    () =>
+      options.pipelines.filter(
+        (p) =>
+          p.departmentIds.length === 0 ||
+          p.departmentIds.some((id) => visibleDepartmentIds.has(id)),
+      ),
+    [options.pipelines, visibleDepartmentIds],
+  )
+
   const form = useForm({
     defaultValues: {
       title: item?.title ?? prefill?.title ?? '',
@@ -88,7 +121,7 @@ export function InitiativeForm({
       companyId: item?.companyId ?? prefill?.companyId ?? null,
       companyAccountId:
         item?.companyAccountId ?? prefill?.companyAccountId ?? null,
-      departmentId: item?.departmentId ?? prefill?.departmentId ?? null,
+      departmentId: item?.departmentId ?? prefill?.departmentId ?? singleDept?.id ?? null,
       responsibleUserId:
         item?.responsibleUserId ?? prefill?.responsibleUserId ?? null,
       budget: item?.budget ?? prefill?.budget ?? '',
@@ -141,8 +174,20 @@ export function InitiativeForm({
 
   // Derive stages for the currently selected pipeline
   const currentPipelineId = useStore(form.store, (s) => s.values.pipelineId)
-  const availableStages =
-    options.pipelines.find((p) => p.id === currentPipelineId)?.stages ?? []
+  const currentPipeline = options.pipelines.find((p) => p.id === currentPipelineId)
+  const availableStages = currentPipeline?.stages ?? []
+
+  // Further filter departments by the selected pipeline's department whitelist
+  const pipelineFilteredDepartments = useMemo(() => {
+    if (!currentPipeline || currentPipeline.departmentIds.length === 0) return visibleDepartments
+    return visibleDepartments.filter((d) => currentPipeline.departmentIds.includes(d.id))
+  }, [visibleDepartments, currentPipeline])
+
+  // Filter users by the currently selected department
+  const currentDepartmentId = useStore(form.store, (s) => s.values.departmentId)
+  const availableUsers = currentDepartmentId
+    ? options.users.filter((u) => u.departmentId === currentDepartmentId && u.role === 'manager')
+    : []
 
   return (
     <form
@@ -183,9 +228,17 @@ export function InitiativeForm({
                 onValueChange={(v) => {
                   const nextPipelineId = v === NULLABLE ? null : v
                   field.handleChange(nextPipelineId)
-                  // Reset stage on user-driven pipeline change so it can't
-                  // dangle pointing to a stage from the previous pipeline.
                   form.setFieldValue('stageId', null)
+                  // Reset department/responsible if the new pipeline restricts
+                  // to a different set of departments.
+                  const nextPipeline = options.pipelines.find((p) => p.id === nextPipelineId)
+                  if (nextPipeline && nextPipeline.departmentIds.length > 0) {
+                    const currentDeptId = form.getFieldValue('departmentId')
+                    if (currentDeptId && !nextPipeline.departmentIds.includes(currentDeptId)) {
+                      form.setFieldValue('departmentId', null)
+                      form.setFieldValue('responsibleUserId', null)
+                    }
+                  }
                 }}
               >
                 <SelectTrigger>
@@ -193,7 +246,7 @@ export function InitiativeForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NULLABLE}>Не выбрана</SelectItem>
-                  {options.pipelines.map((p) => (
+                  {visiblePipelines.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name}
                     </SelectItem>
@@ -244,7 +297,7 @@ export function InitiativeForm({
         {/* Company */}
         <form.Field name="companyId">
           {(field) => (
-            <Field>
+            <Field className={singleDept ? 'col-span-2' : undefined}>
               <FieldLabel>Компания</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE}
@@ -268,6 +321,51 @@ export function InitiativeForm({
           )}
         </form.Field>
 
+        {/* Department — hidden when the user has access to exactly one */}
+        {!singleDept && (
+          <form.Field
+            name="departmentId"
+            validators={{
+              onSubmit: ({ value }) =>
+                !value ? 'Подразделение обязательно' : undefined,
+            }}
+          >
+            {(field) => (
+              <Field
+                data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}
+              >
+                <FieldLabel>Подразделение *</FieldLabel>
+                <Select
+                  value={field.state.value ?? NULLABLE}
+                  onValueChange={(v) => {
+                    field.handleChange(v === NULLABLE ? null : v)
+                    form.setFieldValue('responsibleUserId', null)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Не выбрано" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NULLABLE}>Не выбрано</SelectItem>
+                    {pipelineFilteredDepartments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError
+                  errors={field.state.meta.errors.map((e) =>
+                    typeof e === 'string' ? { message: e } : e,
+                  )}
+                />
+              </Field>
+            )}
+          </form.Field>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         {/* Responsible */}
         <form.Field name="responsibleUserId">
           {(field) => (
@@ -284,38 +382,9 @@ export function InitiativeForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NULLABLE}>Не выбран</SelectItem>
-                  {options.users.map((u) => (
+                  {availableUsers.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-        </form.Field>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        {/* Department */}
-        <form.Field name="departmentId">
-          {(field) => (
-            <Field>
-              <FieldLabel>Подразделение</FieldLabel>
-              <Select
-                value={field.state.value ?? NULLABLE}
-                onValueChange={(v) =>
-                  field.handleChange(v === NULLABLE ? null : v)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Не выбрано" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NULLABLE}>Не выбрано</SelectItem>
-                  {options.departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

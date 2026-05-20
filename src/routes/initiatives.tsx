@@ -35,6 +35,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import type { PipelineWithStages } from '@/types'
+import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
 
 const searchSchema = z.object({
   pipeline: z.string().optional(),
@@ -66,9 +67,18 @@ function RouteComponent() {
   const search = useSearch({ from: '/initiatives' })
   const router = useRouter()
 
+  const scopedDeptIds = useScopedDepartmentIds()
+
+  const visiblePipelines = React.useMemo(() => {
+    if (!scopedDeptIds) return pipelines
+    return pipelines.filter(
+      (p) => p.departmentIds.length === 0 || p.departmentIds.some((id) => scopedDeptIds.has(id)),
+    )
+  }, [pipelines, scopedDeptIds])
+
   const [viewMode, setViewMode] = React.useState<ViewMode>('kanban')
   const [selectedPipelineId, setSelectedPipelineId] = React.useState<string>(
-    search.pipeline ?? pipelines[0]?.id ?? '',
+    search.pipeline ?? visiblePipelines.at(0)?.id ?? '',
   )
   const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
   const [departmentFilter, setDepartmentFilter] = React.useState<string[]>([])
@@ -80,9 +90,9 @@ function RouteComponent() {
   const [newMeetingOpen, setNewMeetingOpen] = React.useState(false)
   const [newProposalOpen, setNewProposalOpen] = React.useState(false)
 
-  // Derived: fall back to first pipeline when the selected one is gone (e.g. deleted)
+  // Derived: fall back to first visible pipeline when the selected one is gone or filtered out
   const selectedPipeline =
-    pipelines.find((p) => p.id === selectedPipelineId) ?? pipelines[0]
+    visiblePipelines.find((p) => p.id === selectedPipelineId) ?? visiblePipelines.at(0)
   const effectivePipelineId = selectedPipeline?.id ?? ''
 
   const responsibleNames = Array.from(
@@ -95,13 +105,16 @@ function RouteComponent() {
 
   // Show every available department in the filter, not only ones that already
   // appear in an existing initiative — otherwise newly-created depts (or those
-  // with no initiatives yet) are invisible to the user.
+  // with no initiatives yet) are invisible to the user. Respect global scope.
   const departmentOptions = departments
+    .filter((d) => !scopedDeptIds || scopedDeptIds.has(d.id))
     .map((d) => ({ value: d.id, label: d.name }))
     .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
 
   const filtered = initiatives.filter((i) => {
     if (effectivePipelineId && i.pipelineId !== effectivePipelineId)
+      return false
+    if (!matchesDepartmentScope(scopedDeptIds, i.departmentId))
       return false
     if (
       responsibleFilter.length > 0 &&
@@ -176,7 +189,7 @@ function RouteComponent() {
     <>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <PipelineTabs
-          pipelines={pipelines}
+          pipelines={visiblePipelines}
           selectedId={effectivePipelineId}
           onSelect={setSelectedPipelineId}
           onCreate={openCreatePipeline}

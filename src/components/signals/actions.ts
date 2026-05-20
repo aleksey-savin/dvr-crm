@@ -4,8 +4,9 @@ import type { SignalRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { notFound } from '@tanstack/react-router'
-import { and, eq, isNull, or } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { auth } from 'utils/auth'
+import { buildDepartmentScopeFilter } from '@/lib/department-scope'
 import * as z from 'zod'
 
 async function getCurrentUserWithDeptId() {
@@ -52,7 +53,9 @@ const archiveSignalSchema = z.object({
 
 export const fetchSignals = createServerFn({ method: 'GET' }).handler(
   async (): Promise<SignalRow[]> => {
-    const currentUser = await getCurrentUserWithDeptId()
+    const deptFilter = await buildDepartmentScopeFilter(signal.departmentId, {
+      bypassRoles: ['admin', 'tender_specialist'],
+    })
 
     const rows = await db
       .select({
@@ -78,20 +81,7 @@ export const fetchSignals = createServerFn({ method: 'GET' }).handler(
       .leftJoin(user, eq(signal.responsibleUserId, user.id))
       .leftJoin(industry, eq(signal.industryId, industry.id))
       .leftJoin(signalTypeTable, eq(signal.signalTypeId, signalTypeTable.id))
-      .where(
-        and(
-          isNull(signal.deletedAt),
-          currentUser?.role === 'admin' ||
-            currentUser?.role === 'tender_specialist'
-            ? undefined
-            : currentUser?.departmentId
-              ? or(
-                  eq(signal.departmentId, currentUser.departmentId),
-                  isNull(signal.departmentId),
-                )
-              : isNull(signal.departmentId),
-        ),
-      )
+      .where(and(isNull(signal.deletedAt), deptFilter))
 
     return rows.map((row) => ({
       id: row.id,

@@ -14,6 +14,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import type { TenderStatus } from '@/types'
+import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
 
 export const Route = createFileRoute('/tenders')({
   loader: () => fetchTenders(),
@@ -33,7 +34,12 @@ const STATUS_OPTIONS: Array<TableFilterOption<TenderStatus>> = [
 ]
 
 function RouteComponent() {
-  const tenders = Route.useLoaderData()
+  const allTenders = Route.useLoaderData()
+  const scopedDeptIds = useScopedDepartmentIds()
+
+  const tenders = allTenders.filter((t) =>
+    matchesDepartmentScope(scopedDeptIds, t.departmentId),
+  )
 
   const [statusFilter, setStatusFilter] = React.useState<TenderStatus[]>([])
   const [departmentFilter, setDepartmentFilter] = React.useState<string[]>([])

@@ -16,9 +16,11 @@ import type { InitiativeRow, InitiativeSource } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { notFound } from '@tanstack/react-router'
-import { and, asc, eq, isNull, or } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { auth } from 'utils/auth'
 import * as z from 'zod'
+import { buildDepartmentScopeFilter } from '@/lib/department-scope'
+import { collectDepartmentDescendants } from '@/lib/department-tree'
 
 // ---------------------------------------------------------------------------
 // Auth helper
@@ -45,7 +47,13 @@ const initiativeInputSchema = z.object({
   stageId: z.string().nullable().optional(),
   companyAccountId: z.string().nullable().optional(),
   companyId: z.string().nullable().optional(),
-  departmentId: z.string().nullable().optional(),
+  departmentId: z
+    .string()
+    .min(1, 'Подразделение обязательно')
+    .nullish()
+    .refine((v) => v != null && v.length > 0, {
+      message: 'Подразделение обязательно',
+    }),
   responsibleUserId: z.string().nullable().optional(),
   budget: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
@@ -109,7 +117,7 @@ export const fetchInitiatives = createServerFn({ method: 'GET' })
     z.object({ pipelineId: z.string().nullable().optional() }).optional(),
   )
   .handler(async ({ data }): Promise<InitiativeRow[]> => {
-    const currentUser = await getCurrentUser()
+    const deptFilter = await buildDepartmentScopeFilter(initiative.departmentId)
 
     const rows = await db
       .select({
@@ -154,14 +162,7 @@ export const fetchInitiatives = createServerFn({ method: 'GET' })
           data?.pipelineId
             ? eq(initiative.pipelineId, data.pipelineId)
             : undefined,
-          currentUser?.role === 'admin'
-            ? undefined
-            : currentUser?.departmentId
-              ? or(
-                  eq(initiative.departmentId, currentUser.departmentId),
-                  isNull(initiative.departmentId),
-                )
-              : isNull(initiative.departmentId),
+          deptFilter,
         ),
       )
       .orderBy(asc(pipelineStage.order), asc(initiative.createdAt))
@@ -507,18 +508,29 @@ export const convertSignalToInitiative = createServerFn({ method: 'POST' })
 export const fetchInitiativeFormOptions = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  const [pipelines, departments, users, companies, refusalReasons] =
+  const currentUser = await getCurrentUser()
+
+  const [allSalesDepts, allDepts, pipelines, users, companies, refusalReasons] =
     await Promise.all([
+      db
+        .select({
+          id: department.id,
+          name: department.name,
+          parentId: department.parentId,
+          headUserId: department.headUserId,
+        })
+        .from(department)
+        .where(eq(department.departmentType, 'sales'))
+        .orderBy(asc(department.name)),
+      db
+        .select({ id: department.id, parentId: department.parentId, headUserId: department.headUserId })
+        .from(department),
       db.query.pipeline.findMany({
-        with: { stages: { orderBy: [asc(pipelineStage.order)] } },
+        with: { stages: { orderBy: [asc(pipelineStage.order)] }, departments: true },
         orderBy: [asc(pipeline.name)],
       }),
       db
-        .select({ id: department.id, name: department.name })
-        .from(department)
-        .orderBy(asc(department.name)),
-      db
-        .select({ id: user.id, name: user.name })
+        .select({ id: user.id, name: user.name, departmentId: user.departmentId, role: user.role })
         .from(user)
         .orderBy(asc(user.name)),
       db
@@ -531,10 +543,38 @@ export const fetchInitiativeFormOptions = createServerFn({
         .orderBy(asc(refusalReason.name)),
     ])
 
+  let departments: Array<{ id: string; name: string; parentId: string | null }>
+
+  if (currentUser) {
+    if (currentUser.role === 'admin') {
+      departments = allSalesDepts.map(({ id, name, parentId }) => ({ id, name, parentId }))
+    } else {
+      // Find all departments (any type) this user heads, then collect full subtree
+      const headedDeptIds = allDepts
+        .filter((d) => d.headUserId === currentUser.id)
+        .map((d) => d.id)
+
+      if (headedDeptIds.length > 0) {
+        const allowed = new Set(collectDepartmentDescendants(allDepts, headedDeptIds))
+        departments = allSalesDepts
+          .filter((d) => allowed.has(d.id))
+          .map(({ id, name, parentId }) => ({ id, name, parentId }))
+      } else {
+        // Regular user: only their own department (if it's a sales dept)
+        departments = allSalesDepts
+          .filter((d) => d.id === currentUser.departmentId)
+          .map(({ id, name, parentId }) => ({ id, name, parentId }))
+      }
+    }
+  } else {
+    departments = allSalesDepts.map(({ id, name, parentId }) => ({ id, name, parentId }))
+  }
+
   return {
     pipelines: pipelines.map((p) => ({
       id: p.id,
       name: p.name,
+      departmentIds: p.departments.map((d) => d.departmentId),
       stages: p.stages.map((s) => ({
         id: s.id,
         name: s.name,

@@ -15,6 +15,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import type { LeadStatus } from '@/types'
+import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
 
 export const Route = createFileRoute('/leads')({
   loader: () => Promise.all([fetchLeads(), fetchPipelines()]),
@@ -31,7 +32,11 @@ const STATUS_OPTIONS: Array<TableFilterOption<LeadStatus>> = [
 ]
 
 function RouteComponent() {
-  const [leads, pipelines] = Route.useLoaderData()
+  const [allLeads, pipelines] = Route.useLoaderData()
+  const scopedDeptIds = useScopedDepartmentIds()
+  const leads = allLeads.filter((l) =>
+    matchesDepartmentScope(scopedDeptIds, l.departmentId),
+  )
   const columns = getColumns(pipelines)
 
   const [statusFilter, setStatusFilter] = React.useState<LeadStatus[]>(
