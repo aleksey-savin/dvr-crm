@@ -2,7 +2,8 @@ import * as React from 'react'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { RadioIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
-import { getColumns } from '@/components/tables/signal-cols'
+import { signalColumns } from '@/components/tables/signal-cols'
+import { usePipelinesStore } from '@/stores/pipelines-store'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchSignals } from '@/components/signals/actions'
@@ -15,7 +16,10 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import type { SignalStatus } from '@/types'
-import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
+import {
+  useScopedDepartmentIds,
+  matchesDepartmentScope,
+} from '@/hooks/use-department-scope'
 
 export const Route = createFileRoute('/signals')({
   loader: () => Promise.all([fetchSignals(), fetchPipelines()]),
@@ -31,11 +35,14 @@ const STATUS_OPTIONS: Array<TableFilterOption<SignalStatus>> = [
 
 function RouteComponent() {
   const [allSignals, pipelines] = Route.useLoaderData()
+  const setPipelines = usePipelinesStore((s) => s.setPipelines)
+  React.useEffect(() => {
+    setPipelines(pipelines)
+  }, [pipelines, setPipelines])
   const scopedDeptIds = useScopedDepartmentIds()
   const signals = allSignals.filter((s) =>
     matchesDepartmentScope(scopedDeptIds, s.departmentId),
   )
-  const columns = getColumns(pipelines)
 
   const [statusFilter, setStatusFilter] = React.useState<SignalStatus[]>([])
   const [typeFilter, setTypeFilter] = React.useState<string[]>([])
@@ -115,7 +122,7 @@ function RouteComponent() {
         </Empty>
       ) : (
         <DataTable
-          columns={columns}
+          columns={signalColumns}
           data={filtered}
           toolbar={
             <div className="flex flex-wrap items-center gap-2">

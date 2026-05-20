@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { usePipelinesStore } from '@/stores/pipelines-store'
 import { ArchiveIcon, ArrowUpDown, PlusIcon, PlayIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,7 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { StarRating } from '@/components/ui/star-rating'
 import { Textarea } from '@/components/ui/textarea'
-import type { PipelineWithStages, SignalRow, SignalStatus } from '@/types'
+import type { SignalRow, SignalStatus, PipelineWithStages } from '@/types'
 
 const STATUS_LABELS: Record<SignalStatus, string> = {
   new: 'Новый',
@@ -153,11 +154,7 @@ function CreateSignalInitiativeAction({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="xs"
-        onClick={() => setIsOpen(true)}
-      >
+      <Button variant="outline" size="xs" onClick={() => setIsOpen(true)}>
         <PlusIcon className="size-3" />
         Инициатива
       </Button>
@@ -255,10 +252,18 @@ function ArchiveSignalAction({ signal }: { signal: SignalRow }) {
   )
 }
 
-export function getColumns(
-  pipelines: PipelineWithStages[],
-): ColumnDef<SignalRow>[] {
-  return [
+function SignalActionsCell({ signal }: { signal: SignalRow }) {
+  const pipelines = usePipelinesStore((s) => s.pipelines)
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <StartSignalWorkAction signal={signal} />
+      <CreateSignalInitiativeAction signal={signal} pipelines={pipelines} />
+      <ArchiveSignalAction signal={signal} />
+    </div>
+  )
+}
+
+export const signalColumns: ColumnDef<SignalRow>[] = [
   {
     accessorKey: 'title',
     header: ({ column }) => (
@@ -353,13 +358,6 @@ export function getColumns(
   {
     id: 'actions',
     header: '',
-    cell: ({ row }) => (
-      <div className="flex items-center justify-end gap-1">
-        <StartSignalWorkAction signal={row.original} />
-        <CreateSignalInitiativeAction signal={row.original} pipelines={pipelines} />
-        <ArchiveSignalAction signal={row.original} />
-      </div>
-    ),
+    cell: ({ row }) => <SignalActionsCell signal={row.original} />,
   },
 ]
-}

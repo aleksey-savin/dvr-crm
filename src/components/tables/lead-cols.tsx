@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Link, useNavigate, useRouter } from '@tanstack/react-router'
+import { usePipelinesStore } from '@/stores/pipelines-store'
 import { ArrowUpDown, PlusIcon, PlayIcon, XCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -126,11 +127,7 @@ function CreateLeadInitiativeAction({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="xs"
-        onClick={() => setIsOpen(true)}
-      >
+      <Button variant="outline" size="xs" onClick={() => setIsOpen(true)}>
         <PlusIcon className="size-3" />
         Инициатива
       </Button>
@@ -139,7 +136,11 @@ function CreateLeadInitiativeAction({
         onOpenChange={setIsOpen}
         pipelines={pipelines}
         title="Конвертация лида в инициативу"
-        description={lead.title ? `Лид «${lead.title}»` : 'Создание инициативы на основе лида'}
+        description={
+          lead.title
+            ? `Лид «${lead.title}»`
+            : 'Создание инициативы на основе лида'
+        }
         onConvert={handleConvert}
         onSuccess={handleSuccess}
       />
@@ -225,10 +226,18 @@ function RejectLeadAction({ lead }: { lead: LeadRow }) {
   )
 }
 
-export function getColumns(
-  pipelines: PipelineWithStages[],
-): ColumnDef<LeadRow>[] {
-  return [
+function LeadActionsCell({ lead }: { lead: LeadRow }) {
+  const pipelines = usePipelinesStore((s) => s.pipelines)
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <StartLeadWorkAction lead={lead} />
+      <CreateLeadInitiativeAction lead={lead} pipelines={pipelines} />
+      <RejectLeadAction lead={lead} />
+    </div>
+  )
+}
+
+export const leadColumns: ColumnDef<LeadRow>[] = [
   {
     accessorKey: 'title',
     header: ({ column }) => (
@@ -276,7 +285,9 @@ export function getColumns(
     accessorKey: 'sourceName',
     header: 'Источник',
     cell: ({ row }) =>
-      row.original.sourceName ?? <span className="text-muted-foreground">—</span>,
+      row.original.sourceName ?? (
+        <span className="text-muted-foreground">—</span>
+      ),
   },
   {
     accessorKey: 'budget',
@@ -343,13 +354,6 @@ export function getColumns(
   {
     id: 'actions',
     header: '',
-    cell: ({ row }) => (
-      <div className="flex items-center justify-end gap-1">
-        <StartLeadWorkAction lead={row.original} />
-        <CreateLeadInitiativeAction lead={row.original} pipelines={pipelines} />
-        <RejectLeadAction lead={row.original} />
-      </div>
-    ),
+    cell: ({ row }) => <LeadActionsCell lead={row.original} />,
   },
 ]
-}
