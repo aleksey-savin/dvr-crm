@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Combobox,
   ComboboxChip,
@@ -10,6 +11,17 @@ import {
   ComboboxValue,
 } from '@/components/ui/combobox'
 import { cn } from '@/lib/utils'
+
+function itemToStringValue<T extends string>(option: TableFilterOption<T>) {
+  return option.label
+}
+
+function isItemEqualToValue<T extends string>(
+  a: TableFilterOption<T>,
+  b: TableFilterOption<T>,
+) {
+  return a.value === b.value
+}
 
 export type TableFilterOption<T extends string = string> = {
   value: T
@@ -33,15 +45,16 @@ export function MultiFilterCombobox<T extends string>({
   emptyText,
   className,
 }: MultiFilterComboboxProps<T>) {
-  const selectedOptions = options.filter((option) =>
-    value.includes(option.value),
+  const selectedOptions = useMemo(
+    () => options.filter((option) => value.includes(option.value)),
+    [options, value],
   )
 
   return (
     <Combobox
       items={options}
-      itemToStringValue={(option) => option.label}
-      isItemEqualToValue={(a, b) => a.value === b.value}
+      itemToStringValue={itemToStringValue}
+      isItemEqualToValue={isItemEqualToValue}
       multiple
       value={selectedOptions}
       onValueChange={(nextOptions) =>

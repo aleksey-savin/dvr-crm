@@ -235,6 +235,8 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
     }),
   ])
 
+  const departmentNameMap = new Map(departments.map((d) => [d.id, d.name]))
+
   return {
     departments,
     users: users.map((appUser) => ({
@@ -244,6 +246,9 @@ export const fetchMyCompanyData = createServerFn().handler(async () => {
       role: appUser.role,
       image: appUser.image,
       departmentId: appUser.departmentId,
+      departmentName: appUser.departmentId
+        ? (departmentNameMap.get(appUser.departmentId) ?? null)
+        : null,
       position: appUser.position,
       phone: appUser.phone,
       lastActivityAt: appUser.sessions.at(0)?.updatedAt ?? null,
@@ -279,7 +284,13 @@ export const fetchSidebarDepartments = createServerFn({
   if (accessibleIds.length === 0) return []
   return db.query.department.findMany({
     where: inArray(department.id, accessibleIds),
-    columns: { id: true, name: true, departmentType: true, parentId: true, accentColor: true },
+    columns: {
+      id: true,
+      name: true,
+      departmentType: true,
+      parentId: true,
+      accentColor: true,
+    },
     orderBy: (departmentTable, { asc }) => [asc(departmentTable.name)],
   })
 })

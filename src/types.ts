@@ -190,6 +190,7 @@ export type EmployeeRow = {
   role: string
   image: string | null
   departmentId: string | null
+  departmentName: string | null
   position: string | null
   phone: string | null
   lastActivityAt: Date | string | null
@@ -417,7 +418,12 @@ export type SignalRow = {
 
 // ─── Pipeline & Initiative ────────────────────────────────────────────────────
 
-export type InitiativeSource = 'lead' | 'signal' | 'tender' | 'account' | 'manual'
+export type InitiativeSource =
+  | 'lead'
+  | 'signal'
+  | 'tender'
+  | 'account'
+  | 'manual'
 
 export type PipelineOption = {
   id: string
