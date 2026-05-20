@@ -1,7 +1,9 @@
-import { type Editor as CoreEditor, Extension, type Range } from '@tiptap/core'
+import { Extension } from '@tiptap/core'
+import type { Editor as CoreEditor, Range } from '@tiptap/core'
 import type { Node as PMNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import type { EditorView } from '@tiptap/pm/view'
 
 export interface SearchAndReplaceStorage {
   searchTerm: string
@@ -20,32 +22,32 @@ const getStorage = (editor: CoreEditor): SearchAndReplaceStorage =>
   (editor.storage as unknown as EditorStorage).searchAndReplace
 
 declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
+  interface Commands<TReturnType> {
     search: {
       /**
        * @description Set search term in extension.
        */
-      setSearchTerm: (searchTerm: string) => ReturnType
+      setSearchTerm: (searchTerm: string) => TReturnType
       /**
        * @description Set replace term in extension.
        */
-      setReplaceTerm: (replaceTerm: string) => ReturnType
+      setReplaceTerm: (replaceTerm: string) => TReturnType
       /**
        * @description Replace first instance of search result with given replace term.
        */
-      replace: () => ReturnType
+      replace: () => TReturnType
       /**
        * @description Replace all instances of search result with given replace term.
        */
-      replaceAll: () => ReturnType
+      replaceAll: () => TReturnType
       /**
        * @description Select the next search result.
        */
-      selectNextResult: () => ReturnType
+      selectNextResult: () => TReturnType
       /**
        * @description Select the previous search result.
        */
-      selectPreviousResult: () => ReturnType
+      selectPreviousResult: () => TReturnType
       /**
        * @description Set case sensitivity in extension.
        */
@@ -86,10 +88,6 @@ function processSearches(
   const results: Range[] = []
   const textNodesWithPosition: TextNodeWithPosition[] = []
 
-  if (!searchTerm) {
-    return { decorationsToReturn: DecorationSet.empty, results: [] }
-  }
-
   doc.descendants((node, pos) => {
     if (node.isText) {
       textNodesWithPosition.push({ text: node.text || '', pos })
@@ -102,19 +100,14 @@ function processSearches(
     )
 
     for (const match of matches) {
-      if (match.index !== undefined) {
-        results.push({
-          from: pos + match.index,
-          to: pos + match.index + match[0].length,
-        })
-      }
+      results.push({
+        from: pos + match.index,
+        to: pos + match.index + match[0].length,
+      })
     }
   }
 
-  for (let i = 0; i < results.length; i++) {
-    const result = results[i]
-    if (!result) continue
-    const { from, to } = result
+  for (const [i, { from, to }] of results.entries()) {
     decorations.push(
       Decoration.inline(from, to, {
         class:
@@ -134,13 +127,11 @@ const replace = (
   results: Range[],
   { state, dispatch }: any,
 ) => {
-  const firstResult = results[0]
-
-  if (!firstResult) {
+  if (!results.length) {
     return
   }
 
-  const { from, to } = firstResult
+  const { from, to } = results[0]
 
   if (dispatch) {
     dispatch(state.tr.insertText(replaceTerm, from, to))
@@ -155,16 +146,15 @@ const rebaseNextResult = (
 ): [number, Range[]] | null => {
   const nextIndex = index + 1
 
-  if (!results[nextIndex]) {
+  if (nextIndex >= results.length) {
     return null
   }
 
-  const currentResult = results[index]
-  if (!currentResult) {
+  if (index >= results.length) {
     return null
   }
 
-  const { from: currentFrom, to: currentTo } = currentResult
+  const { from: currentFrom, to: currentTo } = results[index]
 
   const offset = currentTo - currentFrom - replaceTerm.length + lastOffset
 
@@ -190,9 +180,7 @@ const replaceAll = (
   let offset = 0
 
   for (let i = 0; i < results.length; i++) {
-    const result = results[i]
-    if (!result) continue
-    const { from, to } = result
+    const { from, to } = results[i]
     tr.insertText(replaceTerm, from, to)
     const rebaseResponse = rebaseNextResult(replaceTerm, i, offset, results)
 
@@ -218,20 +206,12 @@ const selectNext = (editor: CoreEditor) => {
     storage.selectedResult += 1
   }
 
-  const result = results[storage.selectedResult]
-  if (!result) return
+  const { from } = results[storage.selectedResult]
 
-  const { from } = result
-
-  const view: EditorView | undefined = editor.view
-
-  if (view) {
-    view
-      .domAtPos(from)
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      .node.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+  // @ts-expect-error - domAtPos returns a node not typed with scrollIntoView
+  editor.view
+    .domAtPos(from)
+    .node.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 const selectPrevious = (editor: CoreEditor) => {
@@ -250,15 +230,10 @@ const selectPrevious = (editor: CoreEditor) => {
 
   const { from } = results[storage.selectedResult]
 
-  const view: EditorView | undefined = editor.view
-
-  if (view) {
-    view
-      .domAtPos(from)
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      .node.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }
+  // @ts-expect-error - domAtPos returns a node not typed with scrollIntoView
+  editor.view
+    .domAtPos(from)
+    .node.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 export const searchAndReplacePluginKey = new PluginKey('searchAndReplacePlugin')

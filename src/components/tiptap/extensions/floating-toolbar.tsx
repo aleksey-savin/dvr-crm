@@ -2,7 +2,7 @@
 
 import { BubbleMenu } from '@tiptap/react/menus'
 import type { Editor } from '@tiptap/react'
-import { memo } from 'react'
+import { memo, useEffect } from 'react'
 import { BoldToolbar } from '../toolbars/bold'
 import { ItalicToolbar } from '../toolbars/italic'
 import { UnderlineToolbar } from '../toolbars/underline'
@@ -19,7 +19,6 @@ import { OrderedListToolbar } from '../toolbars/ordered-list'
 import { ImagePlaceholderToolbar } from '../toolbars/image-placeholder-toolbar'
 import { AlignmentTooolbar } from '../toolbars/alignment'
 import { BlockquoteToolbar } from '../toolbars/blockquote'
-import { useEffect } from 'react'
 
 function FloatingToolbarInner({ editor }: { editor: Editor | null }) {
   const isMobile = useMediaQuery('(max-width: 640px)')

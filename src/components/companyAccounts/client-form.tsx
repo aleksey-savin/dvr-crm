@@ -101,8 +101,11 @@ const ClientForm = ({
   )?.departmentType
   // Only pre-select/lock when the active department is itself a sales unit.
   // Administrative (and production) selections let the user pick freely.
-  const scopedDepartmentId =
-    item ? null : selectedDeptType === 'sales' ? selectedDepartmentId : null
+  const scopedDepartmentId = item
+    ? null
+    : selectedDeptType === 'sales'
+      ? selectedDepartmentId
+      : null
 
   const lockedCompanyId = initialCompanyId
   const isCompanyLocked = !!lockedCompanyId
@@ -215,7 +218,6 @@ const ClientForm = ({
     if (lockedCompanyId) {
       getCompanyById({ data: { id: lockedCompanyId } })
         .then((company) => {
-          if (!company) return
           setCompanies([company])
           setSelectedCompanyId(company.id)
           setStep(2)

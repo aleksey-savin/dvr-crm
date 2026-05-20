@@ -19,7 +19,12 @@ import type { SelectInitiative } from '@/db/types'
 
 const NULLABLE = '__none__'
 
-type PipelineOption = { id: string; name: string; departmentIds: string[]; stages: PipelineStageOption[] }
+type PipelineOption = {
+  id: string
+  name: string
+  departmentIds: string[]
+  stages: PipelineStageOption[]
+}
 
 export type InitiativeFormPayload = {
   title: string
@@ -63,7 +68,12 @@ type InitiativeFormProps = {
   options: {
     pipelines: PipelineOption[]
     departments: Array<{ id: string; name: string; parentId: string | null }>
-    users: Array<{ id: string; name: string; departmentId: string | null; role: string }>
+    users: Array<{
+      id: string
+      name: string
+      departmentId: string | null
+      role: string
+    }>
     companies: Array<{ id: string; name: string }>
     refusalReasons: Array<{ id: string; name: string }>
   }
@@ -88,15 +98,23 @@ export function InitiativeForm({
     if (!scopedDepartmentId) return options.departments
     const collectWithDescendants = (ids: string[]): string[] => {
       const childIds = options.departments
-        .filter((d) => d.parentId !== null && ids.includes(d.parentId) && !ids.includes(d.id))
+        .filter(
+          (d) =>
+            d.parentId !== null &&
+            ids.includes(d.parentId) &&
+            !ids.includes(d.id),
+        )
         .map((d) => d.id)
-      return childIds.length === 0 ? ids : collectWithDescendants([...ids, ...childIds])
+      return childIds.length === 0
+        ? ids
+        : collectWithDescendants([...ids, ...childIds])
     }
     const allowed = new Set(collectWithDescendants([scopedDepartmentId]))
     return options.departments.filter((d) => allowed.has(d.id))
   }, [options.departments, scopedDepartmentId])
 
-  const singleDept = visibleDepartments.length === 1 ? visibleDepartments[0] : null
+  const singleDept =
+    visibleDepartments.length === 1 ? visibleDepartments[0] : null
 
   const visibleDepartmentIds = useMemo(
     () => new Set(visibleDepartments.map((d) => d.id)),
@@ -121,15 +139,14 @@ export function InitiativeForm({
       companyId: item?.companyId ?? prefill?.companyId ?? null,
       companyAccountId:
         item?.companyAccountId ?? prefill?.companyAccountId ?? null,
-      departmentId: item?.departmentId ?? prefill?.departmentId ?? singleDept?.id ?? null,
+      departmentId:
+        item?.departmentId ?? prefill?.departmentId ?? singleDept?.id ?? null,
       responsibleUserId:
         item?.responsibleUserId ?? prefill?.responsibleUserId ?? null,
       budget: item?.budget ?? prefill?.budget ?? '',
       description: item?.description ?? prefill?.description ?? '',
       dueDate: item?.dueDate ?? prefill?.dueDate ?? '',
-      sourceType: (item?.sourceType ??
-        prefill?.sourceType ??
-        'manual') as InitiativeSource,
+      sourceType: item?.sourceType ?? prefill?.sourceType ?? 'manual',
       sourceLeadId: item?.sourceLeadId ?? prefill?.sourceLeadId ?? null,
       sourceSignalId: item?.sourceSignalId ?? prefill?.sourceSignalId ?? null,
     },
@@ -165,28 +182,33 @@ export function InitiativeForm({
           onSuccess?.(result.id)
         }
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : 'Произошла ошибка',
-        )
+        toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
       }
     },
   })
 
   // Derive stages for the currently selected pipeline
   const currentPipelineId = useStore(form.store, (s) => s.values.pipelineId)
-  const currentPipeline = options.pipelines.find((p) => p.id === currentPipelineId)
+  const currentPipeline = options.pipelines.find(
+    (p) => p.id === currentPipelineId,
+  )
   const availableStages = currentPipeline?.stages ?? []
 
   // Further filter departments by the selected pipeline's department whitelist
   const pipelineFilteredDepartments = useMemo(() => {
-    if (!currentPipeline || currentPipeline.departmentIds.length === 0) return visibleDepartments
-    return visibleDepartments.filter((d) => currentPipeline.departmentIds.includes(d.id))
+    if (!currentPipeline || currentPipeline.departmentIds.length === 0)
+      return visibleDepartments
+    return visibleDepartments.filter((d) =>
+      currentPipeline.departmentIds.includes(d.id),
+    )
   }, [visibleDepartments, currentPipeline])
 
   // Filter users by the currently selected department
   const currentDepartmentId = useStore(form.store, (s) => s.values.departmentId)
   const availableUsers = currentDepartmentId
-    ? options.users.filter((u) => u.departmentId === currentDepartmentId && u.role === 'manager')
+    ? options.users.filter(
+        (u) => u.departmentId === currentDepartmentId && u.role === 'manager',
+      )
     : []
 
   return (
@@ -201,7 +223,9 @@ export function InitiativeForm({
       <form.Field name="title">
         {(field) => (
           <Field
-            data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}
+            data-invalid={
+              field.state.meta.isTouched && !field.state.meta.isValid
+            }
           >
             <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
             <Input
@@ -217,80 +241,85 @@ export function InitiativeForm({
       </form.Field>
 
       {!hidePipelineStage && (
-      <div className="grid grid-cols-2 gap-4">
-        {/* Pipeline */}
-        <form.Field name="pipelineId">
-          {(field) => (
-            <Field>
-              <FieldLabel>Воронка</FieldLabel>
-              <Select
-                value={field.state.value ?? NULLABLE}
-                onValueChange={(v) => {
-                  const nextPipelineId = v === NULLABLE ? null : v
-                  field.handleChange(nextPipelineId)
-                  form.setFieldValue('stageId', null)
-                  // Reset department/responsible if the new pipeline restricts
-                  // to a different set of departments.
-                  const nextPipeline = options.pipelines.find((p) => p.id === nextPipelineId)
-                  if (nextPipeline && nextPipeline.departmentIds.length > 0) {
-                    const currentDeptId = form.getFieldValue('departmentId')
-                    if (currentDeptId && !nextPipeline.departmentIds.includes(currentDeptId)) {
-                      form.setFieldValue('departmentId', null)
-                      form.setFieldValue('responsibleUserId', null)
+        <div className="grid grid-cols-2 gap-4">
+          {/* Pipeline */}
+          <form.Field name="pipelineId">
+            {(field) => (
+              <Field>
+                <FieldLabel>Воронка</FieldLabel>
+                <Select
+                  value={field.state.value ?? NULLABLE}
+                  onValueChange={(v) => {
+                    const nextPipelineId = v === NULLABLE ? null : v
+                    field.handleChange(nextPipelineId)
+                    form.setFieldValue('stageId', null)
+                    // Reset department/responsible if the new pipeline restricts
+                    // to a different set of departments.
+                    const nextPipeline = options.pipelines.find(
+                      (p) => p.id === nextPipelineId,
+                    )
+                    if (nextPipeline && nextPipeline.departmentIds.length > 0) {
+                      const currentDeptId = form.getFieldValue('departmentId')
+                      if (
+                        currentDeptId &&
+                        !nextPipeline.departmentIds.includes(currentDeptId)
+                      ) {
+                        form.setFieldValue('departmentId', null)
+                        form.setFieldValue('responsibleUserId', null)
+                      }
                     }
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите воронку" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NULLABLE}>Не выбрана</SelectItem>
-                  {visiblePipelines.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-        </form.Field>
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите воронку" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NULLABLE}>Не выбрана</SelectItem>
+                    {visiblePipelines.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+          </form.Field>
 
-        {/* Stage */}
-        <form.Field name="stageId">
-          {(field) => (
-            <Field>
-              <FieldLabel>Этап</FieldLabel>
-              <Select
-                value={field.state.value ?? NULLABLE}
-                onValueChange={(v) =>
-                  field.handleChange(v === NULLABLE ? null : v)
-                }
-                disabled={availableStages.length === 0}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите этап" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NULLABLE}>Не выбран</SelectItem>
-                  {availableStages.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="size-2 rounded-full"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-        </form.Field>
-      </div>
+          {/* Stage */}
+          <form.Field name="stageId">
+            {(field) => (
+              <Field>
+                <FieldLabel>Этап</FieldLabel>
+                <Select
+                  value={field.state.value ?? NULLABLE}
+                  onValueChange={(v) =>
+                    field.handleChange(v === NULLABLE ? null : v)
+                  }
+                  disabled={availableStages.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите этап" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NULLABLE}>Не выбран</SelectItem>
+                    {availableStages.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: s.color }}
+                          />
+                          {s.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+          </form.Field>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -332,7 +361,9 @@ export function InitiativeForm({
           >
             {(field) => (
               <Field
-                data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}
+                data-invalid={
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                }
               >
                 <FieldLabel>Подразделение *</FieldLabel>
                 <Select
@@ -400,7 +431,7 @@ export function InitiativeForm({
               <FieldLabel>Бюджет (₽)</FieldLabel>
               <Input
                 type="number"
-                value={field.state.value ?? ''}
+                value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 placeholder="0"
               />
@@ -416,7 +447,7 @@ export function InitiativeForm({
             <FieldLabel>Срок сделки</FieldLabel>
             <Input
               type="date"
-              value={field.state.value ?? ''}
+              value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
             />
           </Field>
@@ -429,7 +460,7 @@ export function InitiativeForm({
           <Field>
             <FieldLabel>Описание</FieldLabel>
             <Textarea
-              value={field.state.value ?? ''}
+              value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               placeholder="Дополнительная информация..."
               rows={3}

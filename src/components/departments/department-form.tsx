@@ -131,7 +131,7 @@ const DepartmentForm = ({
   const form = useForm({
     defaultValues: {
       name: item?.name ?? '',
-      departmentType: (item?.departmentType ?? 'sales') as 'sales' | 'production' | 'administrative',
+      departmentType: item?.departmentType ?? 'sales',
       headUserId: getOptionalString(item?.headUserId),
       description: getOptionalString(item?.description),
       accentColor: normalizeHexColor(item?.accentColor ?? DEFAULT_ACCENT_COLOR),
@@ -233,7 +233,9 @@ const DepartmentForm = ({
                   name={field.name}
                   value={field.state.value}
                   onValueChange={(value) =>
-                    field.handleChange(value as 'sales' | 'production' | 'administrative')
+                    field.handleChange(
+                      value as 'sales' | 'production' | 'administrative',
+                    )
                   }
                 >
                   <SelectTrigger

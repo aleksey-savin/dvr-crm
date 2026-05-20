@@ -54,9 +54,7 @@ export function PipelineForm({
           onSuccess?.(result.id)
         }
       } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : 'Произошла ошибка',
-        )
+        toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
       }
     },
   })
@@ -72,7 +70,9 @@ export function PipelineForm({
       <form.Field name="name">
         {(field) => (
           <Field
-            data-invalid={field.state.meta.isTouched && !field.state.meta.isValid}
+            data-invalid={
+              field.state.meta.isTouched && !field.state.meta.isValid
+            }
           >
             <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
             <Input
@@ -93,7 +93,7 @@ export function PipelineForm({
             <FieldLabel htmlFor={field.name}>Описание</FieldLabel>
             <Textarea
               id={field.name}
-              value={field.state.value ?? ''}
+              value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               placeholder="Необязательное описание..."
               rows={2}
@@ -136,8 +136,8 @@ export function PipelineForm({
       </form.Field>
 
       <p className="text-xs text-muted-foreground">
-        Этапы воронки создаются и редактируются прямо на канбан-доске:
-        кнопкой «+ Создать колонку» и меню «⋮» в заголовке колонки.
+        Этапы воронки создаются и редактируются прямо на канбан-доске: кнопкой
+        «+ Создать колонку» и меню «⋮» в заголовке колонки.
       </p>
 
       <form.Subscribe selector={(s) => s.isSubmitting}>

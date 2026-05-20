@@ -29,14 +29,14 @@ const BoldToolbar = React.forwardRef<
           size="icon"
           className={cn(
             'h-8 w-8 p-0 sm:h-9 sm:w-9',
-            editor?.isActive('bold') && 'bg-accent',
+            editor.isActive('bold') && 'bg-accent',
             className,
           )}
           onClick={(e) => {
-            editor?.chain().focus().toggleBold().run()
+            editor.chain().focus().toggleBold().run()
             onClick?.(e)
           }}
-          disabled={!editor?.can().chain().focus().toggleBold().run()}
+          disabled={!editor.can().chain().focus().toggleBold().run()}
           ref={ref}
           {...props}
         >

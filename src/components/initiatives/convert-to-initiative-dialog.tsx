@@ -55,7 +55,7 @@ export function ConvertToInitiativeDialog({
 
   // If pipelines change while dialog is closed and reopen, reset selection.
   const effectivePipelineId =
-    pipelines.find((p) => p.id === pipelineId)?.id ?? pipelines[0]?.id ?? ''
+    pipelines.find((p) => p.id === pipelineId)?.id ?? pipelines.at(0)?.id ?? ''
   const selectedPipeline = pipelines.find((p) => p.id === effectivePipelineId)
   const firstStage = firstStageOf(selectedPipeline)
 
@@ -95,7 +95,10 @@ export function ConvertToInitiativeDialog({
             {pipelines.length > 1 ? (
               <Field>
                 <FieldLabel>Воронка</FieldLabel>
-                <Select value={effectivePipelineId} onValueChange={setPipelineId}>
+                <Select
+                  value={effectivePipelineId}
+                  onValueChange={setPipelineId}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -143,9 +146,7 @@ export function ConvertToInitiativeDialog({
               e.preventDefault()
               void handleConvert()
             }}
-            disabled={
-              isLoading || pipelines.length === 0 || !firstStage
-            }
+            disabled={isLoading || pipelines.length === 0 || !firstStage}
           >
             {isLoading ? 'Создание...' : 'Создать инициативу'}
           </Button>

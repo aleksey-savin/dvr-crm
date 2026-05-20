@@ -12,13 +12,12 @@ function RouteComponent() {
   const options = Route.useLoaderData()
   const navigate = useNavigate()
   // Optional: pre-select pipeline/stage from kanban "+ Добавить" button
-  const search = useSearch({ strict: false }) as Record<string, string>
-  const preStageId = search?.stageId ?? null
+  const search = useSearch({ strict: false })
+  const preStageId = search.stageId ?? null
   // Derive pipeline that contains this stage so the form is fully wired.
   const prePipelineId = preStageId
-    ? (options.pipelines.find((p) =>
-        p.stages.some((s) => s.id === preStageId),
-      )?.id ?? null)
+    ? (options.pipelines.find((p) => p.stages.some((s) => s.id === preStageId))
+        ?.id ?? null)
     : null
 
   const handleClose = () => navigate({ to: '/initiatives' })

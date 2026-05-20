@@ -8,9 +8,8 @@ import {
   useSensor,
   useSensors,
   closestCorners,
-  type DragStartEvent,
-  type DragEndEvent,
 } from '@dnd-kit/core'
+import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
 import {
   SortableContext,
   arrayMove,
@@ -279,9 +278,7 @@ export function KanbanBoard({
       const oldIdx = orderedStages.findIndex((s) => s.id === fromId)
       const newIdx = orderedStages.findIndex((s) => s.id === toId)
       if (oldIdx < 0 || newIdx < 0) return
-      const newOrder = arrayMove(orderedStages, oldIdx, newIdx).map(
-        (s) => s.id,
-      )
+      const newOrder = arrayMove(orderedStages, oldIdx, newIdx).map((s) => s.id)
       setStageOrderOverride(newOrder)
       void handleReorderColumns(newOrder)
       return
@@ -353,7 +350,10 @@ export function KanbanBoard({
     }))
     try {
       await closeInitiativeWon({
-        data: { id: pendingDrop.initiativeId, stageId: pendingDrop.targetStageId },
+        data: {
+          id: pendingDrop.initiativeId,
+          stageId: pendingDrop.targetStageId,
+        },
       })
       toast.success('Инициатива закрыта как выигранная')
       await router.invalidate()

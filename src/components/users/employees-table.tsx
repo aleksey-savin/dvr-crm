@@ -16,10 +16,8 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
-import {
-  MultiFilterCombobox,
-  type TableFilterOption,
-} from '@/components/tables/multi-filter-combobox'
+import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
+import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import {
   Table,
   TableBody,
@@ -41,7 +39,9 @@ export function EmployeesTable({
   const [search, setSearch] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState<string[]>([])
 
-  const departmentNames = new Map(departments.map((item) => [item.id, item.name]))
+  const departmentNames = new Map(
+    departments.map((item) => [item.id, item.name]),
+  )
 
   const departmentOptions: Array<TableFilterOption> = [
     { value: '__none__', label: 'Без подразделения' },
@@ -82,9 +82,7 @@ export function EmployeesTable({
     {
       accessorKey: 'name',
       header: ({ column }) => <SortableHeader column={column} label="Имя" />,
-      cell: ({ row }) => (
-        <div className="font-medium">{row.original.name}</div>
-      ),
+      cell: ({ row }) => <div className="font-medium">{row.original.name}</div>,
     },
     {
       id: 'department',
@@ -124,9 +122,7 @@ export function EmployeesTable({
     },
     {
       accessorKey: 'email',
-      header: ({ column }) => (
-        <SortableHeader column={column} label="Email" />
-      ),
+      header: ({ column }) => <SortableHeader column={column} label="Email" />,
       cell: ({ row }) => (
         <a
           href={`mailto:${row.original.email}`}

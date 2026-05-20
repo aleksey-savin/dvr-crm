@@ -62,16 +62,16 @@ function RouteComponent() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
-    <aside
-      className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l bg-background shadow-xl animate-in slide-in-from-right duration-300"
-    >
+    <aside className="fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l bg-background shadow-xl animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-2 border-b p-4">
-        <h2 className="min-w-0 text-base font-semibold truncate" title={item.title}>
+        <h2
+          className="min-w-0 text-base font-semibold truncate"
+          title={item.title}
+        >
           {item.title}
         </h2>
         <div className="flex shrink-0 items-center gap-1">
@@ -80,12 +80,22 @@ function RouteComponent() {
               <EditIcon className="size-4" />
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="icon" className="size-8 text-destructive">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="size-8 text-destructive"
+          >
             <Link to="/initiatives/$id/delete" params={{ id: item.id }}>
               <Trash2Icon className="size-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" className="size-8" onClick={close}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-8"
+            onClick={close}
+          >
             <XIcon className="size-4" />
           </Button>
         </div>
@@ -120,7 +130,10 @@ function RouteComponent() {
                     </Badge>
                   )}
                   {item.stage.isLost && (
-                    <Badge variant="destructive" className="px-1 py-0 text-[10px]">
+                    <Badge
+                      variant="destructive"
+                      className="px-1 py-0 text-[10px]"
+                    >
                       Lost
                     </Badge>
                   )}
@@ -257,7 +270,9 @@ function RouteComponent() {
         {proposals.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Коммерческие предложения</CardTitle>
+              <CardTitle className="text-base">
+                Коммерческие предложения
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <InitiativeProposalsSection proposals={proposals} />

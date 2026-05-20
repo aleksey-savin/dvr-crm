@@ -50,13 +50,14 @@ export async function ensureClientClassificationSettings() {
 
   if (inserted[0]) return inserted[0]
 
-  const [createdByAnotherRequest] = await db
+  const createdByAnotherRequest = await db
     .select()
     .from(clientClassificationSettings)
     .where(
       eq(clientClassificationSettings.id, CLIENT_CLASSIFICATION_SETTINGS_ID),
     )
     .limit(1)
+    .then((rows) => rows.at(0))
 
   if (!createdByAnotherRequest) {
     throw new Error('Не удалось создать настройки классификации клиентов')

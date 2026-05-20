@@ -228,7 +228,10 @@ function RevenueChart({
 }
 
 function ChartRevenueSection({ revenues, companyId, onRefresh }: Props) {
-  const latestRevenue = revenues.slice().sort((a, b) => b.year - a.year)[0]
+  const latestRevenue = revenues
+    .slice()
+    .sort((a, b) => b.year - a.year)
+    .at(0)
 
   return (
     <div className="inline-flex w-fit max-w-full flex-wrap items-center gap-2 rounded-md border bg-muted/20 px-2.5 py-2">

@@ -26,11 +26,12 @@ export const Route = createFileRoute('/api/meetings/$')({
           const apiKeyValue = authHeader.substring(7) // Remove "Bearer " prefix
 
           // Verify API key exists in database
-          const [apiKeyRecord] = await db
+          const apiKeyRecord = await db
             .select()
             .from(apiKey)
             .where(eq(apiKey.key, apiKeyValue))
             .limit(1)
+            .then((rows) => rows.at(0))
 
           if (!apiKeyRecord) {
             return new Response(JSON.stringify({ error: 'Invalid API key' }), {

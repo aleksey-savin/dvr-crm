@@ -30,23 +30,22 @@ export const AlignmentTooolbar = () => {
   const { editor } = useToolbar()
   const isMobile = useMediaQuery('(max-width: 640px)')
   const handleAlign = (value: string) => {
-    editor?.chain().focus().setTextAlign(value).run()
+    editor.chain().focus().setTextAlign(value).run()
   }
 
-  const isDisabled =
-    !editor || editor.isActive('image') || editor.isActive('video')
+  const isDisabled = editor.isActive('image') || editor.isActive('video')
 
   const currentTextAlign = () => {
-    if (editor?.isActive({ textAlign: 'left' })) {
+    if (editor.isActive({ textAlign: 'left' })) {
       return 'left'
     }
-    if (editor?.isActive({ textAlign: 'center' })) {
+    if (editor.isActive({ textAlign: 'center' })) {
       return 'center'
     }
-    if (editor?.isActive({ textAlign: 'right' })) {
+    if (editor.isActive({ textAlign: 'right' })) {
       return 'right'
     }
-    if (editor?.isActive({ textAlign: 'justify' })) {
+    if (editor.isActive({ textAlign: 'justify' })) {
       return 'justify'
     }
 

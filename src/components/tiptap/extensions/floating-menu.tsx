@@ -210,8 +210,6 @@ export function TipTapFloatingMenu({ editor }: { editor: Editor }) {
 
   const executeCommand = useCallback(
     (commandFn: (editor: Editor) => void) => {
-      if (!editor) return
-
       try {
         const { from } = editor.state.selection
         const slashCommandLength = search.length + 1
@@ -239,7 +237,7 @@ export function TipTapFloatingMenu({ editor }: { editor: Editor }) {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (!isOpen || !editor) return
+      if (!isOpen) return
 
       const preventDefault = () => {
         e.preventDefault()
@@ -263,13 +261,14 @@ export function TipTapFloatingMenu({ editor }: { editor: Editor }) {
           })
           break
 
-        case 'Enter':
+        case 'Enter': {
           preventDefault()
           const targetIndex = selectedIndex === -1 ? 0 : selectedIndex
           if (flatFilteredItems[targetIndex]) {
             executeCommand(flatFilteredItems[targetIndex].command)
           }
           break
+        }
 
         case 'Escape':
           preventDefault()
@@ -282,8 +281,7 @@ export function TipTapFloatingMenu({ editor }: { editor: Editor }) {
   )
 
   useEffect(() => {
-    const editorElement = editor?.view?.dom
-    if (!editorElement) return
+    const editorElement = editor.view.dom
 
     const handleEditorKeyDown = (e: Event) => handleKeyDown(e as KeyboardEvent)
 
@@ -307,8 +305,6 @@ export function TipTapFloatingMenu({ editor }: { editor: Editor }) {
     <FloatingMenu
       editor={editor}
       shouldShow={({ state }) => {
-        if (!editor) return false
-
         const { $from } = state.selection
         const currentLineText = $from.parent.textBetween(
           0,

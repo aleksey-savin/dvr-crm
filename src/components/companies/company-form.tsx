@@ -80,7 +80,7 @@ const CompanyForm = ({
   const form = useForm({
     defaultValues: {
       name: item?.name ?? '',
-      scope: (item?.scope ?? undefined) as 'federal' | 'regional' | undefined,
+      scope: item?.scope ?? undefined,
       website: item?.website as string | undefined,
       description: item?.description as string | undefined,
       regionalMarketPosition: item?.regionalMarketPosition as
@@ -317,10 +317,7 @@ const CompanyForm = ({
             const isInvalid =
               field.state.meta.isTouched && !field.state.meta.isValid
             return (
-              <Field
-                data-invalid={isInvalid}
-                className="flex flex-col"
-              >
+              <Field data-invalid={isInvalid} className="flex flex-col">
                 <FieldLabel htmlFor={field.name}>Описание</FieldLabel>
                 <RichTextEditor
                   value={field.state.value}
