@@ -1287,6 +1287,9 @@ export const lead = pgTable(
     sourceId: text('source_id').references(() => source.id, {
       onDelete: 'set null',
     }),
+    stageId: text('stage_id').references(() => leadStage.id, {
+      onDelete: 'set null',
+    }),
     status: text('status', {
       enum: ['new', 'in_progress', 'converted', 'rejected'],
     })
@@ -1298,6 +1301,7 @@ export const lead = pgTable(
     lostReasonId: text('lost_reason_id').references(() => refusalReason.id, {
       onDelete: 'set null',
     }),
+    archivedAt: timestamp('archived_at'),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -1312,9 +1316,33 @@ export const lead = pgTable(
     index('lead_industry_id_idx').on(table.industryId),
     index('lead_source_id_idx').on(table.sourceId),
     index('lead_lost_reason_id_idx').on(table.lostReasonId),
+    index('lead_stage_id_idx').on(table.stageId),
     index('lead_status_idx').on(table.status),
+    index('lead_archived_at_idx').on(table.archivedAt),
     index('lead_deleted_at_idx').on(table.deletedAt),
   ],
+)
+
+// ---------------------------------------------------------------------------
+// Lead stage (колонки кастомного канбана лидов — единая воронка)
+// ---------------------------------------------------------------------------
+
+export const leadStage = pgTable(
+  'lead_stage',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    color: text('color').notNull().default('#6b7280'),
+    order: integer('order').notNull().default(0),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index('lead_stage_order_idx').on(table.order)],
 )
 
 // ---------------------------------------------------------------------------
@@ -1927,6 +1955,14 @@ export const leadRelations = relations(lead, ({ one }) => ({
     references: [refusalReason.id],
     relationName: 'leadLostReason',
   }),
+  stage: one(leadStage, {
+    fields: [lead.stageId],
+    references: [leadStage.id],
+  }),
+}))
+
+export const leadStageRelations = relations(leadStage, ({ many }) => ({
+  leads: many(lead),
 }))
 
 export const tenderRelations = relations(tender, ({ one }) => ({
@@ -2022,13 +2058,16 @@ export const pipelineDepartmentRelations = relations(
   }),
 )
 
-export const pipelineStageRelations = relations(pipelineStage, ({ one, many }) => ({
-  pipeline: one(pipeline, {
-    fields: [pipelineStage.pipelineId],
-    references: [pipeline.id],
+export const pipelineStageRelations = relations(
+  pipelineStage,
+  ({ one, many }) => ({
+    pipeline: one(pipeline, {
+      fields: [pipelineStage.pipelineId],
+      references: [pipeline.id],
+    }),
+    initiatives: many(initiative),
   }),
-  initiatives: many(initiative),
-}))
+)
 
 export const initiativeRelations = relations(initiative, ({ one, many }) => ({
   pipeline: one(pipeline, {
@@ -2073,5 +2112,7 @@ export const initiativeRelations = relations(initiative, ({ one, many }) => ({
   }),
   proposals: many(proposal, { relationName: 'initiativeProposals' }),
   meetings: many(meeting),
-  targetActions: many(targetAction, { relationName: 'initiativeTargetActions' }),
+  targetActions: many(targetAction, {
+    relationName: 'initiativeTargetActions',
+  }),
 }))

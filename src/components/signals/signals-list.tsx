@@ -1,13 +1,10 @@
 import * as React from 'react'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { RadioIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
 import { signalColumns } from '@/components/tables/signal-cols'
 import { usePipelinesStore } from '@/stores/pipelines-store'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
-import { fetchSignals } from '@/components/signals/actions'
-import { fetchPipelines } from '@/components/pipelines/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -15,16 +12,11 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import type { SignalStatus } from '@/types'
+import type { SignalRow, SignalStatus, PipelineWithStages } from '@/types'
 import {
   useScopedDepartmentIds,
   matchesDepartmentScope,
 } from '@/hooks/use-department-scope'
-
-export const Route = createFileRoute('/signals')({
-  loader: () => Promise.all([fetchSignals(), fetchPipelines()]),
-  component: RouteComponent,
-})
 
 const STATUS_OPTIONS: Array<TableFilterOption<SignalStatus>> = [
   { value: 'new', label: 'Новый' },
@@ -33,8 +25,13 @@ const STATUS_OPTIONS: Array<TableFilterOption<SignalStatus>> = [
   { value: 'archived', label: 'Архив' },
 ]
 
-function RouteComponent() {
-  const [allSignals, pipelines] = Route.useLoaderData()
+export function SignalsList({
+  signals: allSignals,
+  pipelines,
+}: {
+  signals: SignalRow[]
+  pipelines: PipelineWithStages[]
+}) {
   const setPipelines = usePipelinesStore((s) => s.setPipelines)
   React.useEffect(() => {
     setPipelines(pipelines)
@@ -109,81 +106,79 @@ function RouteComponent() {
     return true
   })
 
+  if (signals.length === 0) {
+    return (
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <RadioIcon />
+          </EmptyMedia>
+        </EmptyHeader>
+        <EmptyDescription>Сигналов пока нет</EmptyDescription>
+      </Empty>
+    )
+  }
+
   return (
-    <>
-      {signals.length === 0 ? (
-        <Empty className="border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <RadioIcon />
-            </EmptyMedia>
-          </EmptyHeader>
-          <EmptyDescription>Сигналов пока нет</EmptyDescription>
-        </Empty>
-      ) : (
-        <DataTable
-          columns={signalColumns}
-          data={filtered}
-          toolbar={
-            <div className="flex flex-wrap items-center gap-2">
-              <MultiFilterCombobox
-                options={STATUS_OPTIONS}
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-                placeholder="Статусы"
-                emptyText="Статусы не найдены"
-              />
+    <DataTable
+      columns={signalColumns}
+      data={filtered}
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiFilterCombobox
+            options={STATUS_OPTIONS}
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            placeholder="Статусы"
+            emptyText="Статусы не найдены"
+          />
 
-              {typeOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={typeOptions}
-                  value={typeFilter}
-                  onValueChange={setTypeFilter}
-                  placeholder="Типы"
-                  emptyText="Типы не найдены"
-                />
-              )}
+          {typeOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={typeOptions}
+              value={typeFilter}
+              onValueChange={setTypeFilter}
+              placeholder="Типы"
+              emptyText="Типы не найдены"
+            />
+          )}
 
-              {responsibleOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={responsibleOptions}
-                  value={responsibleFilter}
-                  onValueChange={setResponsibleFilter}
-                  placeholder="Ответственные"
-                  emptyText="Ответственные не найдены"
-                />
-              )}
+          {responsibleOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={responsibleOptions}
+              value={responsibleFilter}
+              onValueChange={setResponsibleFilter}
+              placeholder="Ответственные"
+              emptyText="Ответственные не найдены"
+            />
+          )}
 
-              {industryOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={industryOptions}
-                  value={industryFilter}
-                  onValueChange={setIndustryFilter}
-                  placeholder="Отрасли"
-                  emptyText="Отрасли не найдены"
-                />
-              )}
-              {hasFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter([])
-                    setTypeFilter([])
-                    setResponsibleFilter([])
-                    setIndustryFilter([])
-                  }}
-                >
-                  <XIcon className="size-4" />
-                  Сбросить
-                </Button>
-              )}
-            </div>
-          }
-        />
-      )}
-
-      <Outlet />
-    </>
+          {industryOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={industryOptions}
+              value={industryFilter}
+              onValueChange={setIndustryFilter}
+              placeholder="Отрасли"
+              emptyText="Отрасли не найдены"
+            />
+          )}
+          {hasFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStatusFilter([])
+                setTypeFilter([])
+                setResponsibleFilter([])
+                setIndustryFilter([])
+              }}
+            >
+              <XIcon className="size-4" />
+              Сбросить
+            </Button>
+          )}
+        </div>
+      }
+    />
   )
 }

@@ -28,6 +28,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     'contact-roles': { label: 'Роли контактов', showAddButton: true },
     'signal-types': { label: 'Типы сигналов', showAddButton: true },
     sources: { label: 'Источники', showAddButton: true },
+    'lead-sources': { label: 'Источники лидов', showAddButton: true },
     'refusal-reasons': { label: 'Причины отказа', showAddButton: true },
     tags: { label: 'Теги', showAddButton: true },
     changelog: { label: 'Обновления', showAddButton: true },
@@ -132,6 +133,15 @@ export function AppBreadcrumb() {
     (effectiveLastSegment !== 'changelog' || loaderData?.canManage === true) &&
     (effectiveLastSegment !== 'clients' || canAddClient)
 
+  // On the combined «Источники» page the create action targets the entity of
+  // the active tab (leads/tenders/signals) instead of /sources/new.
+  const addSegment =
+    effectiveLastSegment === 'sources'
+      ? activeTab === 'tenders' || activeTab === 'signals'
+        ? activeTab
+        : 'leads'
+      : effectiveLastSegment
+
   return (
     <div className="flex items-center">
       <Breadcrumb>
@@ -169,7 +179,7 @@ export function AppBreadcrumb() {
           {!isViewPage && segments.length > 0 && showAddButton && (
             <BreadcrumbItem>
               <Button asChild size="sm" className="gap-2 ml-2">
-                <Link to={`/${effectiveLastSegment}/new` as any}>
+                <Link to={`/${addSegment}/new` as any}>
                   <PlusIcon className="size-4" />
                 </Link>
               </Button>

@@ -14,6 +14,12 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { ChevronDown } from 'lucide-react'
 import { NavUser } from './nav-user'
 import { authClient } from 'utils/auth-client'
 import { Link } from '@tanstack/react-router'
@@ -41,38 +47,24 @@ const navMain = [
     ],
   },
   {
-    title: 'CRM',
+    title: 'CRM | Новый бизнес',
     url: '#',
     items: [
+      {
+        title: 'Клиенты',
+        url: '/clients',
+      },
       {
         title: 'Вишлист',
         url: '/wishlist',
       },
       {
-        title: 'Клиенты',
-        url: '/clients',
+        title: 'Источники',
+        url: '/sources',
       },
-    ],
-  },
-  {
-    title: 'Новый бизнес',
-    url: '#',
-    items: [
       {
         title: 'Инициативы',
         url: '/initiatives',
-      },
-      {
-        title: 'Лиды',
-        url: '/leads',
-      },
-      {
-        title: 'Тендеры',
-        url: '/tenders',
-      },
-      {
-        title: 'Сигналы',
-        url: '/signals',
       },
     ],
   },
@@ -129,8 +121,8 @@ const navMain = [
         url: '/signal-types',
       },
       {
-        title: 'Источники',
-        url: '/sources',
+        title: 'Источники лидов',
+        url: '/lead-sources',
       },
       {
         title: 'Причины отказа',
@@ -144,6 +136,12 @@ const navMain = [
         title: 'Пользователи',
         url: '/users',
       },
+    ],
+  },
+  {
+    title: '',
+    url: '#',
+    items: [
       {
         title: 'Настройки',
         url: '/preferences',
@@ -193,22 +191,51 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <SearchForm /> */}
       </SidebarHeader>
       <SidebarContent>
-        {navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            {item.title && <SidebarGroupLabel>{item.title}</SidebarGroupLabel>}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {item.items.map((child) => (
-                  <SidebarMenuItem key={child.title}>
-                    <SidebarMenuButton asChild className="text-base">
-                      <Link to={child.url}>{child.title}</Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {navMain.map((item) =>
+          item.title ? (
+            <Collapsible
+              key={item.title}
+              defaultOpen={item.title !== 'Администрирование'}
+              className="group/collapsible"
+            >
+              <SidebarGroup>
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center">
+                    {item.title}
+                    <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {item.items.map((child) => (
+                        <SidebarMenuItem key={child.title}>
+                          <SidebarMenuButton asChild className="text-base">
+                            <Link to={child.url}>{child.title}</Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          ) : (
+            <SidebarGroup key="untitled">
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {item.items.map((child) => (
+                    <SidebarMenuItem key={child.title}>
+                      <SidebarMenuButton asChild className="text-base">
+                        <Link to={child.url}>{child.title}</Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ),
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

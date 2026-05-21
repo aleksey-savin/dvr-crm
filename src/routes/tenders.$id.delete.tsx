@@ -23,7 +23,8 @@ function RouteComponent() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleClose = () => router.navigate({ to: '/tenders' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'tenders' } })
 
   const handleConfirm = async () => {
     setIsLoading(true)
@@ -31,7 +32,7 @@ function RouteComponent() {
       await softDeleteTender({ data: { id: tender.id } })
       toast.success('Тендер удалён')
       router.invalidate()
-      router.navigate({ to: '/tenders' })
+      router.navigate({ to: '/sources', search: { tab: 'tenders' } })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {
@@ -40,7 +41,12 @@ function RouteComponent() {
   }
 
   return (
-    <AlertDialog open onOpenChange={(open) => { if (!open) handleClose() }}>
+    <AlertDialog
+      open
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить тендер?</AlertDialogTitle>
@@ -55,7 +61,10 @@ function RouteComponent() {
           <AlertDialogAction
             variant="destructive"
             disabled={isLoading}
-            onClick={(e) => { e.preventDefault(); handleConfirm() }}
+            onClick={(e) => {
+              e.preventDefault()
+              handleConfirm()
+            }}
           >
             {isLoading ? 'Удаление...' : 'Удалить'}
           </AlertDialogAction>

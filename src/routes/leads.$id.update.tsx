@@ -12,17 +12,20 @@ function RouteComponent() {
   const router = useRouter()
   const lead = Route.useLoaderData()
 
-  const handleClose = () => router.navigate({ to: '/leads' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'leads' } })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/leads' })
+    router.navigate({ to: '/sources', search: { tab: 'leads' } })
   }
 
   return (
     <ResponsiveDialog
       open
-      onOpenChange={(open) => { if (!open) handleClose() }}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
       title="Редактировать лид"
       description="Изменение данных лида"
       contentClassName="sm:max-w-2xl"

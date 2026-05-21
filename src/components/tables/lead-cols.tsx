@@ -18,7 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
+import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { LeadRow, LeadStatus, PipelineWithStages } from '@/types'
 
 const STATUS_LABELS: Record<LeadStatus, string> = {
@@ -151,24 +158,32 @@ function CreateLeadInitiativeAction({
 function RejectLeadAction({ lead }: { lead: LeadRow }) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
-  const [reason, setReason] = React.useState('')
+  const [reasonId, setReasonId] = React.useState<string | null>(null)
+  const [refusalReasons, setRefusalReasons] = React.useState<
+    Array<{ id: string; name: string }>
+  >([])
   const [isPending, setIsPending] = React.useState(false)
 
+  React.useEffect(() => {
+    if (open) {
+      fetchRefusalReasons().then(setRefusalReasons).catch(console.error)
+    }
+  }, [open])
+
   const handleReject = async () => {
-    const trimmedReason = reason.trim()
-    if (!trimmedReason) {
-      toast.error('Укажите причину отклонения')
+    if (!reasonId) {
+      toast.error('Выберите причину отклонения')
       return
     }
 
     setIsPending(true)
     try {
       await rejectLead({
-        data: { id: lead.id, lostReasonId: trimmedReason },
+        data: { id: lead.id, lostReasonId: reasonId },
       })
       toast.success('Лид отклонён')
       setOpen(false)
-      setReason('')
+      setReasonId(null)
       await router.invalidate()
     } catch {
       toast.error('Не удалось отклонить лид')
@@ -184,7 +199,7 @@ function RejectLeadAction({ lead }: { lead: LeadRow }) {
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen)
-        if (!nextOpen) setReason('')
+        if (!nextOpen) setReasonId(null)
       }}
     >
       <Button
@@ -200,15 +215,25 @@ function RejectLeadAction({ lead }: { lead: LeadRow }) {
         <DialogHeader>
           <DialogTitle>Отклонить лид?</DialogTitle>
           <DialogDescription>
-            Укажите причину отклонения перед изменением статуса.
+            Выберите причину отклонения перед изменением статуса.
           </DialogDescription>
         </DialogHeader>
-        <Textarea
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="Причина отклонения"
+        <Select
+          value={reasonId ?? ''}
+          onValueChange={(v) => setReasonId(v || null)}
           disabled={isPending}
-        />
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Выберите причину" />
+          </SelectTrigger>
+          <SelectContent>
+            {refusalReasons.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                {r.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <DialogFooter>
           <Button
             variant="outline"

@@ -341,6 +341,13 @@ export type TagRow = {
 
 export type LeadStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
 
+export type LeadStageOption = {
+  id: string
+  name: string
+  color: string
+  order: number
+}
+
 export type LeadRow = {
   id: string
   title: string
@@ -349,6 +356,10 @@ export type LeadRow = {
   sourceName: string | null
   lostReasonId: string | null
   lostReasonName: string | null
+  stageId: string | null
+  stageName: string | null
+  stageColor: string | null
+  stageOrder: number | null
   budget: string | null
   dueDate: string | null
   companyId: string | null
@@ -359,6 +370,7 @@ export type LeadRow = {
   responsibleUserName: string | null
   industryId: string | null
   industryName: string | null
+  archivedAt: Date | null
   createdAt: Date
 }
 

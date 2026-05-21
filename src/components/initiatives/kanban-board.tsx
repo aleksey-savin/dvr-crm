@@ -1,21 +1,6 @@
 import * as React from 'react'
-import { useRouter } from '@tanstack/react-router'
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-} from '@dnd-kit/core'
-import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core'
-import {
-  SortableContext,
-  arrayMove,
-  horizontalListSortingStrategy,
-  sortableKeyboardCoordinates,
-} from '@dnd-kit/sortable'
+import { Link, useRouter } from '@tanstack/react-router'
+import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   AlertDialog,
@@ -27,6 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -34,16 +21,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { KanbanBoard } from '@/components/kanban/kanban-board'
+import type { KanbanBoardHandle } from '@/components/kanban/kanban-board'
+import {
+  addPipelineStage,
+  deletePipelineStage,
+  reorderPipelineStages,
+  updatePipelineStage,
+} from '@/components/pipelines/actions'
 import { InitiativeCard } from './initiative-card'
-import { KanbanColumn } from './kanban-column'
-import { KanbanAddColumn } from './kanban-add-column'
 import {
   moveInitiativeStage,
   closeInitiativeWon,
   closeInitiativeLost,
 } from './actions'
-import { reorderPipelineStages } from '@/components/pipelines/actions'
-import type { InitiativeRow, PipelineWithStages } from '@/types'
+import type {
+  InitiativeRow,
+  PipelineStageOption,
+  PipelineWithStages,
+} from '@/types'
 
 // ---------------------------------------------------------------------------
 // Close-won dialog
@@ -151,7 +147,7 @@ function CloseLostDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Main kanban board
+// Initiative kanban board — thin wrapper over the generic KanbanBoard
 // ---------------------------------------------------------------------------
 
 type KanbanBoardProps = {
@@ -167,187 +163,21 @@ type PendingDrop = {
   isLost: boolean
 }
 
-const COLUMN_ID_PREFIX = 'col-'
-
-function isColumnDragId(id: string): boolean {
-  return id.startsWith(COLUMN_ID_PREFIX)
-}
-function stripColumnPrefix(id: string): string {
-  return id.slice(COLUMN_ID_PREFIX.length)
-}
-
-export function KanbanBoard({
+export function InitiativeKanbanBoard({
   pipeline,
   initiatives,
   refusalReasons,
 }: KanbanBoardProps) {
   const router = useRouter()
-  const [activeId, setActiveId] = React.useState<string | null>(null)
+  const boardRef = React.useRef<KanbanBoardHandle | null>(null)
   const [pendingDrop, setPendingDrop] = React.useState<PendingDrop | null>(null)
-  // Optimistic stage overrides for in-flight card moves so the UI reflects the
-  // change instantly without waiting for the server round trip.
-  const [stageOverrides, setStageOverrides] = React.useState<
-    Record<string, string>
-  >({})
-  // Optimistic stage order — set when the user drops a column reorder; cleared
-  // once the loader catches up.
-  const [stageOrderOverride, setStageOrderOverride] = React.useState<
-    string[] | null
-  >(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  )
-
-  // Apply optimistic card overrides and drop entries the server has caught up with.
-  const displayInitiatives = initiatives.map((i) =>
-    stageOverrides[i.id] ? { ...i, stageId: stageOverrides[i.id] } : i,
-  )
-  const staleOverrideIds = Object.keys(stageOverrides).filter((id) => {
-    const real = initiatives.find((i) => i.id === id)
-    return real && real.stageId === stageOverrides[id]
-  })
-  React.useEffect(() => {
-    if (staleOverrideIds.length === 0) return
-    setStageOverrides((prev) => {
-      const next = { ...prev }
-      for (const id of staleOverrideIds) delete next[id]
-      return next
-    })
-  }, [staleOverrideIds.join(',')])
-
-  // Apply optimistic column order: reorder pipeline.stages locally so the UI
-  // updates instantly. Clear the override once the loader data matches.
-  const orderedStages = React.useMemo(() => {
-    if (!stageOrderOverride) return pipeline.stages
-    const byId = new Map(pipeline.stages.map((s) => [s.id, s]))
-    const result: typeof pipeline.stages = []
-    for (const id of stageOrderOverride) {
-      const s = byId.get(id)
-      if (s) result.push(s)
-    }
-    // Append any stages not in the override (newly added since drop).
-    for (const s of pipeline.stages) {
-      if (!stageOrderOverride.includes(s.id)) result.push(s)
-    }
-    return result
-  }, [pipeline.stages, stageOrderOverride])
-
-  const serverOrderMatchesOverride =
-    stageOrderOverride &&
-    stageOrderOverride.length === pipeline.stages.length &&
-    pipeline.stages.every((s, idx) => stageOrderOverride[idx] === s.id)
-  React.useEffect(() => {
-    if (serverOrderMatchesOverride) setStageOrderOverride(null)
-  }, [serverOrderMatchesOverride])
-
-  // Group initiatives by stage
-  const byStage = new Map<string, InitiativeRow[]>()
-  for (const stage of orderedStages) byStage.set(stage.id, [])
-  for (const initiative of displayInitiatives) {
-    if (initiative.stageId && byStage.has(initiative.stageId)) {
-      byStage.get(initiative.stageId)!.push(initiative)
-    }
-  }
-
-  const activeInitiative =
-    activeId && !isColumnDragId(activeId)
-      ? displayInitiatives.find((i) => i.id === activeId)
-      : null
-
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(event.active.id as string)
-  }
-
-  function handleDragEnd(event: DragEndEvent) {
-    setActiveId(null)
-    const { active, over } = event
-    if (!over) return
-
-    const activeIdStr = active.id as string
-    const overIdStr = over.id as string
-
-    // Column reorder
-    if (isColumnDragId(activeIdStr)) {
-      if (!isColumnDragId(overIdStr) || activeIdStr === overIdStr) return
-      const fromId = stripColumnPrefix(activeIdStr)
-      const toId = stripColumnPrefix(overIdStr)
-      const oldIdx = orderedStages.findIndex((s) => s.id === fromId)
-      const newIdx = orderedStages.findIndex((s) => s.id === toId)
-      if (oldIdx < 0 || newIdx < 0) return
-      const newOrder = arrayMove(orderedStages, oldIdx, newIdx).map((s) => s.id)
-      setStageOrderOverride(newOrder)
-      void handleReorderColumns(newOrder)
-      return
-    }
-
-    // Card move — find the target stage from over.id. Over.id may be:
-    //   - a stage id (column cards-area droppable)
-    //   - another card's id (sortable card in some column)
-    //   - a column-sortable id "col-<stageId>" (when dropped on column header)
-    const initiativeId = activeIdStr
-    const normalizedOverId = isColumnDragId(overIdStr)
-      ? stripColumnPrefix(overIdStr)
-      : overIdStr
-    const targetStage =
-      orderedStages.find((s) => s.id === normalizedOverId) ??
-      orderedStages.find((s) =>
-        byStage.get(s.id)?.some((i) => i.id === normalizedOverId),
-      )
-    if (!targetStage) return
-
-    const initiative = displayInitiatives.find((i) => i.id === initiativeId)
-    if (!initiative || initiative.stageId === targetStage.id) return
-
-    if (targetStage.isWon || targetStage.isLost) {
-      setPendingDrop({
-        initiativeId,
-        targetStageId: targetStage.id,
-        isWon: targetStage.isWon,
-        isLost: targetStage.isLost,
-      })
-      return
-    }
-
-    void handleMove(initiativeId, targetStage.id)
-  }
-
-  async function handleReorderColumns(stageIds: string[]) {
-    try {
-      await reorderPipelineStages({
-        data: { pipelineId: pipeline.id, stageIds },
-      })
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось переупорядочить колонки')
-      setStageOrderOverride(null)
-    }
-  }
-
-  async function handleMove(initiativeId: string, stageId: string) {
-    setStageOverrides((prev) => ({ ...prev, [initiativeId]: stageId }))
-    try {
-      await moveInitiativeStage({ data: { id: initiativeId, stageId } })
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось переместить инициативу')
-      setStageOverrides((prev) => {
-        const next = { ...prev }
-        delete next[initiativeId]
-        return next
-      })
-    }
-  }
 
   async function handleConfirmWon() {
     if (!pendingDrop) return
-    setStageOverrides((prev) => ({
-      ...prev,
-      [pendingDrop.initiativeId]: pendingDrop.targetStageId,
-    }))
+    boardRef.current?.applyOptimisticMove(
+      pendingDrop.initiativeId,
+      pendingDrop.targetStageId,
+    )
     try {
       await closeInitiativeWon({
         data: {
@@ -359,11 +189,6 @@ export function KanbanBoard({
       await router.invalidate()
     } catch {
       toast.error('Не удалось закрыть инициативу')
-      setStageOverrides((prev) => {
-        const next = { ...prev }
-        delete next[pendingDrop.initiativeId]
-        return next
-      })
     } finally {
       setPendingDrop(null)
     }
@@ -371,10 +196,10 @@ export function KanbanBoard({
 
   async function handleConfirmLost(refusalReasonId: string | null) {
     if (!pendingDrop) return
-    setStageOverrides((prev) => ({
-      ...prev,
-      [pendingDrop.initiativeId]: pendingDrop.targetStageId,
-    }))
+    boardRef.current?.applyOptimisticMove(
+      pendingDrop.initiativeId,
+      pendingDrop.targetStageId,
+    )
     try {
       await closeInitiativeLost({
         data: {
@@ -387,49 +212,113 @@ export function KanbanBoard({
       await router.invalidate()
     } catch {
       toast.error('Не удалось закрыть инициативу')
-      setStageOverrides((prev) => {
-        const next = { ...prev }
-        delete next[pendingDrop.initiativeId]
-        return next
-      })
     } finally {
       setPendingDrop(null)
     }
   }
 
-  const columnIds = orderedStages.map((s) => `${COLUMN_ID_PREFIX}${s.id}`)
-
   return (
     <>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex gap-3 overflow-x-auto pb-4">
-          <SortableContext
-            items={columnIds}
-            strategy={horizontalListSortingStrategy}
+      <KanbanBoard<InitiativeRow, PipelineStageOption>
+        actionRef={boardRef}
+        stages={pipeline.stages}
+        items={initiatives}
+        getItemId={(i) => i.id}
+        getItemStageId={(i) => i.stageId}
+        renderCard={(i, { isDragOverlay }) => (
+          <InitiativeCard initiative={i} isDragOverlay={isDragOverlay} />
+        )}
+        interceptDrop={(_i, stage) => stage.isWon || stage.isLost}
+        onInterceptedDrop={(i, stage) =>
+          setPendingDrop({
+            initiativeId: i.id,
+            targetStageId: stage.id,
+            isWon: stage.isWon,
+            isLost: stage.isLost,
+          })
+        }
+        onMoveItem={async (id, stageId) => {
+          try {
+            await moveInitiativeStage({ data: { id, stageId } })
+            await router.invalidate()
+          } catch (error) {
+            toast.error('Не удалось переместить инициативу')
+            throw error
+          }
+        }}
+        onReorderStages={async (stageIds) => {
+          try {
+            await reorderPipelineStages({
+              data: { pipelineId: pipeline.id, stageIds },
+            })
+            await router.invalidate()
+          } catch (error) {
+            toast.error('Не удалось переупорядочить колонки')
+            throw error
+          }
+        }}
+        onRenameStage={async (id, name) => {
+          await updatePipelineStage({ data: { id, name } })
+          await router.invalidate()
+        }}
+        onRecolorStage={async (id, color) => {
+          await updatePipelineStage({ data: { id, color } })
+          await router.invalidate()
+        }}
+        onDeleteStage={async (id, reassignToStageId) => {
+          await deletePipelineStage({ data: { id, reassignToStageId } })
+          await router.invalidate()
+        }}
+        onAddStage={async (name) => {
+          await addPipelineStage({ data: { pipelineId: pipeline.id, name } })
+          await router.invalidate()
+        }}
+        deleteStageDescription="Инициативы в этой колонке останутся, но потеряют привязку к этапу."
+        renderColumnHeaderExtra={(stage, stageItems) => {
+          const totalBudget = stageItems.reduce(
+            (sum, i) => sum + (i.budget ? Number(i.budget) : 0),
+            0,
+          )
+          return (
+            <>
+              {totalBudget > 0 && (
+                <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                  {new Intl.NumberFormat('ru-RU', {
+                    notation: 'compact',
+                    currency: 'RUB',
+                    style: 'currency',
+                    maximumFractionDigits: 1,
+                  }).format(totalBudget)}
+                </span>
+              )}
+              {(stage.isWon || stage.isLost) && (
+                <Badge
+                  variant={stage.isWon ? 'success' : 'destructive'}
+                  className="px-1.5 py-0 text-[10px]"
+                >
+                  {stage.isWon ? 'Won' : 'Lost'}
+                </Badge>
+              )}
+            </>
+          )
+        }}
+        renderColumnFooter={(stage) => (
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
           >
-            {orderedStages.map((stage) => (
-              <KanbanColumn
-                key={stage.id}
-                stage={stage}
-                initiatives={byStage.get(stage.id) ?? []}
-              />
-            ))}
-          </SortableContext>
-
-          <KanbanAddColumn pipelineId={pipeline.id} />
-        </div>
-
-        <DragOverlay dropAnimation={null}>
-          {activeInitiative ? (
-            <InitiativeCard initiative={activeInitiative} isDragOverlay />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            <Link
+              to="/initiatives/new"
+              search={{ stageId: stage.id } as Record<string, string>}
+            >
+              <PlusIcon className="mr-1 size-3.5" />
+              Добавить
+            </Link>
+          </Button>
+        )}
+      />
 
       <CloseWonDialog
         open={pendingDrop?.isWon === true}
@@ -446,3 +335,5 @@ export function KanbanBoard({
     </>
   )
 }
+
+export { InitiativeKanbanBoard as KanbanBoard }

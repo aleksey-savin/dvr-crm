@@ -12,17 +12,20 @@ function RouteComponent() {
   const router = useRouter()
   const tender = Route.useLoaderData()
 
-  const handleClose = () => router.navigate({ to: '/tenders' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'tenders' } })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/tenders' })
+    router.navigate({ to: '/sources', search: { tab: 'tenders' } })
   }
 
   return (
     <ResponsiveDialog
       open
-      onOpenChange={(open) => { if (!open) handleClose() }}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
       title="Редактировать тендер"
       description="Изменение данных тендера"
       contentClassName="sm:max-w-2xl"

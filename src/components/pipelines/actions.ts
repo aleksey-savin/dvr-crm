@@ -4,6 +4,7 @@ import {
   pipelineStage,
   pipelineDepartment,
   department,
+  initiative,
 } from '@/db/schema'
 import type { PipelineWithStages } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
@@ -241,9 +242,11 @@ export const updatePipeline = createServerFn({ method: 'POST' })
     }
 
     if (toAdd.length > 0) {
-      await db.insert(pipelineDepartment).values(
-        toAdd.map((dId) => ({ pipelineId: data.id, departmentId: dId })),
-      )
+      await db
+        .insert(pipelineDepartment)
+        .values(
+          toAdd.map((dId) => ({ pipelineId: data.id, departmentId: dId })),
+        )
     }
   })
 
@@ -322,8 +325,21 @@ export const updatePipelineStage = createServerFn({ method: 'POST' })
   })
 
 export const deletePipelineStage = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ id: z.string() }))
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      reassignToStageId: z.string().nullable().optional(),
+    }),
+  )
   .handler(async ({ data }) => {
+    // Move cards to the chosen stage before removing the column so they are
+    // not orphaned (FK is set null on delete otherwise).
+    if (data.reassignToStageId) {
+      await db
+        .update(initiative)
+        .set({ stageId: data.reassignToStageId })
+        .where(eq(initiative.stageId, data.id))
+    }
     await db.delete(pipelineStage).where(eq(pipelineStage.id, data.id))
   })
 

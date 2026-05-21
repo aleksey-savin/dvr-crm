@@ -1,11 +1,9 @@
 import * as React from 'react'
-import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { FileTextIcon, XIcon } from 'lucide-react'
 import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/tables/tender-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
-import { fetchTenders } from '@/components/tenders/actions'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -13,13 +11,11 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from '@/components/ui/empty'
-import type { TenderStatus } from '@/types'
-import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
-
-export const Route = createFileRoute('/tenders')({
-  loader: () => fetchTenders(),
-  component: RouteComponent,
-})
+import type { TenderRow, TenderStatus } from '@/types'
+import {
+  useScopedDepartmentIds,
+  matchesDepartmentScope,
+} from '@/hooks/use-department-scope'
 
 const STATUS_OPTIONS: Array<TableFilterOption<TenderStatus>> = [
   { value: 'new', label: 'Новый' },
@@ -33,8 +29,7 @@ const STATUS_OPTIONS: Array<TableFilterOption<TenderStatus>> = [
   { value: 'archived', label: 'Архив' },
 ]
 
-function RouteComponent() {
-  const allTenders = Route.useLoaderData()
+export function TendersList({ tenders: allTenders }: { tenders: TenderRow[] }) {
   const scopedDeptIds = useScopedDepartmentIds()
 
   const tenders = allTenders.filter((t) =>
@@ -106,81 +101,79 @@ function RouteComponent() {
     return true
   })
 
+  if (tenders.length === 0) {
+    return (
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileTextIcon />
+          </EmptyMedia>
+        </EmptyHeader>
+        <EmptyDescription>Тендеров пока нет</EmptyDescription>
+      </Empty>
+    )
+  }
+
   return (
-    <>
-      {tenders.length === 0 ? (
-        <Empty className="border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <FileTextIcon />
-            </EmptyMedia>
-          </EmptyHeader>
-          <EmptyDescription>Тендеров пока нет</EmptyDescription>
-        </Empty>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          toolbar={
-            <div className="flex flex-wrap items-center gap-2">
-              <MultiFilterCombobox
-                options={STATUS_OPTIONS}
-                value={statusFilter}
-                onValueChange={setStatusFilter}
-                placeholder="Статусы"
-                emptyText="Статусы не найдены"
-              />
+    <DataTable
+      columns={columns}
+      data={filtered}
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2">
+          <MultiFilterCombobox
+            options={STATUS_OPTIONS}
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            placeholder="Статусы"
+            emptyText="Статусы не найдены"
+          />
 
-              {departmentOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={departmentOptions}
-                  value={departmentFilter}
-                  onValueChange={setDepartmentFilter}
-                  placeholder="Подразделения"
-                  emptyText="Подразделения не найдены"
-                />
-              )}
+          {departmentOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={departmentOptions}
+              value={departmentFilter}
+              onValueChange={setDepartmentFilter}
+              placeholder="Подразделения"
+              emptyText="Подразделения не найдены"
+            />
+          )}
 
-              {responsibleOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={responsibleOptions}
-                  value={responsibleFilter}
-                  onValueChange={setResponsibleFilter}
-                  placeholder="Ответственные"
-                  emptyText="Ответственные не найдены"
-                />
-              )}
+          {responsibleOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={responsibleOptions}
+              value={responsibleFilter}
+              onValueChange={setResponsibleFilter}
+              placeholder="Ответственные"
+              emptyText="Ответственные не найдены"
+            />
+          )}
 
-              {industryOptions.length > 0 && (
-                <MultiFilterCombobox
-                  options={industryOptions}
-                  value={industryFilter}
-                  onValueChange={setIndustryFilter}
-                  placeholder="Отрасли"
-                  emptyText="Отрасли не найдены"
-                />
-              )}
-              {hasFilters && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setStatusFilter([])
-                    setDepartmentFilter([])
-                    setResponsibleFilter([])
-                    setIndustryFilter([])
-                  }}
-                >
-                  <XIcon className="size-4" />
-                  Сбросить
-                </Button>
-              )}
-            </div>
-          }
-        />
-      )}
-
-      <Outlet />
-    </>
+          {industryOptions.length > 0 && (
+            <MultiFilterCombobox
+              options={industryOptions}
+              value={industryFilter}
+              onValueChange={setIndustryFilter}
+              placeholder="Отрасли"
+              emptyText="Отрасли не найдены"
+            />
+          )}
+          {hasFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStatusFilter([])
+                setDepartmentFilter([])
+                setResponsibleFilter([])
+                setIndustryFilter([])
+              }}
+            >
+              <XIcon className="size-4" />
+              Сбросить
+            </Button>
+          )}
+        </div>
+      }
+    />
   )
 }

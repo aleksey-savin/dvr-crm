@@ -1,17 +1,18 @@
 import * as React from 'react'
-import { useRouter } from '@tanstack/react-router'
 import { PlusIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { addPipelineStage } from '@/components/pipelines/actions'
 
 type KanbanAddColumnProps = {
-  pipelineId: string
+  onAdd: (name: string) => Promise<void> | void
+  label?: string
 }
 
-export function KanbanAddColumn({ pipelineId }: KanbanAddColumnProps) {
-  const router = useRouter()
+export function KanbanAddColumn({
+  onAdd,
+  label = 'Создать колонку',
+}: KanbanAddColumnProps) {
   const [isEditing, setIsEditing] = React.useState(false)
   const [name, setName] = React.useState('')
   const [isSaving, setIsSaving] = React.useState(false)
@@ -29,8 +30,7 @@ export function KanbanAddColumn({ pipelineId }: KanbanAddColumnProps) {
     }
     setIsSaving(true)
     try {
-      await addPipelineStage({ data: { pipelineId, name: trimmed } })
-      await router.invalidate()
+      await onAdd(trimmed)
       reset()
     } catch (error) {
       toast.error(
@@ -72,7 +72,7 @@ export function KanbanAddColumn({ pipelineId }: KanbanAddColumnProps) {
           onClick={() => setIsEditing(true)}
         >
           <PlusIcon className="mr-1 size-3.5" />
-          Создать колонку
+          {label}
         </Button>
       )}
     </div>

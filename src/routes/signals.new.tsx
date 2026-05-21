@@ -9,17 +9,20 @@ export const Route = createFileRoute('/signals/new')({
 function RouteComponent() {
   const router = useRouter()
 
-  const handleClose = () => router.navigate({ to: '/signals' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'signals' } })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/signals' })
+    router.navigate({ to: '/sources', search: { tab: 'signals' } })
   }
 
   return (
     <ResponsiveDialog
       open
-      onOpenChange={(open) => { if (!open) handleClose() }}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
       title="Новый сигнал"
       description="Создание нового сигнала"
       contentClassName="sm:max-w-2xl"

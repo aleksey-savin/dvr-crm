@@ -12,17 +12,20 @@ function RouteComponent() {
   const router = useRouter()
   const signal = Route.useLoaderData()
 
-  const handleClose = () => router.navigate({ to: '/signals' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'signals' } })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/signals' })
+    router.navigate({ to: '/sources', search: { tab: 'signals' } })
   }
 
   return (
     <ResponsiveDialog
       open
-      onOpenChange={(open) => { if (!open) handleClose() }}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
       title="Редактировать сигнал"
       description="Изменение данных сигнала"
       contentClassName="sm:max-w-2xl"

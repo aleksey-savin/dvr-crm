@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { Link, useRouter } from '@tanstack/react-router'
 import { useDroppable } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -12,11 +11,9 @@ import {
   GripVerticalIcon,
   MoreVerticalIcon,
   PencilIcon,
-  PlusIcon,
   Trash2Icon,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -36,41 +33,56 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import {
-  deletePipelineStage,
-  updatePipelineStage,
-} from '@/components/pipelines/actions'
-import { InitiativeCard } from './initiative-card'
-import type { InitiativeRow, PipelineStageOption } from '@/types'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { COLUMN_ID_PREFIX, STAGE_COLORS } from './kanban-board'
+import type { KanbanStage } from './kanban-board'
 
-export const STAGE_COLORS = [
-  '#6b7280',
-  '#3b82f6',
-  '#8b5cf6',
-  '#f59e0b',
-  '#ef4444',
-  '#10b981',
-  '#06b6d4',
-  '#ec4899',
-  '#f97316',
-  '#84cc16',
-]
-
-type KanbanColumnProps = {
-  stage: PipelineStageOption
-  initiatives: InitiativeRow[]
+type KanbanColumnProps<TStage extends KanbanStage> = {
+  stage: TStage
+  count: number
+  itemIds: string[]
+  otherStages: TStage[]
+  onRename: (id: string, name: string) => Promise<void> | void
+  onRecolor: (id: string, color: string) => Promise<void> | void
+  onDelete: (
+    id: string,
+    reassignToStageId: string | null,
+  ) => Promise<void> | void
+  deleteDescription?: string
+  headerExtra?: React.ReactNode
+  footer?: React.ReactNode
+  children: React.ReactNode
 }
 
-export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
-  const router = useRouter()
+export function KanbanColumn<TStage extends KanbanStage>({
+  stage,
+  count,
+  itemIds,
+  otherStages,
+  onRename,
+  onRecolor,
+  onDelete,
+  deleteDescription = 'Карточки в этой колонке останутся, но потеряют привязку к этапу.',
+  headerExtra,
+  footer,
+  children,
+}: KanbanColumnProps<TStage>) {
   const [isRenaming, setIsRenaming] = React.useState(false)
   const [nameDraft, setNameDraft] = React.useState(stage.name)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
+  const [reassignTo, setReassignTo] = React.useState<string>('')
 
-  // Sortable for the column itself — prefixed id so it doesn't collide with
-  // card ids inside this column.
+  // When the column holds cards, deletion must move them to another column.
+  const needsReassign = count > 0 && otherStages.length > 0
+
   const {
     attributes,
     listeners,
@@ -78,9 +90,8 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `col-${stage.id}` })
+  } = useSortable({ id: `${COLUMN_ID_PREFIX}${stage.id}` })
 
-  // Droppable for cards landing in this stage.
   const { setNodeRef: setCardsRef, isOver } = useDroppable({ id: stage.id })
 
   const style = {
@@ -88,11 +99,6 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
-
-  const totalBudget = initiatives.reduce(
-    (sum, i) => sum + (i.budget ? Number(i.budget) : 0),
-    0,
-  )
 
   const commitRename = async () => {
     const trimmed = nameDraft.trim()
@@ -102,8 +108,7 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
       return
     }
     try {
-      await updatePipelineStage({ data: { id: stage.id, name: trimmed } })
-      await router.invalidate()
+      await onRename(stage.id, trimmed)
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : 'Не удалось переименовать',
@@ -115,22 +120,27 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
   const changeColor = async (color: string) => {
     if (color === stage.color) return
     try {
-      await updatePipelineStage({ data: { id: stage.id, color } })
-      await router.invalidate()
+      await onRecolor(stage.id, color)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Не удалось обновить цвет')
+      toast.error(
+        error instanceof Error ? error.message : 'Не удалось обновить цвет',
+      )
     }
   }
 
   const handleDelete = async () => {
+    if (needsReassign && !reassignTo) {
+      toast.error('Выберите этап для переноса карточек')
+      return
+    }
     try {
-      await deletePipelineStage({ data: { id: stage.id } })
+      await onDelete(stage.id, needsReassign ? reassignTo : null)
       toast.success('Колонка удалена')
-      await router.invalidate()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Не удалось удалить')
     } finally {
       setConfirmDelete(false)
+      setReassignTo('')
     }
   }
 
@@ -184,26 +194,9 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
           </button>
         )}
         <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-          {initiatives.length}
+          {count}
         </span>
-        {totalBudget > 0 && (
-          <span className="shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-            {new Intl.NumberFormat('ru-RU', {
-              notation: 'compact',
-              currency: 'RUB',
-              style: 'currency',
-              maximumFractionDigits: 1,
-            }).format(totalBudget)}
-          </span>
-        )}
-        {(stage.isWon || stage.isLost) && (
-          <Badge
-            variant={stage.isWon ? 'success' : 'destructive'}
-            className="px-1.5 py-0 text-[10px]"
-          >
-            {stage.isWon ? 'Won' : 'Lost'}
-          </Badge>
-        )}
+        {headerExtra}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -259,49 +252,49 @@ export function KanbanColumn({ stage, initiatives }: KanbanColumnProps) {
           isOver && 'bg-accent/40',
         )}
       >
-        <SortableContext
-          items={initiatives.map((i) => i.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {initiatives.map((initiative) => (
-            <InitiativeCard key={initiative.id} initiative={initiative} />
-          ))}
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {children}
         </SortableContext>
       </div>
 
-      {/* Add initiative */}
-      <div className="px-2 pb-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground"
-        >
-          <Link
-            to="/initiatives/new"
-            search={{ stageId: stage.id } as Record<string, string>}
-          >
-            <PlusIcon className="mr-1 size-3.5" />
-            Добавить
-          </Link>
-        </Button>
-      </div>
+      {footer && <div className="px-2 pb-2">{footer}</div>}
 
       <AlertDialog
         open={confirmDelete}
-        onOpenChange={(open) => !open && setConfirmDelete(false)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setConfirmDelete(false)
+            setReassignTo('')
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить колонку «{stage.name}»?</AlertDialogTitle>
             <AlertDialogDescription>
-              Инициативы в этой колонке останутся, но потеряют привязку к
-              этапу.
+              {needsReassign
+                ? `В колонке ${count} ${count === 1 ? 'карточка' : 'карточек'}. Выберите этап, на который их перенести.`
+                : deleteDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {needsReassign && (
+            <Select value={reassignTo} onValueChange={setReassignTo}>
+              <SelectTrigger>
+                <SelectValue placeholder="Перенести карточки на этап" />
+              </SelectTrigger>
+              <SelectContent>
+                {otherStages.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
+              disabled={needsReassign && !reassignTo}
               onClick={(e) => {
                 e.preventDefault()
                 void handleDelete()

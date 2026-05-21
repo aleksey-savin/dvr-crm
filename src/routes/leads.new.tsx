@@ -9,17 +9,20 @@ export const Route = createFileRoute('/leads/new')({
 function RouteComponent() {
   const router = useRouter()
 
-  const handleClose = () => router.navigate({ to: '/leads' })
+  const handleClose = () =>
+    router.navigate({ to: '/sources', search: { tab: 'leads' } })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/leads' })
+    router.navigate({ to: '/sources', search: { tab: 'leads' } })
   }
 
   return (
     <ResponsiveDialog
       open
-      onOpenChange={(open) => { if (!open) handleClose() }}
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
       title="Новый лид"
       description="Создание нового лида"
       contentClassName="sm:max-w-2xl"

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { deleteSource, fetchSource } from '@/components/sources/actions'
 
-export const Route = createFileRoute('/sources/$id/delete')({
+export const Route = createFileRoute('/lead-sources/$id/delete')({
   loader: ({ params }) => fetchSource({ data: params }),
   component: RouteComponent,
 })
@@ -25,7 +25,7 @@ function RouteComponent() {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleClose = () => {
-    router.navigate({ to: '/sources' })
+    router.navigate({ to: '/lead-sources' })
   }
 
   const handleConfirm = async () => {
@@ -34,7 +34,7 @@ function RouteComponent() {
       await deleteSource({ data: source.id })
       toast.success('Источник удалён')
       router.invalidate()
-      router.navigate({ to: '/sources' })
+      router.navigate({ to: '/lead-sources' })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {

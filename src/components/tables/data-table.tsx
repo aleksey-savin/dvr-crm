@@ -47,6 +47,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   toolbar?: React.ReactNode
+  hideSearch?: boolean
   rowClassName?: (row: TData) => string
   groupBy?: GroupByConfig<TData>
   rowReorder?: RowReorderConfig<TData>
@@ -56,6 +57,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   toolbar,
+  hideSearch,
   rowClassName,
   groupBy,
   rowReorder,
@@ -152,15 +154,19 @@ export function DataTable<TData, TValue>({
 
   return (
     <>
-      <div className="flex flex-col gap-2 py-4 md:flex-row md:items-center md:justify-between">
-        <Input
-          placeholder="Поиск..."
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          className="max-w-sm"
-        />
-        {toolbar}
-      </div>
+      {(!hideSearch || toolbar) && (
+        <div className="flex flex-col gap-2 py-4 md:flex-row md:items-center md:justify-between">
+          {!hideSearch && (
+            <Input
+              placeholder="Поиск..."
+              value={globalFilter}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              className="max-w-sm"
+            />
+          )}
+          {toolbar}
+        </div>
+      )}
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>

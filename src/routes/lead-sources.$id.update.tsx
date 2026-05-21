@@ -1,22 +1,25 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
+import { fetchSource } from '@/components/sources/actions'
 import { SourceForm } from '@/components/sources/source-form'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
-export const Route = createFileRoute('/sources/new')({
+export const Route = createFileRoute('/lead-sources/$id/update')({
+  loader: ({ params }) => fetchSource({ data: params }),
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const router = useRouter()
+  const source = Route.useLoaderData()
 
   const handleClose = () => {
-    router.navigate({ to: '/sources' })
+    router.navigate({ to: '/lead-sources' })
   }
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/sources' })
+    router.navigate({ to: '/lead-sources' })
   }
 
   return (
@@ -25,11 +28,11 @@ function RouteComponent() {
       onOpenChange={(open) => {
         if (!open) handleClose()
       }}
-      title="Новый источник"
-      description="Создание источника"
+      title="Изменить источник"
+      description="Редактирование источника"
       contentClassName="sm:max-w-lg"
     >
-      <SourceForm onSuccess={handleSuccess} />
+      <SourceForm item={source} onSuccess={handleSuccess} />
     </ResponsiveDialog>
   )
 }

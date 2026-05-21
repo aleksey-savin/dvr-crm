@@ -9,9 +9,7 @@ export const columns: ColumnDef<SourceRow>[] = [
   {
     accessorKey: 'name',
     header: 'Наименование',
-    cell: ({ row }) => (
-      <Badge variant="secondary">{row.original.name}</Badge>
-    ),
+    cell: ({ row }) => <Badge variant="secondary">{row.original.name}</Badge>,
   },
   {
     accessorKey: 'createdAt',
@@ -28,12 +26,12 @@ export const columns: ColumnDef<SourceRow>[] = [
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-1">
         <Button asChild variant="ghost" size="icon-sm">
-          <Link to="/sources/$id/update" params={{ id: row.original.id }}>
+          <Link to="/lead-sources/$id/update" params={{ id: row.original.id }}>
             <EditIcon className="size-4" />
           </Link>
         </Button>
         <Button asChild variant="destructiveGhost" size="icon-sm">
-          <Link to="/sources/$id/delete" params={{ id: row.original.id }}>
+          <Link to="/lead-sources/$id/delete" params={{ id: row.original.id }}>
             <Trash2Icon className="size-4" />
           </Link>
         </Button>
