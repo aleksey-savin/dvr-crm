@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { EditIcon, GitMergeIcon, Trash2Icon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,17 +27,17 @@ const STATUS_LABELS: Record<SignalStatus, string> = {
   new: 'Новый',
   in_progress: 'В работе',
   converted: 'Конвертирован',
-  archived: 'Архив',
+  rejected: 'Отклонён',
 }
 
 const STATUS_VARIANTS: Record<
   SignalStatus,
-  'secondary' | 'warning' | 'success'
+  'secondary' | 'warning' | 'success' | 'destructive'
 > = {
   new: 'secondary',
   in_progress: 'warning',
   converted: 'success',
-  archived: 'secondary',
+  rejected: 'destructive',
 }
 
 function Field({
@@ -86,7 +91,7 @@ function RouteComponent() {
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-end gap-2">
-        {status !== 'converted' && (
+        {status !== 'converted' && status !== 'rejected' && (
           <Button
             variant="outline"
             size="sm"
@@ -140,7 +145,9 @@ function RouteComponent() {
               </Field>
 
               <Field label="Тип сигнала">
-                <Badge variant="outline">{signal.signalType?.name ?? '—'}</Badge>
+                <Badge variant="outline">
+                  {signal.signalType?.name ?? '—'}
+                </Badge>
               </Field>
 
               <Field label="Рейтинг">

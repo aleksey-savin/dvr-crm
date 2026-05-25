@@ -6,47 +6,56 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
-import { LeadsList } from './leads-list'
-import { LeadKanban } from './lead-kanban'
-import { fetchLeads } from './actions'
+import { EntityKanban } from './entity-kanban'
+import { EntityList } from './entity-list'
+import type { EntityConfig, EntityRowBase } from './types'
 import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
 import {
   matchesDepartmentScope,
   useScopedDepartmentIds,
 } from '@/hooks/use-department-scope'
-import type { LeadRow, LeadStageOption, PipelineWithStages } from '@/types'
+import type { EntityStageOption, PipelineWithStages } from '@/types'
 
 type ViewMode = 'kanban' | 'list'
 
-export function LeadsView({
-  leads,
+type EntityViewProps<TRow extends EntityRowBase, TFull> = {
+  config: EntityConfig<TRow, TFull>
+  rows: TRow[]
+  stages: EntityStageOption[]
+  pipelines: PipelineWithStages[]
+}
+
+export function EntityView<TRow extends EntityRowBase, TFull>({
+  config,
+  rows,
   stages,
   pipelines,
-}: {
-  leads: LeadRow[]
-  stages: LeadStageOption[]
-  pipelines: PipelineWithStages[]
-}) {
+}: EntityViewProps<TRow, TFull>) {
   const router = useRouter()
   const scopedDeptIds = useScopedDepartmentIds()
   const [viewMode, setViewMode] = React.useState<ViewMode>('kanban')
   const [showArchived, setShowArchived] = React.useState(false)
-  const [archivedLeads, setArchivedLeads] = React.useState<LeadRow[]>([])
+  const [archivedRows, setArchivedRows] = React.useState<TRow[]>([])
   const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
   const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
+  const [extraFilterValues, setExtraFilterValues] = React.useState<
+    Record<string, string[]>
+  >({})
   const [query, setQuery] = React.useState('')
   const [refusalReasons, setRefusalReasons] = React.useState<
     Array<{ id: string; name: string }>
   >([])
 
   React.useEffect(() => {
-    fetchRefusalReasons().then(setRefusalReasons).catch(console.error)
-  }, [])
+    fetchRefusalReasons({ data: { entityType: config.type } })
+      .then(setRefusalReasons)
+      .catch(console.error)
+  }, [config.type])
 
   const loadArchived = React.useCallback(async () => {
-    const all = await fetchLeads({ data: { includeArchived: true } })
-    setArchivedLeads(all)
-  }, [])
+    const all = await config.fetch({ includeArchived: true })
+    setArchivedRows(all)
+  }, [config])
 
   const refresh = React.useCallback(async () => {
     await router.invalidate()
@@ -59,13 +68,13 @@ export function LeadsView({
     if (next) await loadArchived()
   }
 
-  const base = (showArchived ? archivedLeads : leads).filter((l) =>
-    matchesDepartmentScope(scopedDeptIds, l.departmentId),
+  const base = (showArchived ? archivedRows : rows).filter((r) =>
+    matchesDepartmentScope(scopedDeptIds, r.departmentId),
   )
 
   const responsibleOptions: TableFilterOption[] = Array.from(
     new Set(
-      base.map((l) => l.responsibleUserName).filter((n): n is string => !!n),
+      base.map((r) => r.responsibleUserName).filter((n): n is string => !!n),
     ),
   )
     .sort((a, b) => a.localeCompare(b, 'ru'))
@@ -73,39 +82,47 @@ export function LeadsView({
 
   const industryOptions: TableFilterOption[] = (() => {
     const seen = new Map<string, string>()
-    for (const l of base) {
-      if (l.industryId && l.industryName) seen.set(l.industryId, l.industryName)
+    for (const r of base) {
+      if (r.industryId && r.industryName) seen.set(r.industryId, r.industryName)
     }
     return Array.from(seen.entries())
       .map(([id, name]) => ({ value: id, label: name }))
       .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
   })()
 
+  const extraFilters = config.extraFilters ?? []
+
   const q = query.trim().toLowerCase()
-  const filtered = base.filter((l) => {
-    if (
-      q &&
-      !(
-        l.title.toLowerCase().includes(q) ||
-        (l.companyName?.toLowerCase().includes(q) ?? false)
-      )
-    )
-      return false
+  const filtered = base.filter((r) => {
+    if (q && !config.matchesSearch(r, q)) return false
     if (
       responsibleFilter.length > 0 &&
-      (!l.responsibleUserName ||
-        !responsibleFilter.includes(l.responsibleUserName))
+      (!r.responsibleUserName ||
+        !responsibleFilter.includes(r.responsibleUserName))
     )
       return false
     if (
       industryFilter.length > 0 &&
-      (!l.industryId || !industryFilter.includes(l.industryId))
+      (!r.industryId || !industryFilter.includes(r.industryId))
     )
       return false
+    for (const f of extraFilters) {
+      const selected = extraFilterValues[f.key] ?? []
+      if (selected.length > 0 && !f.matches(r, selected)) return false
+    }
     return true
   })
 
-  const hasFilters = responsibleFilter.length > 0 || industryFilter.length > 0
+  const hasFilters =
+    responsibleFilter.length > 0 ||
+    industryFilter.length > 0 ||
+    extraFilters.some((f) => (extraFilterValues[f.key] ?? []).length > 0)
+
+  const resetFilters = () => {
+    setResponsibleFilter([])
+    setIndustryFilter([])
+    setExtraFilterValues({})
+  }
 
   return (
     <div className="flex flex-col gap-3 pt-4">
@@ -116,6 +133,22 @@ export function LeadsView({
           onChange={(e) => setQuery(e.target.value)}
           className="h-8 w-44"
         />
+        {extraFilters.map((f) => {
+          const options = f.getOptions(base)
+          if (options.length === 0) return null
+          return (
+            <MultiFilterCombobox
+              key={f.key}
+              options={options}
+              value={extraFilterValues[f.key] ?? []}
+              onValueChange={(v) =>
+                setExtraFilterValues((prev) => ({ ...prev, [f.key]: v }))
+              }
+              placeholder={f.placeholder}
+              emptyText={f.emptyText}
+            />
+          )
+        })}
         {responsibleOptions.length > 0 && (
           <MultiFilterCombobox
             options={responsibleOptions}
@@ -135,14 +168,7 @@ export function LeadsView({
           />
         )}
         {hasFilters && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setResponsibleFilter([])
-              setIndustryFilter([])
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={resetFilters}>
             <XIcon className="size-4" />
             Сбросить
           </Button>
@@ -174,15 +200,22 @@ export function LeadsView({
       </div>
 
       {viewMode === 'kanban' ? (
-        <LeadKanban
-          leads={filtered}
+        <EntityKanban
+          config={config}
+          rows={filtered}
           stages={stages}
           pipelines={pipelines}
           refusalReasons={refusalReasons}
           onMutated={refresh}
         />
       ) : (
-        <LeadsList leads={filtered} pipelines={pipelines} />
+        <EntityList
+          config={config}
+          rows={filtered}
+          stages={stages}
+          pipelines={pipelines}
+          refusalReasons={refusalReasons}
+        />
       )}
     </div>
   )

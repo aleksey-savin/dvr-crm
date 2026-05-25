@@ -11,7 +11,10 @@ type InitiativeCardProps = {
   isDragOverlay?: boolean
 }
 
-export function InitiativeCard({ initiative, isDragOverlay }: InitiativeCardProps) {
+export function InitiativeCard({
+  initiative,
+  isDragOverlay,
+}: InitiativeCardProps) {
   const {
     attributes,
     listeners,
@@ -32,7 +35,10 @@ export function InitiativeCard({ initiative, isDragOverlay }: InitiativeCardProp
   return (
     <div
       ref={setNodeRef}
-      style={{ ...style, borderLeftColor: initiative.stageColor ?? '#6b7280' }}
+      style={{
+        ...style,
+        borderLeftColor: initiative.departmentAccentColor ?? '#6b7280',
+      }}
       className={cn(
         'group relative rounded-lg border bg-card shadow-sm transition-shadow',
         'border-l-[3px]',
@@ -74,10 +80,7 @@ export function InitiativeCard({ initiative, isDragOverlay }: InitiativeCardProp
             size="icon"
             className="size-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
           >
-            <Link
-              to="/initiatives/$id/update"
-              params={{ id: initiative.id }}
-            >
+            <Link to="/initiatives/$id/update" params={{ id: initiative.id }}>
               <PencilIcon className="size-3" />
             </Link>
           </Button>

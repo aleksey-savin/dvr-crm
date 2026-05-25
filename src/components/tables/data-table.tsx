@@ -51,6 +51,7 @@ interface DataTableProps<TData, TValue> {
   rowClassName?: (row: TData) => string
   groupBy?: GroupByConfig<TData>
   rowReorder?: RowReorderConfig<TData>
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -61,6 +62,7 @@ export function DataTable<TData, TValue>({
   rowClassName,
   groupBy,
   rowReorder,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
@@ -137,9 +139,11 @@ export function DataTable<TData, TValue>({
           setDraggingId(null)
         }}
         onDragEnd={() => setDraggingId(null)}
+        onClick={onRowClick ? () => onRowClick(row.original) : undefined}
         className={cn(
           rowClassName?.(row.original),
           isDraggable && 'cursor-grab active:cursor-grabbing',
+          onRowClick && 'cursor-pointer',
           rowId && draggingId === rowId && 'opacity-50',
         )}
       >

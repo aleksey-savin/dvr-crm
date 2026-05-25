@@ -32,6 +32,7 @@ import {
 import { InitiativeCard } from './initiative-card'
 import {
   moveInitiativeStage,
+  reorderInitiatives,
   closeInitiativeWon,
   closeInitiativeLost,
 } from './actions'
@@ -243,6 +244,15 @@ export function InitiativeKanbanBoard({
             await router.invalidate()
           } catch (error) {
             toast.error('Не удалось переместить инициативу')
+            throw error
+          }
+        }}
+        onReorderItems={async (_stageId, orderedIds) => {
+          try {
+            await reorderInitiatives({ data: { orderedIds } })
+            await router.invalidate()
+          } catch (error) {
+            toast.error('Не удалось сохранить порядок')
             throw error
           }
         }}

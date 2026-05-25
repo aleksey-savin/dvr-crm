@@ -1,11 +1,10 @@
 import { createFileRoute, Outlet, useRouter } from '@tanstack/react-router'
-import { fetchLeads, fetchLeadStages } from '@/components/leads/actions'
-import { fetchTenders } from '@/components/tenders/actions'
-import { fetchSignals } from '@/components/signals/actions'
+import { fetchStages } from '@/components/pipeline-entity/stage-actions'
 import { fetchPipelines } from '@/components/pipelines/actions'
-import { LeadsView } from '@/components/leads/leads-view'
-import { TendersList } from '@/components/tenders/tenders-list'
-import { SignalsList } from '@/components/signals/signals-list'
+import { EntityView } from '@/components/pipeline-entity/entity-view'
+import { leadConfig } from '@/components/leads/config'
+import { tenderConfig } from '@/components/tenders/config'
+import { signalConfig } from '@/components/signals/config'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const SOURCE_TABS = ['leads', 'tenders', 'signals'] as const
@@ -20,22 +19,27 @@ export const Route = createFileRoute('/sources')({
   loaderDeps: ({ search: { tab } }) => ({ tab }),
   loader: async ({ deps: { tab } }) => {
     if (tab === 'tenders') {
-      const tenders = await fetchTenders()
-      return { tab, tenders } as const
-    }
-    if (tab === 'signals') {
-      const [signals, pipelines] = await Promise.all([
-        fetchSignals(),
+      const [rows, stages, pipelines] = await Promise.all([
+        tenderConfig.fetch({}),
+        fetchStages({ data: { entityType: 'tender' } }),
         fetchPipelines(),
       ])
-      return { tab, signals, pipelines } as const
+      return { tab: 'tenders' as const, rows, stages, pipelines }
     }
-    const [leads, leadStages, pipelines] = await Promise.all([
-      fetchLeads({ data: {} }),
-      fetchLeadStages(),
+    if (tab === 'signals') {
+      const [rows, stages, pipelines] = await Promise.all([
+        signalConfig.fetch({}),
+        fetchStages({ data: { entityType: 'signal' } }),
+        fetchPipelines(),
+      ])
+      return { tab: 'signals' as const, rows, stages, pipelines }
+    }
+    const [rows, stages, pipelines] = await Promise.all([
+      leadConfig.fetch({}),
+      fetchStages({ data: { entityType: 'lead' } }),
       fetchPipelines(),
     ])
-    return { tab, leads, leadStages, pipelines } as const
+    return { tab: 'leads' as const, rows, stages, pipelines }
   },
   component: RouteComponent,
 })
@@ -64,15 +68,28 @@ function RouteComponent() {
       </Tabs>
 
       {data.tab === 'leads' && (
-        <LeadsView
-          leads={data.leads}
-          stages={data.leadStages}
+        <EntityView
+          config={leadConfig}
+          rows={data.rows}
+          stages={data.stages}
           pipelines={data.pipelines}
         />
       )}
-      {data.tab === 'tenders' && <TendersList tenders={data.tenders} />}
+      {data.tab === 'tenders' && (
+        <EntityView
+          config={tenderConfig}
+          rows={data.rows}
+          stages={data.stages}
+          pipelines={data.pipelines}
+        />
+      )}
       {data.tab === 'signals' && (
-        <SignalsList signals={data.signals} pipelines={data.pipelines} />
+        <EntityView
+          config={signalConfig}
+          rows={data.rows}
+          stages={data.stages}
+          pipelines={data.pipelines}
+        />
       )}
 
       <Outlet />

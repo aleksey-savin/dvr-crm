@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useForm, useStore } from '@tanstack/react-form'
 import { toast } from 'sonner'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -22,19 +22,20 @@ import {
 } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { StarRating } from '@/components/ui/star-rating'
+import { addSignal, updateSignal } from '@/components/signals/actions'
 import {
-  addSignal,
-  updateSignal,
   fetchCompanies,
   fetchDepartments,
   fetchUsers,
   fetchIndustries,
-} from '@/components/signals/actions'
+} from '@/components/pipeline-entity/lookups'
 import { fetchSignalTypes } from '@/components/signal-types/actions'
+import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
 import type { SelectSignal, SelectSignalType } from '@/db/types'
 import type { CompanyOption, DepartmentOption, UserOption } from '@/types'
 
 type IndustryOption = { id: string; name: string }
+type RefusalReasonOption = { id: string; name: string }
 
 const formSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
@@ -43,9 +44,10 @@ const formSchema = z.object({
   responsibleUserId: z.string().nullable(),
   industryId: z.string().nullable(),
   signalTypeId: z.string().nullable(),
-  status: z.enum(['new', 'in_progress', 'converted', 'archived']),
+  status: z.enum(['new', 'in_progress', 'converted', 'rejected']),
   rating: z.number().int().min(1).max(5).nullable(),
   description: z.string().nullable(),
+  lostReasonId: z.string().nullable(),
 })
 
 const NULLABLE_PLACEHOLDER = '__none__'
@@ -62,6 +64,9 @@ export function SignalForm({
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [industries, setIndustries] = React.useState<IndustryOption[]>([])
   const [signalTypes, setSignalTypes] = React.useState<SelectSignalType[]>([])
+  const [refusalReasons, setRefusalReasons] = React.useState<
+    RefusalReasonOption[]
+  >([])
 
   React.useEffect(() => {
     fetchCompanies().then(setCompanies).catch(console.error)
@@ -69,6 +74,9 @@ export function SignalForm({
     fetchUsers().then(setUsers).catch(console.error)
     fetchIndustries().then(setIndustries).catch(console.error)
     fetchSignalTypes().then(setSignalTypes).catch(console.error)
+    fetchRefusalReasons({ data: { entityType: 'signal' } })
+      .then(setRefusalReasons)
+      .catch(console.error)
   }, [])
 
   const form = useForm({
@@ -82,6 +90,7 @@ export function SignalForm({
       status: item ? item.status : 'new',
       rating: item?.rating ?? null,
       description: item?.description ?? null,
+      lostReasonId: item?.lostReasonId ?? null,
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
@@ -95,6 +104,8 @@ export function SignalForm({
         status: value.status,
         rating: value.rating ?? null,
         description: value.description || null,
+        lostReasonId:
+          value.status === 'rejected' ? value.lostReasonId || null : null,
       }
       try {
         if (item) {
@@ -110,6 +121,8 @@ export function SignalForm({
       }
     },
   })
+
+  const currentStatus = useStore(form.store, (s) => s.values.status)
 
   return (
     <form
@@ -181,7 +194,9 @@ export function SignalForm({
                   <SelectValue placeholder="Не выбран" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбран
+                  </SelectItem>
                   {signalTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -214,11 +229,7 @@ export function SignalForm({
                       Конвертирован
                     </SelectItem>
                   )}
-                  {field.state.value === 'archived' && (
-                    <SelectItem value="archived" disabled>
-                      Архив
-                    </SelectItem>
-                  )}
+                  <SelectItem value="rejected">Отклонён</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -336,6 +347,36 @@ export function SignalForm({
           </Field>
         )}
       </form.Field>
+
+      {currentStatus === 'rejected' && (
+        <form.Field name="lostReasonId">
+          {(field) => (
+            <Field>
+              <FieldLabel>Причина отказа</FieldLabel>
+              <Select
+                value={field.state.value ?? NULLABLE_PLACEHOLDER}
+                onValueChange={(v) =>
+                  field.handleChange(v === NULLABLE_PLACEHOLDER ? null : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Не выбрана" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NULLABLE_PLACEHOLDER}>
+                    Не выбрана
+                  </SelectItem>
+                  {refusalReasons.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </form.Field>
+      )}
 
       <div className="flex justify-end border-t pt-4">
         <form.Subscribe selector={(s) => s.isSubmitting}>

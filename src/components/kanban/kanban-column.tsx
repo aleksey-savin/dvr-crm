@@ -147,8 +147,12 @@ export function KanbanColumn<TStage extends KanbanStage>({
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="group/column flex w-72 shrink-0 flex-col rounded-xl border bg-muted/30"
+      style={{
+        ...style,
+        borderTopColor: stage.color,
+        backgroundColor: `${stage.color}0f`,
+      }}
+      className="group/column flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border border-t-[3px]"
     >
       {/* Header */}
       <div className="flex items-center gap-1.5 px-2 py-2">
@@ -161,10 +165,6 @@ export function KanbanColumn<TStage extends KanbanStage>({
         >
           <GripVerticalIcon className="size-3.5" />
         </button>
-        <span
-          className="size-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: stage.color }}
-        />
         {isRenaming ? (
           <Input
             value={nameDraft}
@@ -249,7 +249,7 @@ export function KanbanColumn<TStage extends KanbanStage>({
         ref={setCardsRef}
         className={cn(
           'flex min-h-[80px] flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2 transition-colors',
-          isOver && 'bg-accent/40',
+          isOver && 'bg-black/5 dark:bg-white/5',
         )}
       >
         <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>

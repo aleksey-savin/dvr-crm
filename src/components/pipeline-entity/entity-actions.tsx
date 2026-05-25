@@ -19,11 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ConvertToInitiativeDialog } from '@/components/initiatives/convert-to-initiative-dialog'
-import { convertLeadToInitiative } from '@/components/initiatives/actions'
-import { archiveLead, rejectLead } from '@/components/leads/actions'
-import type { LeadRow, PipelineWithStages } from '@/types'
-
-type RefusalReason = { id: string; name: string }
+import type { PipelineWithStages } from '@/types'
+import type { EntityConfig, EntityRowBase, RefusalReason } from './types'
 
 type ReasonDialogProps = {
   open: boolean
@@ -111,12 +108,16 @@ function ReasonDialog({
 type ConfirmArchiveDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
+  title: string
+  description: string
   onConfirm: () => Promise<void>
 }
 
 function ConfirmArchiveDialog({
   open,
   onOpenChange,
+  title,
+  description,
   onConfirm,
 }: ConfirmArchiveDialogProps) {
   const [isPending, setIsPending] = React.useState(false)
@@ -124,11 +125,8 @@ function ConfirmArchiveDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Архивировать лид?</DialogTitle>
-          <DialogDescription>
-            Лид будет скрыт с доски. Его можно показать через «Показать
-            архивные».
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button
@@ -158,91 +156,56 @@ function ConfirmArchiveDialog({
   )
 }
 
-type LeadActionsProps = {
-  lead: LeadRow
+type EntityActionsProps<TRow extends EntityRowBase, TFull> = {
+  config: EntityConfig<TRow, TFull>
+  row: TRow
   pipelines: PipelineWithStages[]
   refusalReasons: RefusalReason[]
-  context: 'card' | 'sheet'
   onDone?: () => void
   size?: 'xs' | 'sm'
 }
 
-export function LeadActions({
-  lead,
+export function EntityActions<TRow extends EntityRowBase, TFull>({
+  config,
+  row,
   pipelines,
   refusalReasons,
-  context,
   onDone,
   size = 'xs',
-}: LeadActionsProps) {
+}: EntityActionsProps<TRow, TFull>) {
+  const { words } = config
   const router = useRouter()
   const [convertOpen, setConvertOpen] = React.useState(false)
   const [rejectOpen, setRejectOpen] = React.useState(false)
-  const [archiveReasonOpen, setArchiveReasonOpen] = React.useState(false)
   const [archiveConfirmOpen, setArchiveConfirmOpen] = React.useState(false)
 
-  const isActive = lead.status === 'new' || lead.status === 'in_progress'
-  const showArchive = context === 'sheet' || !isActive
+  const isActive = row.status === 'new' || row.status === 'in_progress'
+  // Only resolved entities (converted / rejected) can be archived.
+  const showArchive = row.status === 'converted' || row.status === 'rejected'
 
   const refresh = async () => {
     await router.invalidate()
     onDone?.()
   }
 
-  const handleConvert = ({
-    pipelineId,
-    stageId,
-  }: {
-    pipelineId: string
-    stageId: string
-  }) =>
-    convertLeadToInitiative({
-      data: {
-        leadId: lead.id,
-        title: lead.title,
-        pipelineId,
-        stageId,
-        companyId: lead.companyId,
-        departmentId: lead.departmentId,
-        responsibleUserId: lead.responsibleUserId,
-        budget: lead.budget,
-        dueDate: lead.dueDate,
-      },
-    })
-
   const handleReject = async (reasonId: string) => {
     try {
-      await rejectLead({ data: { id: lead.id, lostReasonId: reasonId } })
-      toast.success('Лид отклонён')
+      await config.reject(row.id, reasonId)
+      toast.success(`${words.nom} отклонён`)
       await refresh()
     } catch {
-      toast.error('Не удалось отклонить лид')
+      toast.error(`Не удалось отклонить ${words.acc}`)
     }
   }
 
-  const handleArchiveWithReason = async (reasonId: string) => {
+  const handleArchive = async () => {
     try {
-      await archiveLead({ data: { id: lead.id, lostReasonId: reasonId } })
-      toast.success('Лид архивирован')
+      await config.archive(row.id)
+      toast.success(`${words.nom} архивирован`)
       await refresh()
     } catch {
-      toast.error('Не удалось архивировать лид')
+      toast.error(`Не удалось архивировать ${words.acc}`)
     }
-  }
-
-  const handleArchiveConverted = async () => {
-    try {
-      await archiveLead({ data: { id: lead.id } })
-      toast.success('Лид архивирован')
-      await refresh()
-    } catch {
-      toast.error('Не удалось архивировать лид')
-    }
-  }
-
-  const onArchiveClick = () => {
-    if (lead.status === 'converted') setArchiveConfirmOpen(true)
-    else setArchiveReasonOpen(true)
   }
 
   return (
@@ -269,7 +232,11 @@ export function LeadActions({
       )}
 
       {showArchive && (
-        <Button variant="outline" size={size} onClick={onArchiveClick}>
+        <Button
+          variant="outline"
+          size={size}
+          onClick={() => setArchiveConfirmOpen(true)}
+        >
           <ArchiveIcon className="size-3" />В архив
         </Button>
       )}
@@ -278,13 +245,13 @@ export function LeadActions({
         open={convertOpen}
         onOpenChange={setConvertOpen}
         pipelines={pipelines}
-        title="Конвертация лида в инициативу"
+        title={`Конвертация ${words.gen} в инициативу`}
         description={
-          lead.title
-            ? `Лид «${lead.title}»`
-            : 'Создание инициативы на основе лида'
+          row.title
+            ? `${words.nom} «${row.title}»`
+            : `Создание инициативы на основе ${words.gen}`
         }
-        onConvert={handleConvert}
+        onConvert={(args) => config.convert(row, args)}
         onSuccess={() => {
           setConvertOpen(false)
           void refresh()
@@ -294,27 +261,19 @@ export function LeadActions({
       <ReasonDialog
         open={rejectOpen}
         onOpenChange={setRejectOpen}
-        title="Отклонить лид?"
+        title={`Отклонить ${words.acc}?`}
         description="Выберите причину отказа перед изменением статуса."
         confirmLabel="Отклонить"
         refusalReasons={refusalReasons}
         onConfirm={handleReject}
       />
 
-      <ReasonDialog
-        open={archiveReasonOpen}
-        onOpenChange={setArchiveReasonOpen}
-        title="Архивировать лид?"
-        description="Лид не конвертирован, поэтому укажите причину отказа. Он будет помечен как отклонён и скрыт с доски."
-        confirmLabel="В архив"
-        refusalReasons={refusalReasons}
-        onConfirm={handleArchiveWithReason}
-      />
-
       <ConfirmArchiveDialog
         open={archiveConfirmOpen}
         onOpenChange={setArchiveConfirmOpen}
-        onConfirm={handleArchiveConverted}
+        title={`Архивировать ${words.acc}?`}
+        description={`${words.nom} будет скрыт с доски. Его можно показать через «Показать архивные».`}
+        onConfirm={handleArchive}
       />
     </div>
   )

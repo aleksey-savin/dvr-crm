@@ -9,6 +9,7 @@ import {
   refusalReason,
   lead,
   signal,
+  tender,
   targetAction,
   targetActionType,
 } from '@/db/schema'
@@ -21,6 +22,7 @@ import { auth } from 'utils/auth'
 import * as z from 'zod'
 import { buildDepartmentScopeFilter } from '@/lib/department-scope'
 import { collectDepartmentDescendants } from '@/lib/department-tree'
+import { recordQualification } from '@/components/pipeline-entity/qualification'
 
 // ---------------------------------------------------------------------------
 // Auth helper
@@ -35,6 +37,57 @@ async function getCurrentUser() {
     columns: { id: true, role: true, departmentId: true },
   })
   return dbUser ?? null
+}
+
+// Logs the "tender_participation" target action once when a tender-sourced
+// initiative is closed (won or lost). Dedup by sourceType+sourceId.
+async function logTenderParticipationForInitiative(initiativeId: string) {
+  const init = await db.query.initiative.findFirst({
+    where: eq(initiative.id, initiativeId),
+    columns: {
+      sourceType: true,
+      sourceTenderId: true,
+      responsibleUserId: true,
+      departmentId: true,
+    },
+  })
+  if (!init || init.sourceType !== 'tender' || !init.sourceTenderId) return
+  const tenderId = init.sourceTenderId
+
+  const existing = await db.query.targetAction.findFirst({
+    where: and(
+      eq(targetAction.sourceType, 'tender'),
+      eq(targetAction.sourceId, tenderId),
+      isNull(targetAction.deletedAt),
+    ),
+    columns: { id: true },
+  })
+  if (existing) return
+
+  const type = await db.query.targetActionType.findFirst({
+    where: and(
+      eq(targetActionType.slug, 'tender_participation'),
+      isNull(targetActionType.deletedAt),
+    ),
+  })
+  if (!type) {
+    console.warn(
+      '[target-action] type "tender_participation" not found — skipping.',
+    )
+    return
+  }
+  const now = new Date()
+  await db.insert(targetAction).values({
+    typeId: type.id,
+    responsibleUserId: init.responsibleUserId,
+    departmentId: init.departmentId,
+    plannedAt: now.toISOString().split('T')[0],
+    completedAt: now,
+    status: 'completed',
+    sourceType: 'tender',
+    sourceId: tenderId,
+    tenderId,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -63,6 +116,7 @@ const initiativeInputSchema = z.object({
     .default('manual'),
   sourceLeadId: z.string().nullable().optional(),
   sourceSignalId: z.string().nullable().optional(),
+  sourceTenderId: z.string().nullable().optional(),
 })
 
 const updateInitiativeSchema = initiativeInputSchema.extend({
@@ -82,6 +136,7 @@ function mapRow(row: {
   sourceType: string
   sourceLeadId: string | null
   sourceSignalId: string | null
+  sourceTenderId: string | null
   pipelineId: string | null
   pipelineName: string | null
   stageId: string | null
@@ -95,6 +150,7 @@ function mapRow(row: {
   companyName: string | null
   departmentId: string | null
   departmentName: string | null
+  departmentAccentColor: string | null
   responsibleUserId: string | null
   responsibleUserName: string | null
   refusalReasonId: string | null
@@ -129,6 +185,7 @@ export const fetchInitiatives = createServerFn({ method: 'GET' })
         sourceType: initiative.sourceType,
         sourceLeadId: initiative.sourceLeadId,
         sourceSignalId: initiative.sourceSignalId,
+        sourceTenderId: initiative.sourceTenderId,
         pipelineId: initiative.pipelineId,
         pipelineName: pipeline.name,
         stageId: initiative.stageId,
@@ -142,6 +199,7 @@ export const fetchInitiatives = createServerFn({ method: 'GET' })
         companyName: company.name,
         departmentId: initiative.departmentId,
         departmentName: department.name,
+        departmentAccentColor: department.accentColor,
         responsibleUserId: initiative.responsibleUserId,
         responsibleUserName: user.name,
         refusalReasonId: initiative.refusalReasonId,
@@ -165,7 +223,11 @@ export const fetchInitiatives = createServerFn({ method: 'GET' })
           deptFilter,
         ),
       )
-      .orderBy(asc(pipelineStage.order), asc(initiative.createdAt))
+      .orderBy(
+        asc(pipelineStage.order),
+        asc(initiative.position),
+        asc(initiative.createdAt),
+      )
 
     return rows.map(mapRow)
   })
@@ -187,6 +249,7 @@ export const fetchAccountInitiatives = createServerFn({ method: 'GET' })
         sourceType: initiative.sourceType,
         sourceLeadId: initiative.sourceLeadId,
         sourceSignalId: initiative.sourceSignalId,
+        sourceTenderId: initiative.sourceTenderId,
         pipelineId: initiative.pipelineId,
         pipelineName: pipeline.name,
         stageId: initiative.stageId,
@@ -200,6 +263,7 @@ export const fetchAccountInitiatives = createServerFn({ method: 'GET' })
         companyName: company.name,
         departmentId: initiative.departmentId,
         departmentName: department.name,
+        departmentAccentColor: department.accentColor,
         responsibleUserId: initiative.responsibleUserId,
         responsibleUserName: user.name,
         refusalReasonId: initiative.refusalReasonId,
@@ -252,6 +316,7 @@ export const fetchInitiative = createServerFn({ method: 'GET' })
         responsible: { columns: { id: true, name: true } },
         sourceLead: { columns: { id: true, title: true } },
         sourceSignal: { columns: { id: true, title: true } },
+        sourceTender: { columns: { id: true, title: true } },
         refusalReason: { columns: { id: true, name: true } },
       },
     })
@@ -282,6 +347,7 @@ export const addInitiative = createServerFn({ method: 'POST' })
         sourceType: data.sourceType,
         sourceLeadId: data.sourceLeadId ?? null,
         sourceSignalId: data.sourceSignalId ?? null,
+        sourceTenderId: data.sourceTenderId ?? null,
       })
       .returning({ id: initiative.id })
     return { id: inserted.id }
@@ -310,6 +376,7 @@ export const updateInitiative = createServerFn({ method: 'POST' })
         sourceType: data.sourceType,
         sourceLeadId: data.sourceLeadId ?? null,
         sourceSignalId: data.sourceSignalId ?? null,
+        sourceTenderId: data.sourceTenderId ?? null,
       })
       .where(and(eq(initiative.id, data.id), isNull(initiative.deletedAt)))
   })
@@ -327,6 +394,18 @@ export const moveInitiativeStage = createServerFn({ method: 'POST' })
       .where(and(eq(initiative.id, data.id), isNull(initiative.deletedAt)))
   })
 
+// Persist within-column card order: position = index for each id.
+export const reorderInitiatives = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ orderedIds: z.array(z.string()) }))
+  .handler(async ({ data }) => {
+    for (let i = 0; i < data.orderedIds.length; i++) {
+      await db
+        .update(initiative)
+        .set({ position: i })
+        .where(eq(initiative.id, data.orderedIds[i]))
+    }
+  })
+
 // ---------------------------------------------------------------------------
 // Close won
 // ---------------------------------------------------------------------------
@@ -338,6 +417,7 @@ export const closeInitiativeWon = createServerFn({ method: 'POST' })
       .update(initiative)
       .set({ stageId: data.stageId, closedAt: new Date() })
       .where(and(eq(initiative.id, data.id), isNull(initiative.deletedAt)))
+    await logTenderParticipationForInitiative(data.id)
   })
 
 // ---------------------------------------------------------------------------
@@ -361,6 +441,7 @@ export const closeInitiativeLost = createServerFn({ method: 'POST' })
         closedAt: new Date(),
       })
       .where(and(eq(initiative.id, data.id), isNull(initiative.deletedAt)))
+    await logTenderParticipationForInitiative(data.id)
   })
 
 // ---------------------------------------------------------------------------
@@ -422,34 +503,13 @@ export const convertLeadToInitiative = createServerFn({ method: 'POST' })
       .returning()
     const updatedLead = updatedLeadRows.at(0)
 
-    // Record a "lead qualification" target action as a system fact.
-    const currentUser = await getCurrentUser()
-    const type = await db.query.targetActionType.findFirst({
-      where: and(
-        eq(targetActionType.slug, 'lead_qualification'),
-        isNull(targetActionType.deletedAt),
-      ),
+    await recordQualification({
+      entityType: 'lead',
+      entityId: data.leadId,
+      departmentId: updatedLead?.departmentId ?? null,
+      responsibleUserId: updatedLead?.responsibleUserId ?? null,
+      initiativeId: inserted.id,
     })
-    if (type && updatedLead) {
-      const now = new Date()
-      await db.insert(targetAction).values({
-        typeId: type.id,
-        responsibleUserId:
-          currentUser?.id ?? updatedLead.responsibleUserId ?? null,
-        departmentId: updatedLead.departmentId,
-        plannedAt: now.toISOString().split('T')[0],
-        completedAt: now,
-        status: 'completed',
-        sourceType: 'lead',
-        sourceId: data.leadId,
-        leadId: data.leadId,
-        initiativeId: inserted.id,
-      })
-    } else if (!type) {
-      console.warn(
-        '[target-action] type "lead_qualification" not found — skipping.',
-      )
-    }
 
     return { id: inserted.id }
   })
@@ -498,6 +558,69 @@ export const convertSignalToInitiative = createServerFn({ method: 'POST' })
       .set({ status: 'converted' })
       .where(eq(signal.id, data.signalId))
 
+    await recordQualification({
+      entityType: 'signal',
+      entityId: data.signalId,
+      departmentId: data.departmentId ?? null,
+      responsibleUserId: data.responsibleUserId ?? null,
+      initiativeId: inserted.id,
+    })
+
+    return { id: inserted.id }
+  })
+
+// ---------------------------------------------------------------------------
+// Convert tender → initiative
+// ---------------------------------------------------------------------------
+
+export const convertTenderToInitiative = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      tenderId: z.string(),
+      pipelineId: z.string().nullable().optional(),
+      stageId: z.string().nullable().optional(),
+      title: z.string().min(1),
+      companyId: z.string().nullable().optional(),
+      companyAccountId: z.string().nullable().optional(),
+      departmentId: z.string().nullable().optional(),
+      responsibleUserId: z.string().nullable().optional(),
+      budget: z.string().nullable().optional(),
+      dueDate: z.string().nullable().optional(),
+      description: z.string().nullable().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const [inserted] = await db
+      .insert(initiative)
+      .values({
+        title: data.title,
+        pipelineId: data.pipelineId ?? null,
+        stageId: data.stageId ?? null,
+        companyId: data.companyId ?? null,
+        companyAccountId: data.companyAccountId ?? null,
+        departmentId: data.departmentId ?? null,
+        responsibleUserId: data.responsibleUserId ?? null,
+        budget: data.budget ?? null,
+        dueDate: data.dueDate ?? null,
+        description: data.description ?? null,
+        sourceType: 'tender',
+        sourceTenderId: data.tenderId,
+      })
+      .returning({ id: initiative.id })
+
+    await db
+      .update(tender)
+      .set({ status: 'converted' })
+      .where(eq(tender.id, data.tenderId))
+
+    await recordQualification({
+      entityType: 'tender',
+      entityId: data.tenderId,
+      departmentId: data.departmentId ?? null,
+      responsibleUserId: data.responsibleUserId ?? null,
+      initiativeId: inserted.id,
+    })
+
     return { id: inserted.id }
   })
 
@@ -523,14 +646,26 @@ export const fetchInitiativeFormOptions = createServerFn({
         .where(eq(department.departmentType, 'sales'))
         .orderBy(asc(department.name)),
       db
-        .select({ id: department.id, parentId: department.parentId, headUserId: department.headUserId })
+        .select({
+          id: department.id,
+          parentId: department.parentId,
+          headUserId: department.headUserId,
+        })
         .from(department),
       db.query.pipeline.findMany({
-        with: { stages: { orderBy: [asc(pipelineStage.order)] }, departments: true },
+        with: {
+          stages: { orderBy: [asc(pipelineStage.order)] },
+          departments: true,
+        },
         orderBy: [asc(pipeline.name)],
       }),
       db
-        .select({ id: user.id, name: user.name, departmentId: user.departmentId, role: user.role })
+        .select({
+          id: user.id,
+          name: user.name,
+          departmentId: user.departmentId,
+          role: user.role,
+        })
         .from(user)
         .orderBy(asc(user.name)),
       db
@@ -547,7 +682,11 @@ export const fetchInitiativeFormOptions = createServerFn({
 
   if (currentUser) {
     if (currentUser.role === 'admin') {
-      departments = allSalesDepts.map(({ id, name, parentId }) => ({ id, name, parentId }))
+      departments = allSalesDepts.map(({ id, name, parentId }) => ({
+        id,
+        name,
+        parentId,
+      }))
     } else {
       // Find all departments (any type) this user heads, then collect full subtree
       const headedDeptIds = allDepts
@@ -555,7 +694,9 @@ export const fetchInitiativeFormOptions = createServerFn({
         .map((d) => d.id)
 
       if (headedDeptIds.length > 0) {
-        const allowed = new Set(collectDepartmentDescendants(allDepts, headedDeptIds))
+        const allowed = new Set(
+          collectDepartmentDescendants(allDepts, headedDeptIds),
+        )
         departments = allSalesDepts
           .filter((d) => allowed.has(d.id))
           .map(({ id, name, parentId }) => ({ id, name, parentId }))
@@ -567,7 +708,11 @@ export const fetchInitiativeFormOptions = createServerFn({
       }
     }
   } else {
-    departments = allSalesDepts.map(({ id, name, parentId }) => ({ id, name, parentId }))
+    departments = allSalesDepts.map(({ id, name, parentId }) => ({
+      id,
+      name,
+      parentId,
+    }))
   }
 
   return {

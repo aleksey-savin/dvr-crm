@@ -9,6 +9,8 @@ const TYPES: Array<{ slug: string; name: string }> = [
   { slug: 'proposal_sent', name: 'Отправка КП' },
   { slug: 'proposal_ready', name: 'Разработка КП' },
   { slug: 'lead_qualification', name: 'Отработка лида / квалификация' },
+  { slug: 'signal_qualification', name: 'Отработка сигнала / квалификация' },
+  { slug: 'tender_qualification', name: 'Отработка тендера / квалификация' },
   { slug: 'meeting_rescheduled', name: 'Перенос встречи' },
   { slug: 'tender_participation', name: 'Участие в тендере' },
 ]

@@ -21,14 +21,13 @@ import {
   ComboboxList,
   ComboboxValue,
 } from '@/components/ui/combobox'
+import { addTender, updateTender } from '@/components/tenders/actions'
 import {
-  addTender,
-  updateTender,
   fetchCompanies,
   fetchDepartments,
   fetchUsers,
   fetchIndustries,
-} from '@/components/tenders/actions'
+} from '@/components/pipeline-entity/lookups'
 import { fetchRefusalReasons } from '@/components/refusal-reasons/actions'
 import type { SelectTender } from '@/db/types'
 import type {
@@ -41,30 +40,6 @@ import type {
 type IndustryOption = { id: string; name: string }
 type RefusalReasonOption = { id: string; name: string }
 
-const ALLOWED_NEXT: Record<TenderStatus, TenderStatus[]> = {
-  new: ['new', 'evaluation'],
-  evaluation: ['evaluation', 'approval', 'rejected'],
-  approval: ['approval', 'preparation', 'rejected'],
-  preparation: ['preparation', 'submitted'],
-  submitted: ['submitted', 'won', 'lost'],
-  won: ['won'],
-  lost: ['lost'],
-  rejected: ['rejected'],
-  archived: ['archived'],
-}
-
-const STATUS_LABELS: Record<TenderStatus, string> = {
-  new: 'Новый',
-  evaluation: 'Оценка',
-  approval: 'Согласование',
-  preparation: 'Подготовка',
-  submitted: 'Подан',
-  won: 'Выигран',
-  lost: 'Проигран',
-  rejected: 'Отклонён',
-  archived: 'Архив',
-}
-
 const formSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
   companyId: z.string().nullable(),
@@ -72,17 +47,7 @@ const formSchema = z.object({
   responsibleUserId: z.string().nullable(),
   approverUserId: z.string().nullable(),
   industryId: z.string().nullable(),
-  status: z.enum([
-    'new',
-    'evaluation',
-    'approval',
-    'preparation',
-    'submitted',
-    'won',
-    'lost',
-    'rejected',
-    'archived',
-  ]),
+  status: z.enum(['new', 'in_progress', 'converted', 'rejected']),
   amount: z.string().nullable(),
   description: z.string().nullable(),
   deadline: z.string().nullable(),
@@ -104,14 +69,18 @@ export function TenderForm({
   const [departments, setDepartments] = React.useState<DepartmentOption[]>([])
   const [users, setUsers] = React.useState<UserOption[]>([])
   const [industries, setIndustries] = React.useState<IndustryOption[]>([])
-  const [refusalReasons, setRefusalReasons] = React.useState<RefusalReasonOption[]>([])
+  const [refusalReasons, setRefusalReasons] = React.useState<
+    RefusalReasonOption[]
+  >([])
 
   React.useEffect(() => {
     fetchCompanies().then(setCompanies).catch(console.error)
     fetchDepartments().then(setDepartments).catch(console.error)
     fetchUsers().then(setUsers).catch(console.error)
     fetchIndustries().then(setIndustries).catch(console.error)
-    fetchRefusalReasons().then(setRefusalReasons).catch(console.error)
+    fetchRefusalReasons({ data: { entityType: 'tender' } })
+      .then(setRefusalReasons)
+      .catch(console.error)
   }, [])
 
   const initialStatus = item ? (item.status as TenderStatus) : 'new'
@@ -147,9 +116,8 @@ export function TenderForm({
         deadline: value.deadline || null,
         platform: value.platform || null,
         url: value.url || null,
-        lostReasonId: ['rejected', 'lost'].includes(value.status)
-          ? value.lostReasonId || null
-          : null,
+        lostReasonId:
+          value.status === 'rejected' ? value.lostReasonId || null : null,
       }
       try {
         if (item) {
@@ -167,7 +135,6 @@ export function TenderForm({
   })
 
   const currentStatus = useStore(form.store, (s) => s.values.status)
-  const allowedStatuses = ALLOWED_NEXT[initialStatus]
 
   return (
     <form
@@ -265,11 +232,14 @@ export function TenderForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedStatuses.map((s) => (
-                    <SelectItem key={s} value={s} disabled={s === 'archived'}>
-                      {STATUS_LABELS[s]}
+                  <SelectItem value="new">Новый</SelectItem>
+                  <SelectItem value="in_progress">В работе</SelectItem>
+                  {field.state.value === 'converted' && (
+                    <SelectItem value="converted" disabled>
+                      Конвертирован
                     </SelectItem>
-                  ))}
+                  )}
+                  <SelectItem value="rejected">Отклонён</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
@@ -438,13 +408,11 @@ export function TenderForm({
         )}
       </form.Field>
 
-      {(currentStatus === 'rejected' || currentStatus === 'lost') && (
+      {currentStatus === 'rejected' && (
         <form.Field name="lostReasonId">
           {(field) => (
             <Field>
-              <FieldLabel>
-                Причина {currentStatus === 'lost' ? 'проигрыша' : 'отказа'}
-              </FieldLabel>
+              <FieldLabel>Причина отказа</FieldLabel>
               <Select
                 value={field.state.value ?? NULLABLE_PLACEHOLDER}
                 onValueChange={(v) =>

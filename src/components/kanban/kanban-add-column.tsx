@@ -42,7 +42,7 @@ export function KanbanAddColumn({
   }
 
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-xl border border-dashed bg-muted/20">
+    <div className="flex w-72 shrink-0 flex-col self-start rounded-xl border border-dashed bg-muted/20">
       {isEditing ? (
         <div className="flex flex-col gap-2 p-2">
           <Input

@@ -40,6 +40,7 @@ export type InitiativeFormPayload = {
   sourceType: InitiativeSource
   sourceLeadId?: string | null
   sourceSignalId?: string | null
+  sourceTenderId?: string | null
 }
 
 type InitiativeFormProps = {
@@ -63,6 +64,7 @@ type InitiativeFormProps = {
     sourceType?: InitiativeSource
     sourceLeadId?: string | null
     sourceSignalId?: string | null
+    sourceTenderId?: string | null
     companyAccountId?: string | null
   }
   options: {
@@ -149,6 +151,7 @@ export function InitiativeForm({
       sourceType: item?.sourceType ?? prefill?.sourceType ?? 'manual',
       sourceLeadId: item?.sourceLeadId ?? prefill?.sourceLeadId ?? null,
       sourceSignalId: item?.sourceSignalId ?? prefill?.sourceSignalId ?? null,
+      sourceTenderId: item?.sourceTenderId ?? prefill?.sourceTenderId ?? null,
     },
     onSubmit: async ({ value }) => {
       try {
@@ -166,6 +169,7 @@ export function InitiativeForm({
           sourceType: value.sourceType,
           sourceLeadId: value.sourceLeadId,
           sourceSignalId: value.sourceSignalId,
+          sourceTenderId: value.sourceTenderId,
         }
 
         if (item) {

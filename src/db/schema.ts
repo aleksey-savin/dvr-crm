@@ -216,6 +216,12 @@ export const refusalReason = pgTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     name: text('name').notNull(),
+    // Which entities this reason applies to. Defaults to all three so existing
+    // reasons stay usable everywhere after the migration.
+    entityTypes: text('entity_types', { enum: ['lead', 'tender', 'signal'] })
+      .array()
+      .notNull()
+      .default(['lead', 'tender', 'signal']),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -1207,6 +1213,7 @@ export const initiative = pgTable(
     stageId: text('stage_id').references(() => pipelineStage.id, {
       onDelete: 'set null',
     }),
+    position: integer('position').notNull().default(0),
     companyAccountId: text('company_account_id').references(
       () => companyAccount.id,
       { onDelete: 'set null' },
@@ -1234,6 +1241,9 @@ export const initiative = pgTable(
     sourceSignalId: text('source_signal_id').references(() => signal.id, {
       onDelete: 'set null',
     }),
+    sourceTenderId: text('source_tender_id').references(() => tender.id, {
+      onDelete: 'set null',
+    }),
     refusalReasonId: text('refusal_reason_id').references(
       () => refusalReason.id,
       { onDelete: 'set null' },
@@ -1250,12 +1260,14 @@ export const initiative = pgTable(
     index('initiative_pipeline_id_idx').on(table.pipelineId),
     index('initiative_stage_id_idx').on(table.stageId),
     index('initiative_pipeline_stage_idx').on(table.pipelineId, table.stageId),
+    index('initiative_stage_position_idx').on(table.stageId, table.position),
     index('initiative_company_account_id_idx').on(table.companyAccountId),
     index('initiative_company_id_idx').on(table.companyId),
     index('initiative_department_id_idx').on(table.departmentId),
     index('initiative_responsible_user_id_idx').on(table.responsibleUserId),
     index('initiative_source_lead_id_idx').on(table.sourceLeadId),
     index('initiative_source_signal_id_idx').on(table.sourceSignalId),
+    index('initiative_source_tender_id_idx').on(table.sourceTenderId),
     index('initiative_deleted_at_idx').on(table.deletedAt),
     index('initiative_closed_at_idx').on(table.closedAt),
   ],
@@ -1287,9 +1299,10 @@ export const lead = pgTable(
     sourceId: text('source_id').references(() => source.id, {
       onDelete: 'set null',
     }),
-    stageId: text('stage_id').references(() => leadStage.id, {
+    stageId: text('stage_id').references(() => entityStage.id, {
       onDelete: 'set null',
     }),
+    position: integer('position').notNull().default(0),
     status: text('status', {
       enum: ['new', 'in_progress', 'converted', 'rejected'],
     })
@@ -1317,6 +1330,7 @@ export const lead = pgTable(
     index('lead_source_id_idx').on(table.sourceId),
     index('lead_lost_reason_id_idx').on(table.lostReasonId),
     index('lead_stage_id_idx').on(table.stageId),
+    index('lead_stage_position_idx').on(table.stageId, table.position),
     index('lead_status_idx').on(table.status),
     index('lead_archived_at_idx').on(table.archivedAt),
     index('lead_deleted_at_idx').on(table.deletedAt),
@@ -1324,15 +1338,18 @@ export const lead = pgTable(
 )
 
 // ---------------------------------------------------------------------------
-// Lead stage (колонки кастомного канбана лидов — единая воронка)
+// Entity stage (колонки канбана лидов/тендеров/сигналов — единая воронка на тип)
 // ---------------------------------------------------------------------------
 
-export const leadStage = pgTable(
-  'lead_stage',
+export const entityStage = pgTable(
+  'entity_stage',
   {
     id: text('id')
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
+    entityType: text('entity_type', {
+      enum: ['lead', 'tender', 'signal'],
+    }).notNull(),
     name: text('name').notNull(),
     color: text('color').notNull().default('#6b7280'),
     order: integer('order').notNull().default(0),
@@ -1342,7 +1359,9 @@ export const leadStage = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('lead_stage_order_idx').on(table.order)],
+  (table) => [
+    index('entity_stage_type_order_idx').on(table.entityType, table.order),
+  ],
 )
 
 // ---------------------------------------------------------------------------
@@ -1371,18 +1390,12 @@ export const tender = pgTable(
     industryId: text('industry_id').references(() => industry.id, {
       onDelete: 'set null',
     }),
+    stageId: text('stage_id').references(() => entityStage.id, {
+      onDelete: 'set null',
+    }),
+    position: integer('position').notNull().default(0),
     status: text('status', {
-      enum: [
-        'new',
-        'evaluation',
-        'approval',
-        'preparation',
-        'submitted',
-        'won',
-        'lost',
-        'rejected',
-        'archived',
-      ],
+      enum: ['new', 'in_progress', 'converted', 'rejected'],
     })
       .notNull()
       .default('new'),
@@ -1394,6 +1407,7 @@ export const tender = pgTable(
     lostReasonId: text('lost_reason_id').references(() => refusalReason.id, {
       onDelete: 'set null',
     }),
+    archivedAt: timestamp('archived_at'),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -1408,7 +1422,10 @@ export const tender = pgTable(
     index('tender_approver_user_id_idx').on(table.approverUserId),
     index('tender_industry_id_idx').on(table.industryId),
     index('tender_lost_reason_id_idx').on(table.lostReasonId),
+    index('tender_stage_id_idx').on(table.stageId),
+    index('tender_stage_position_idx').on(table.stageId, table.position),
     index('tender_status_idx').on(table.status),
+    index('tender_archived_at_idx').on(table.archivedAt),
     index('tender_deleted_at_idx').on(table.deletedAt),
   ],
 )
@@ -1439,13 +1456,21 @@ export const signal = pgTable(
     signalTypeId: text('signal_type_id').references(() => signalTypeTable.id, {
       onDelete: 'set null',
     }),
+    stageId: text('stage_id').references(() => entityStage.id, {
+      onDelete: 'set null',
+    }),
+    position: integer('position').notNull().default(0),
     status: text('status', {
-      enum: ['new', 'in_progress', 'converted', 'archived'],
+      enum: ['new', 'in_progress', 'converted', 'rejected'],
     })
       .notNull()
       .default('new'),
     rating: smallint('rating'),
     description: text('description'),
+    lostReasonId: text('lost_reason_id').references(() => refusalReason.id, {
+      onDelete: 'set null',
+    }),
+    archivedAt: timestamp('archived_at'),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -1459,7 +1484,11 @@ export const signal = pgTable(
     index('signal_responsible_user_id_idx').on(table.responsibleUserId),
     index('signal_industry_id_idx').on(table.industryId),
     index('signal_signal_type_id_idx').on(table.signalTypeId),
+    index('signal_lost_reason_id_idx').on(table.lostReasonId),
+    index('signal_stage_id_idx').on(table.stageId),
+    index('signal_stage_position_idx').on(table.stageId, table.position),
     index('signal_status_idx').on(table.status),
+    index('signal_archived_at_idx').on(table.archivedAt),
     index('signal_deleted_at_idx').on(table.deletedAt),
   ],
 )
@@ -1955,14 +1984,10 @@ export const leadRelations = relations(lead, ({ one }) => ({
     references: [refusalReason.id],
     relationName: 'leadLostReason',
   }),
-  stage: one(leadStage, {
+  stage: one(entityStage, {
     fields: [lead.stageId],
-    references: [leadStage.id],
+    references: [entityStage.id],
   }),
-}))
-
-export const leadStageRelations = relations(leadStage, ({ many }) => ({
-  leads: many(lead),
 }))
 
 export const tenderRelations = relations(tender, ({ one }) => ({
@@ -1993,6 +2018,10 @@ export const tenderRelations = relations(tender, ({ one }) => ({
     references: [refusalReason.id],
     relationName: 'tenderLostReason',
   }),
+  stage: one(entityStage, {
+    fields: [tender.stageId],
+    references: [entityStage.id],
+  }),
 }))
 
 export const signalRelations = relations(signal, ({ one }) => ({
@@ -2017,6 +2046,15 @@ export const signalRelations = relations(signal, ({ one }) => ({
     fields: [signal.signalTypeId],
     references: [signalTypeTable.id],
   }),
+  lostReason: one(refusalReason, {
+    fields: [signal.lostReasonId],
+    references: [refusalReason.id],
+    relationName: 'signalLostReason',
+  }),
+  stage: one(entityStage, {
+    fields: [signal.stageId],
+    references: [entityStage.id],
+  }),
 }))
 
 export const contactRoleRelations = relations(contactRole, ({ many }) => ({
@@ -2034,6 +2072,7 @@ export const sourceRelations = relations(source, ({ many }) => ({
 export const refusalReasonRelations = relations(refusalReason, ({ many }) => ({
   leads: many(lead, { relationName: 'leadLostReason' }),
   tenders: many(tender, { relationName: 'tenderLostReason' }),
+  signals: many(signal, { relationName: 'signalLostReason' }),
 }))
 
 export const tagRelations = relations(tag, () => ({}))
@@ -2104,6 +2143,11 @@ export const initiativeRelations = relations(initiative, ({ one, many }) => ({
     fields: [initiative.sourceSignalId],
     references: [signal.id],
     relationName: 'initiativeSourceSignal',
+  }),
+  sourceTender: one(tender, {
+    fields: [initiative.sourceTenderId],
+    references: [tender.id],
+    relationName: 'initiativeSourceTender',
   }),
   refusalReason: one(refusalReason, {
     fields: [initiative.refusalReasonId],

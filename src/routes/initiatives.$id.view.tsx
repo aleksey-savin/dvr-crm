@@ -224,6 +224,16 @@ function RouteComponent() {
                   <ExternalLinkIcon className="ml-1 inline size-3" />
                 </Link>
               )}
+              {item.sourceTender && (
+                <Link
+                  to="/tenders/$id/view"
+                  params={{ id: item.sourceTender.id }}
+                  className="ml-1.5 text-primary hover:underline"
+                >
+                  {item.sourceTender.title}
+                  <ExternalLinkIcon className="ml-1 inline size-3" />
+                </Link>
+              )}
             </Field>
           </CardContent>
         </Card>

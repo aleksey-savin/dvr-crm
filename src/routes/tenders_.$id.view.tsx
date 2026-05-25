@@ -14,14 +14,9 @@ export const Route = createFileRoute('/tenders_/$id/view')({
 
 const STATUS_LABELS: Record<TenderStatus, string> = {
   new: 'Новый',
-  evaluation: 'Оценка',
-  approval: 'Согласование',
-  preparation: 'Подготовка',
-  submitted: 'Подан',
-  won: 'Выигран',
-  lost: 'Проигран',
+  in_progress: 'В работе',
+  converted: 'Конвертирован',
   rejected: 'Отклонён',
-  archived: 'Архив',
 }
 
 const STATUS_VARIANTS: Record<
@@ -29,14 +24,9 @@ const STATUS_VARIANTS: Record<
   'secondary' | 'warning' | 'default' | 'success' | 'destructive'
 > = {
   new: 'secondary',
-  evaluation: 'warning',
-  approval: 'warning',
-  preparation: 'default',
-  submitted: 'default',
-  won: 'success',
-  lost: 'destructive',
+  in_progress: 'warning',
+  converted: 'success',
   rejected: 'destructive',
-  archived: 'secondary',
 }
 
 function Field({
@@ -163,11 +153,7 @@ function RouteComponent() {
           {tender.lostReason && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  {tender.status === 'lost'
-                    ? 'Причина проигрыша'
-                    : 'Причина отказа'}
-                </CardTitle>
+                <CardTitle className="text-base">Причина отказа</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm">

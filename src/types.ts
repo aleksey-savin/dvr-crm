@@ -35,6 +35,7 @@ export type ParentDepartmentOption = ParentDepartmentRow & {
 export type UserOption = {
   id: string
   name: string
+  departmentId?: string | null
 }
 
 export type UserRoleOption = UserOption & {
@@ -327,9 +328,12 @@ export type SourceRow = {
   createdAt: Date
 }
 
+export type RefusalReasonEntity = 'lead' | 'tender' | 'signal'
+
 export type RefusalReasonRow = {
   id: string
   name: string
+  entityTypes: RefusalReasonEntity[]
   createdAt: Date
 }
 
@@ -339,14 +343,20 @@ export type TagRow = {
   createdAt: Date
 }
 
-export type LeadStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
+export type EntityStatus = 'new' | 'in_progress' | 'converted' | 'rejected'
 
-export type LeadStageOption = {
+export type LeadStatus = EntityStatus
+
+export type EntityType = 'lead' | 'tender' | 'signal'
+
+export type EntityStageOption = {
   id: string
   name: string
   color: string
   order: number
 }
+
+export type LeadStageOption = EntityStageOption
 
 export type LeadRow = {
   id: string
@@ -366,6 +376,7 @@ export type LeadRow = {
   companyName: string | null
   departmentId: string | null
   departmentName: string | null
+  departmentAccentColor: string | null
   responsibleUserId: string | null
   responsibleUserName: string | null
   industryId: string | null
@@ -374,21 +385,18 @@ export type LeadRow = {
   createdAt: Date
 }
 
-export type TenderStatus =
-  | 'new'
-  | 'evaluation'
-  | 'approval'
-  | 'preparation'
-  | 'submitted'
-  | 'won'
-  | 'lost'
-  | 'rejected'
-  | 'archived'
+export type TenderStatus = EntityStatus
+
+export type TenderStageOption = EntityStageOption
 
 export type TenderRow = {
   id: string
   title: string
   status: TenderStatus
+  stageId: string | null
+  stageName: string | null
+  stageColor: string | null
+  stageOrder: number | null
   amount: string | null
   deadline: string | null
   platform: string | null
@@ -399,16 +407,20 @@ export type TenderRow = {
   companyName: string | null
   departmentId: string | null
   departmentName: string | null
+  departmentAccentColor: string | null
   responsibleUserId: string | null
   responsibleUserName: string | null
   approverUserId: string | null
   approverUserName: string | null
   industryId: string | null
   industryName: string | null
+  archivedAt: Date | null
   createdAt: Date
 }
 
-export type SignalStatus = 'new' | 'in_progress' | 'converted' | 'archived'
+export type SignalStatus = EntityStatus
+
+export type SignalStageOption = EntityStageOption
 
 export type SignalRow = {
   id: string
@@ -416,15 +428,23 @@ export type SignalRow = {
   status: SignalStatus
   signalTypeId: string | null
   signalTypeName: string | null
+  stageId: string | null
+  stageName: string | null
+  stageColor: string | null
+  stageOrder: number | null
   rating: number | null
+  lostReasonId: string | null
+  lostReasonName: string | null
   companyId: string | null
   companyName: string | null
   departmentId: string | null
   departmentName: string | null
+  departmentAccentColor: string | null
   responsibleUserId: string | null
   responsibleUserName: string | null
   industryId: string | null
   industryName: string | null
+  archivedAt: Date | null
   createdAt: Date
 }
 
@@ -468,6 +488,7 @@ export type InitiativeRow = {
   sourceType: InitiativeSource
   sourceLeadId: string | null
   sourceSignalId: string | null
+  sourceTenderId: string | null
   pipelineId: string | null
   pipelineName: string | null
   stageId: string | null
@@ -481,6 +502,7 @@ export type InitiativeRow = {
   companyName: string | null
   departmentId: string | null
   departmentName: string | null
+  departmentAccentColor: string | null
   responsibleUserId: string | null
   responsibleUserName: string | null
   refusalReasonId: string | null

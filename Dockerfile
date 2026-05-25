@@ -12,4 +12,4 @@ RUN pnpm build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm db:migrate && node .output/server/index.mjs"]
+CMD ["sh", "-c", "pnpm db:migrate && pnpm db:seed:target-action-types && node .output/server/index.mjs"]

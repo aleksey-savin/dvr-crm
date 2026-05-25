@@ -9,41 +9,42 @@ import {
 } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LeadForm } from './lead-form'
-import { LeadActions } from './lead-actions'
-import { fetchLead } from './actions'
-import type { SelectLead } from '@/db/types'
-import type { LeadRow, PipelineWithStages } from '@/types'
+import { EntityActions } from './entity-actions'
+import type { EntityConfig, EntityRowBase, RefusalReason } from './types'
+import type { PipelineWithStages } from '@/types'
 
-type LeadSheetProps = {
-  lead: LeadRow | null
+type EntitySheetProps<TRow extends EntityRowBase, TFull> = {
+  config: EntityConfig<TRow, TFull>
+  row: TRow | null
   pipelines: PipelineWithStages[]
-  refusalReasons: Array<{ id: string; name: string }>
+  refusalReasons: RefusalReason[]
   onOpenChange: (open: boolean) => void
   onDone?: () => void
 }
 
-export function LeadSheet({
-  lead,
+export function EntitySheet<TRow extends EntityRowBase, TFull>({
+  config,
+  row,
   pipelines,
   refusalReasons,
   onOpenChange,
   onDone,
-}: LeadSheetProps) {
+}: EntitySheetProps<TRow, TFull>) {
   const router = useRouter()
-  const [full, setFull] = React.useState<SelectLead | null>(null)
+  const [full, setFull] = React.useState<TFull | null>(null)
   const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
-    if (!lead) {
+    if (!row) {
       setFull(null)
       return
     }
     let cancelled = false
     setLoading(true)
-    fetchLead({ data: { id: lead.id } })
-      .then((row) => {
-        if (!cancelled) setFull(row as unknown as SelectLead)
+    config
+      .fetchOne(row.id)
+      .then((data) => {
+        if (!cancelled) setFull(data)
       })
       .catch(console.error)
       .finally(() => {
@@ -52,24 +53,24 @@ export function LeadSheet({
     return () => {
       cancelled = true
     }
-  }, [lead])
+  }, [row, config])
 
   return (
-    <Sheet open={!!lead} onOpenChange={onOpenChange}>
+    <Sheet open={!!row} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
-        {lead && (
+        {row && (
           <>
             <SheetHeader>
-              <SheetTitle>{lead.title}</SheetTitle>
-              <SheetDescription>Карточка лида</SheetDescription>
+              <SheetTitle>{row.title}</SheetTitle>
+              <SheetDescription>Карточка {config.words.gen}</SheetDescription>
             </SheetHeader>
 
             <div className="px-4">
-              <LeadActions
-                lead={lead}
+              <EntityActions
+                config={config}
+                row={row}
                 pipelines={pipelines}
                 refusalReasons={refusalReasons}
-                context="sheet"
                 size="sm"
                 onDone={() => onOpenChange(false)}
               />
@@ -85,14 +86,14 @@ export function LeadSheet({
                   <Skeleton className="h-24 w-full" />
                 </div>
               ) : (
-                <LeadForm
-                  item={full}
-                  onSuccess={async () => {
+                config.renderForm({
+                  item: full,
+                  onSuccess: async () => {
                     await router.invalidate()
                     onDone?.()
                     onOpenChange(false)
-                  }}
-                />
+                  },
+                })
               )}
             </div>
           </>

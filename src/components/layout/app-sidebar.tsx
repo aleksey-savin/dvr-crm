@@ -47,13 +47,9 @@ const navMain = [
     ],
   },
   {
-    title: 'CRM | Новый бизнес',
+    title: 'Новый бизнес',
     url: '#',
     items: [
-      {
-        title: 'Клиенты',
-        url: '/clients',
-      },
       {
         title: 'Вишлист',
         url: '/wishlist',
@@ -65,6 +61,16 @@ const navMain = [
       {
         title: 'Инициативы',
         url: '/initiatives',
+      },
+    ],
+  },
+  {
+    title: 'Клиентская модель',
+    url: '#',
+    items: [
+      {
+        title: 'Клиенты',
+        url: '/clients',
       },
     ],
   },
@@ -82,20 +88,6 @@ const navMain = [
       },
     ],
   },
-  /* {
-    title: 'Моя компания',
-    url: '#',
-    items: [
-      {
-        title: 'Бронирование переговорок',
-        url: '/meeting-room-booking',
-      },
-      {
-        title: 'Списки рассылок',
-        url: '/mailing-lists',
-      },
-    ],
-  }, */
   {
     title: 'Администрирование',
     url: '#',

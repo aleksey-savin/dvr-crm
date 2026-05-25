@@ -1,10 +1,19 @@
 import { db } from '@/db'
-import { tender, company, department, user, industry, targetAction, targetActionType, refusalReason } from '@/db/schema'
+import {
+  tender,
+  entityStage,
+  company,
+  department,
+  user,
+  industry,
+  refusalReason,
+} from '@/db/schema'
+import { recordQualification } from '@/components/pipeline-entity/qualification'
 import type { TenderRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { notFound } from '@tanstack/react-router'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { auth } from 'utils/auth'
 import { buildDepartmentScopeFilter } from '@/lib/department-scope'
 import * as z from 'zod'
@@ -27,18 +36,9 @@ const tenderInputSchema = z.object({
   responsibleUserId: z.string().nullable().optional(),
   approverUserId: z.string().nullable().optional(),
   industryId: z.string().nullable().optional(),
+  stageId: z.string().nullable().optional(),
   status: z
-    .enum([
-      'new',
-      'evaluation',
-      'approval',
-      'preparation',
-      'submitted',
-      'won',
-      'lost',
-      'rejected',
-      'archived',
-    ])
+    .enum(['new', 'in_progress', 'converted', 'rejected'])
     .default('new'),
   amount: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
@@ -50,27 +50,11 @@ const tenderInputSchema = z.object({
 
 const updateTenderSchema = tenderInputSchema.extend({ id: z.string() })
 
-const updateTenderStatusSchema = z.object({
-  id: z.string(),
-  status: z.enum([
-    'new',
-    'evaluation',
-    'approval',
-    'preparation',
-    'submitted',
-    'won',
-    'lost',
-    'rejected',
-  ]),
-})
-
-const rejectTenderSchema = z.object({
-  id: z.string(),
-  lostReasonId: z.string().min(1, 'Выберите причину'),
-})
-
-export const fetchTenders = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<TenderRow[]> => {
+export const fetchTenders = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({ includeArchived: z.boolean().optional() }).optional(),
+  )
+  .handler(async ({ data }): Promise<TenderRow[]> => {
     const deptFilter = await buildDepartmentScopeFilter(tender.departmentId, {
       bypassRoles: ['admin', 'tender_specialist'],
     })
@@ -80,6 +64,10 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
         id: tender.id,
         title: tender.title,
         status: tender.status,
+        stageId: tender.stageId,
+        stageName: entityStage.name,
+        stageColor: entityStage.color,
+        stageOrder: entityStage.order,
         amount: tender.amount,
         deadline: tender.deadline,
         platform: tender.platform,
@@ -87,10 +75,12 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
         lostReasonId: tender.lostReasonId,
         lostReasonName: refusalReason.name,
         createdAt: tender.createdAt,
+        archivedAt: tender.archivedAt,
         companyId: tender.companyId,
         companyName: company.name,
         departmentId: tender.departmentId,
         departmentName: department.name,
+        departmentAccentColor: department.accentColor,
         responsibleUserId: tender.responsibleUserId,
         responsibleUserName: user.name,
         approverUserId: tender.approverUserId,
@@ -103,12 +93,24 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
       .leftJoin(user, eq(tender.responsibleUserId, user.id))
       .leftJoin(industry, eq(tender.industryId, industry.id))
       .leftJoin(refusalReason, eq(tender.lostReasonId, refusalReason.id))
-      .where(and(isNull(tender.deletedAt), deptFilter))
+      .leftJoin(entityStage, eq(tender.stageId, entityStage.id))
+      .where(
+        and(
+          isNull(tender.deletedAt),
+          data?.includeArchived ? undefined : isNull(tender.archivedAt),
+          deptFilter,
+        ),
+      )
+      .orderBy(asc(tender.position), asc(tender.createdAt))
 
     return rows.map((row) => ({
       id: row.id,
       title: row.title,
       status: row.status as TenderRow['status'],
+      stageId: row.stageId,
+      stageName: row.stageName ?? null,
+      stageColor: row.stageColor ?? null,
+      stageOrder: row.stageOrder ?? null,
       amount: row.amount,
       deadline: row.deadline,
       platform: row.platform,
@@ -116,10 +118,12 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
       lostReasonId: row.lostReasonId,
       lostReasonName: row.lostReasonName ?? null,
       createdAt: row.createdAt,
+      archivedAt: row.archivedAt,
       companyId: row.companyId,
       companyName: row.companyName ?? null,
       departmentId: row.departmentId,
       departmentName: row.departmentName ?? null,
+      departmentAccentColor: row.departmentAccentColor ?? null,
       responsibleUserId: row.responsibleUserId,
       responsibleUserName: row.responsibleUserName ?? null,
       approverUserId: row.approverUserId,
@@ -127,8 +131,7 @@ export const fetchTenders = createServerFn({ method: 'GET' }).handler(
       industryId: row.industryId,
       industryName: row.industryName ?? null,
     }))
-  },
-)
+  })
 
 export const fetchTender = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ id: z.string() }))
@@ -151,6 +154,12 @@ export const fetchTender = createServerFn({ method: 'GET' })
 export const addTender = createServerFn({ method: 'POST' })
   .inputValidator(tenderInputSchema)
   .handler(async ({ data }) => {
+    // New tenders always start in the first kanban column.
+    const firstStage = await db.query.entityStage.findFirst({
+      where: eq(entityStage.entityType, 'tender'),
+      orderBy: [asc(entityStage.order)],
+      columns: { id: true },
+    })
     const [inserted] = await db
       .insert(tender)
       .values({
@@ -160,6 +169,7 @@ export const addTender = createServerFn({ method: 'POST' })
         responsibleUserId: data.responsibleUserId ?? null,
         approverUserId: data.approverUserId ?? null,
         industryId: data.industryId ?? null,
+        stageId: data.stageId ?? firstStage?.id ?? null,
         status: data.status,
         amount: data.amount ?? null,
         description: data.description ?? null,
@@ -195,75 +205,93 @@ export const updateTender = createServerFn({ method: 'POST' })
       .where(eq(tender.id, data.id))
   })
 
-export const updateTenderStatus = createServerFn({ method: 'POST' })
-  .inputValidator(updateTenderStatusSchema)
-  .handler(async ({ data }) => {
-    const currentUser =
-      data.status === 'evaluation' ? await getCurrentUserWithDeptId() : null
-    if (data.status === 'evaluation' && !currentUser) {
-      throw new Error('Unauthorized')
-    }
+// ---------------------------------------------------------------------------
+// Kanban: stage move + reject + archive
+// ---------------------------------------------------------------------------
 
-    const updatedTenderRows = await db
+export const moveTenderStage = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string(), stageId: z.string() }))
+  .handler(async ({ data }) => {
+    const firstStage = await db.query.entityStage.findFirst({
+      where: eq(entityStage.entityType, 'tender'),
+      orderBy: [asc(entityStage.order)],
+      columns: { id: true },
+    })
+    const existing = await db.query.tender.findFirst({
+      where: and(eq(tender.id, data.id), isNull(tender.deletedAt)),
+      columns: { id: true, status: true, responsibleUserId: true },
+    })
+    if (!existing) throw notFound()
+
+    // Moving a `new` tender past the first column promotes it to in_progress
+    // and assigns the current user as responsible if none is set yet.
+    const promote = existing.status === 'new' && data.stageId !== firstStage?.id
+    const currentUser =
+      promote && !existing.responsibleUserId
+        ? await getCurrentUserWithDeptId()
+        : null
+
+    await db
       .update(tender)
       .set({
-        status: data.status,
-        responsibleUserId: currentUser?.id,
+        stageId: data.stageId,
+        ...(promote ? { status: 'in_progress' as const } : {}),
+        ...(currentUser ? { responsibleUserId: currentUser.id } : {}),
       })
-      .where(and(eq(tender.id, data.id), isNull(tender.deletedAt)))
-      .returning()
-    const updatedTender = updatedTenderRows.at(0)
-
-    // Fact: tender был проведён (выиграли или проиграли — неважно). Записываем
-    // ЦД tender_participation один раз. Защита от дубля по (sourceType, sourceId).
-    if (
-      updatedTender &&
-      (data.status === 'won' || data.status === 'lost')
-    ) {
-      const existing = await db.query.targetAction.findFirst({
-        where: and(
-          eq(targetAction.sourceType, 'tender'),
-          eq(targetAction.sourceId, data.id),
-          isNull(targetAction.deletedAt),
-        ),
-        columns: { id: true },
-      })
-      if (!existing) {
-        const type = await db.query.targetActionType.findFirst({
-          where: and(
-            eq(targetActionType.slug, 'tender_participation'),
-            isNull(targetActionType.deletedAt),
-          ),
-        })
-        if (type) {
-          const now = new Date()
-          await db.insert(targetAction).values({
-            typeId: type.id,
-            responsibleUserId: updatedTender.responsibleUserId,
-            departmentId: updatedTender.departmentId,
-            plannedAt: now.toISOString().split('T')[0],
-            completedAt: now,
-            status: 'completed',
-            sourceType: 'tender',
-            sourceId: data.id,
-            tenderId: data.id,
-          })
-        } else {
-          console.warn(
-            '[target-action] type "tender_participation" not found — skipping.',
-          )
-        }
-      }
-    }
+      .where(eq(tender.id, data.id))
+    return { id: data.id }
   })
 
 export const rejectTender = createServerFn({ method: 'POST' })
-  .inputValidator(rejectTenderSchema)
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      lostReasonId: z.string().min(1, 'Выберите причину'),
+    }),
+  )
   .handler(async ({ data }) => {
-    await db
+    const rows = await db
       .update(tender)
       .set({ status: 'rejected', lostReasonId: data.lostReasonId })
       .where(and(eq(tender.id, data.id), isNull(tender.deletedAt)))
+      .returning({
+        id: tender.id,
+        departmentId: tender.departmentId,
+        responsibleUserId: tender.responsibleUserId,
+      })
+    const updated = rows.at(0)
+    if (!updated) throw notFound()
+
+    await recordQualification({
+      entityType: 'tender',
+      entityId: data.id,
+      departmentId: updated.departmentId,
+      responsibleUserId: updated.responsibleUserId,
+    })
+    return { id: data.id }
+  })
+
+export const archiveTender = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const existing = await db.query.tender.findFirst({
+      where: and(eq(tender.id, data.id), isNull(tender.deletedAt)),
+      columns: { id: true, status: true },
+    })
+    if (!existing) throw notFound()
+
+    // Only resolved tenders may be archived.
+    if (existing.status !== 'converted' && existing.status !== 'rejected') {
+      throw new Error(
+        'Архивировать можно только конвертированные или отклонённые записи',
+      )
+    }
+
+    await db
+      .update(tender)
+      .set({ archivedAt: new Date() })
+      .where(eq(tender.id, data.id))
+    return { id: data.id }
   })
 
 export const softDeleteTender = createServerFn({ method: 'POST' })
@@ -274,31 +302,3 @@ export const softDeleteTender = createServerFn({ method: 'POST' })
       .set({ deletedAt: new Date() })
       .where(eq(tender.id, data.id))
   })
-
-export const fetchCompanies = createServerFn({ method: 'GET' }).handler(
-  async () =>
-    db
-      .select({ id: company.id, name: company.name })
-      .from(company)
-      .orderBy(company.name),
-)
-
-export const fetchDepartments = createServerFn({ method: 'GET' }).handler(
-  async () =>
-    db
-      .select({ id: department.id, name: department.name })
-      .from(department)
-      .orderBy(department.name),
-)
-
-export const fetchUsers = createServerFn({ method: 'GET' }).handler(async () =>
-  db.select({ id: user.id, name: user.name }).from(user).orderBy(user.name),
-)
-
-export const fetchIndustries = createServerFn({ method: 'GET' }).handler(
-  async () =>
-    db
-      .select({ id: industry.id, name: industry.name })
-      .from(industry)
-      .orderBy(industry.name),
-)

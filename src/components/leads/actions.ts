@@ -1,17 +1,16 @@
 import { db } from '@/db'
 import {
   lead,
-  leadStage,
+  entityStage,
   company,
   department,
   user,
   industry,
-  targetAction,
-  targetActionType,
   source,
   refusalReason,
 } from '@/db/schema'
-import type { LeadRow, LeadStageOption } from '@/types'
+import { recordQualification } from '@/components/pipeline-entity/qualification'
+import type { LeadRow } from '@/types'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { notFound } from '@tanstack/react-router'
@@ -82,9 +81,9 @@ export const fetchLeads = createServerFn({ method: 'GET' })
         lostReasonId: lead.lostReasonId,
         lostReasonName: refusalReason.name,
         stageId: lead.stageId,
-        stageName: leadStage.name,
-        stageColor: leadStage.color,
-        stageOrder: leadStage.order,
+        stageName: entityStage.name,
+        stageColor: entityStage.color,
+        stageOrder: entityStage.order,
         budget: lead.budget,
         dueDate: lead.dueDate,
         createdAt: lead.createdAt,
@@ -93,6 +92,7 @@ export const fetchLeads = createServerFn({ method: 'GET' })
         companyName: company.name,
         departmentId: lead.departmentId,
         departmentName: department.name,
+        departmentAccentColor: department.accentColor,
         responsibleUserId: lead.responsibleUserId,
         responsibleUserName: user.name,
         industryId: lead.industryId,
@@ -105,7 +105,7 @@ export const fetchLeads = createServerFn({ method: 'GET' })
       .leftJoin(industry, eq(lead.industryId, industry.id))
       .leftJoin(source, eq(lead.sourceId, source.id))
       .leftJoin(refusalReason, eq(lead.lostReasonId, refusalReason.id))
-      .leftJoin(leadStage, eq(lead.stageId, leadStage.id))
+      .leftJoin(entityStage, eq(lead.stageId, entityStage.id))
       .where(
         and(
           isNull(lead.deletedAt),
@@ -113,6 +113,7 @@ export const fetchLeads = createServerFn({ method: 'GET' })
           deptFilter,
         ),
       )
+      .orderBy(asc(lead.position), asc(lead.createdAt))
 
     return rows.map((row) => ({
       id: row.id,
@@ -134,6 +135,7 @@ export const fetchLeads = createServerFn({ method: 'GET' })
       companyName: row.companyName ?? null,
       departmentId: row.departmentId,
       departmentName: row.departmentName ?? null,
+      departmentAccentColor: row.departmentAccentColor ?? null,
       responsibleUserId: row.responsibleUserId,
       responsibleUserName: row.responsibleUserName ?? null,
       industryId: row.industryId,
@@ -163,8 +165,9 @@ export const addLead = createServerFn({ method: 'POST' })
   .inputValidator(leadInputSchema)
   .handler(async ({ data }) => {
     // New leads always start in the first kanban column.
-    const firstStage = await db.query.leadStage.findFirst({
-      orderBy: [asc(leadStage.order)],
+    const firstStage = await db.query.entityStage.findFirst({
+      where: eq(entityStage.entityType, 'lead'),
+      orderBy: [asc(entityStage.order)],
       columns: { id: true },
     })
     const [inserted] = await db
@@ -245,30 +248,11 @@ export const rejectLead = createServerFn({ method: 'POST' })
     const updated = updatedRows.at(0)
     if (!updated) throw notFound()
 
-    const currentUser = await getCurrentUserWithDeptId()
-    const type = await db.query.targetActionType.findFirst({
-      where: and(
-        eq(targetActionType.slug, 'lead_qualification'),
-        isNull(targetActionType.deletedAt),
-      ),
-    })
-    if (!type) {
-      console.warn(
-        '[target-action] type "lead_qualification" not found — skipping.',
-      )
-      return
-    }
-    const now = new Date()
-    await db.insert(targetAction).values({
-      typeId: type.id,
-      responsibleUserId: currentUser?.id ?? updated.responsibleUserId,
+    await recordQualification({
+      entityType: 'lead',
+      entityId: data.id,
       departmentId: updated.departmentId,
-      plannedAt: now.toISOString().split('T')[0],
-      completedAt: now,
-      status: 'completed',
-      sourceType: 'lead',
-      sourceId: data.id,
-      leadId: data.id,
+      responsibleUserId: updated.responsibleUserId,
     })
   })
 
@@ -288,8 +272,9 @@ export const softDeleteLead = createServerFn({ method: 'POST' })
 export const moveLeadStage = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ id: z.string(), stageId: z.string() }))
   .handler(async ({ data }) => {
-    const firstStage = await db.query.leadStage.findFirst({
-      orderBy: [asc(leadStage.order)],
+    const firstStage = await db.query.entityStage.findFirst({
+      where: eq(entityStage.entityType, 'lead'),
+      orderBy: [asc(entityStage.order)],
       columns: { id: true },
     })
     const existing = await db.query.lead.findFirst({
@@ -312,186 +297,24 @@ export const moveLeadStage = createServerFn({ method: 'POST' })
   })
 
 export const archiveLead = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      id: z.string(),
-      lostReasonId: z.string().nullable().optional(),
-    }),
-  )
+  .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const existing = await db.query.lead.findFirst({
       where: and(eq(lead.id, data.id), isNull(lead.deletedAt)),
-      columns: {
-        id: true,
-        status: true,
-        departmentId: true,
-        responsibleUserId: true,
-      },
+      columns: { id: true, status: true },
     })
     if (!existing) throw notFound()
 
-    const now = new Date()
-
-    // Archiving a converted lead is a clean close — keep status as is.
-    if (existing.status === 'converted') {
-      await db.update(lead).set({ archivedAt: now }).where(eq(lead.id, data.id))
-      return { id: data.id }
+    // Only resolved leads may be archived.
+    if (existing.status !== 'converted' && existing.status !== 'rejected') {
+      throw new Error(
+        'Архивировать можно только конвертированные или отклонённые записи',
+      )
     }
 
-    // Otherwise archiving is a refusal: require a reason and mark rejected.
-    if (!data.lostReasonId) {
-      throw new Error('Выберите причину отказа')
-    }
-    const wasRejected = existing.status === 'rejected'
     await db
       .update(lead)
-      .set({
-        status: 'rejected',
-        lostReasonId: data.lostReasonId,
-        archivedAt: now,
-      })
+      .set({ archivedAt: new Date() })
       .where(eq(lead.id, data.id))
-
-    // Log a qualification action only on the actual rejection transition.
-    if (!wasRejected) {
-      const currentUser = await getCurrentUserWithDeptId()
-      const type = await db.query.targetActionType.findFirst({
-        where: and(
-          eq(targetActionType.slug, 'lead_qualification'),
-          isNull(targetActionType.deletedAt),
-        ),
-      })
-      if (type) {
-        await db.insert(targetAction).values({
-          typeId: type.id,
-          responsibleUserId: currentUser?.id ?? existing.responsibleUserId,
-          departmentId: existing.departmentId,
-          plannedAt: now.toISOString().split('T')[0],
-          completedAt: now,
-          status: 'completed',
-          sourceType: 'lead',
-          sourceId: data.id,
-          leadId: data.id,
-        })
-      }
-    }
     return { id: data.id }
   })
-
-// ---------------------------------------------------------------------------
-// Lead stage CRUD (kanban columns — single shared funnel)
-// ---------------------------------------------------------------------------
-
-export const fetchLeadStages = createServerFn({ method: 'GET' }).handler(
-  async (): Promise<LeadStageOption[]> => {
-    const rows = await db
-      .select({
-        id: leadStage.id,
-        name: leadStage.name,
-        color: leadStage.color,
-        order: leadStage.order,
-      })
-      .from(leadStage)
-      .orderBy(asc(leadStage.order))
-    return rows
-  },
-)
-
-export const addLeadStage = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      name: z.string().min(1, 'Название обязательно'),
-      color: z.string().default('#6b7280'),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const existing = await db.select({ order: leadStage.order }).from(leadStage)
-    const nextOrder =
-      existing.length > 0 ? Math.max(...existing.map((s) => s.order)) + 1 : 0
-    const [inserted] = await db
-      .insert(leadStage)
-      .values({ name: data.name, color: data.color, order: nextOrder })
-      .returning({ id: leadStage.id })
-    return { id: inserted.id }
-  })
-
-export const updateLeadStage = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      id: z.string(),
-      name: z.string().min(1, 'Название обязательно').optional(),
-      color: z.string().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const updates: { name?: string; color?: string } = {}
-    if (data.name !== undefined) updates.name = data.name
-    if (data.color !== undefined) updates.color = data.color
-    if (Object.keys(updates).length === 0) return
-    await db.update(leadStage).set(updates).where(eq(leadStage.id, data.id))
-  })
-
-export const deleteLeadStage = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      id: z.string(),
-      reassignToStageId: z.string().nullable().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    // Move leads to the chosen stage before removing the column.
-    if (data.reassignToStageId) {
-      await db
-        .update(lead)
-        .set({ stageId: data.reassignToStageId })
-        .where(eq(lead.stageId, data.id))
-    }
-    await db.delete(leadStage).where(eq(leadStage.id, data.id))
-  })
-
-export const reorderLeadStages = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ stageIds: z.array(z.string()) }))
-  .handler(async ({ data }) => {
-    for (let i = 0; i < data.stageIds.length; i++) {
-      await db
-        .update(leadStage)
-        .set({ order: i })
-        .where(eq(leadStage.id, data.stageIds[i]))
-    }
-  })
-
-export const fetchCompanies = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return db
-      .select({ id: company.id, name: company.name })
-      .from(company)
-      .orderBy(company.name)
-  },
-)
-
-export const fetchDepartments = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return db
-      .select({ id: department.id, name: department.name })
-      .from(department)
-      .orderBy(department.name)
-  },
-)
-
-export const fetchUsers = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return db
-      .select({ id: user.id, name: user.name })
-      .from(user)
-      .orderBy(user.name)
-  },
-)
-
-export const fetchIndustries = createServerFn({ method: 'GET' }).handler(
-  async () => {
-    return db
-      .select({ id: industry.id, name: industry.name })
-      .from(industry)
-      .orderBy(industry.name)
-  },
-)
