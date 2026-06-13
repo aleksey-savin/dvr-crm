@@ -5,6 +5,30 @@
 @custom-variant dark (&:is(.dark *));
 
 /* --------------------------------------------------------------------------
+   Scrollbars — slim themed look for both axes. Styling ::-webkit-scrollbar
+   switches elements to custom rendering, so every part must be styled or it
+   would render blank.
+   -------------------------------------------------------------------------- */
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--foreground) 25%, transparent);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
    Department accent tint — applied to the sidebar when a dept is selected.
    Uses background-image layered over the existing background-color so the
    sidebar colour is preserved and only a subtle tint is added on top.

@@ -22,6 +22,7 @@ import type {
   accountRisk,
   accountGrossProfit,
   accountTargetForecast,
+  salesPlan,
   accountUpsellingOpportunity,
   accountHook,
   companyRevenue,
@@ -31,6 +32,7 @@ import type {
   commentAttachment,
   commentRead,
   meeting,
+  meetingRoom,
   meetingParticipant,
   meetingExternalParticipant,
   targetActionType,
@@ -165,6 +167,12 @@ export type UpdateAccountTargetForecast = Partial<
   Omit<InsertAccountTargetForecast, 'id' | 'createdAt' | 'updatedAt'>
 >
 
+export type SelectSalesPlan = InferSelectModel<typeof salesPlan>
+export type InsertSalesPlan = InferInsertModel<typeof salesPlan>
+export type UpdateSalesPlan = Partial<
+  Omit<InsertSalesPlan, 'id' | 'createdAt' | 'updatedAt'>
+>
+
 export type SelectAccountUpsellingOpportunity = InferSelectModel<
   typeof accountUpsellingOpportunity
 >
@@ -239,6 +247,12 @@ export type SelectMeeting = InferSelectModel<typeof meeting>
 export type InsertMeeting = InferInsertModel<typeof meeting>
 export type UpdateMeeting = Partial<
   Omit<InsertMeeting, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+export type SelectMeetingRoom = InferSelectModel<typeof meetingRoom>
+export type InsertMeetingRoom = InferInsertModel<typeof meetingRoom>
+export type UpdateMeetingRoom = Partial<
+  Omit<InsertMeetingRoom, 'id' | 'createdAt' | 'updatedAt'>
 >
 
 export type SelectMeetingParticipant = InferSelectModel<
@@ -373,8 +387,12 @@ export type UpdatePipelineStage = Partial<
   Omit<InsertPipelineStage, 'id' | 'createdAt' | 'updatedAt'>
 >
 
-export type SelectPipelineDepartment = InferSelectModel<typeof pipelineDepartment>
-export type InsertPipelineDepartment = InferInsertModel<typeof pipelineDepartment>
+export type SelectPipelineDepartment = InferSelectModel<
+  typeof pipelineDepartment
+>
+export type InsertPipelineDepartment = InferInsertModel<
+  typeof pipelineDepartment
+>
 
 export type SelectInitiative = InferSelectModel<typeof initiative>
 export type InsertInitiative = InferInsertModel<typeof initiative>

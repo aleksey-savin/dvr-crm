@@ -254,6 +254,10 @@ const ClientForm = ({
       data: {
         companyId: selectedCompanyId,
         excludeAccountId: item?.id,
+        // Opened from the company/wishlist page (company pre-selected): allow
+        // converting the company's wishlist departments into clients. The
+        // generic search keeps them hidden.
+        includeWishlistDepartments: !!lockedCompanyId,
       },
     })
       .then((items) => {
@@ -268,7 +272,7 @@ const ClientForm = ({
         }
       })
       .catch(console.error)
-  }, [selectedCompanyId, item?.id, scopedDepartmentId, form])
+  }, [selectedCompanyId, item?.id, scopedDepartmentId, form, lockedCompanyId])
 
   React.useEffect(() => {
     if (!selectedBusinessUnitId || !selectedCompanyId) {

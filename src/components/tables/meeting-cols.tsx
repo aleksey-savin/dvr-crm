@@ -1,19 +1,12 @@
 import * as React from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Link, useRouter } from '@tanstack/react-router'
-import {
-  ArrowUpDown,
-  CalendarSyncIcon,
-  CheckIcon,
-  EditIcon,
-  EyeIcon,
-  Trash2Icon,
-  XIcon,
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { ArrowUpDown, CalendarSyncIcon, CheckIcon, XIcon } from 'lucide-react'
 
-import { completeMeeting, cancelMeeting } from '@/components/meetings/actions'
+import { CancelMeetingDialog } from '@/components/meetings/cancel-meeting-dialog'
+import { CompleteMeetingDialog } from '@/components/meetings/complete-meeting-dialog'
 import { RescheduleMeetingDialog } from '@/components/meetings/reschedule-meeting-dialog'
+import { RescheduledBadge } from '@/components/meetings/rescheduled-badge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { MeetingRow, MeetingStatus, MeetingType } from '@/types'
@@ -42,34 +35,9 @@ const TYPE_LABELS: Record<MeetingType, string> = {
 
 function MeetingActions({ meeting }: { meeting: MeetingRow }) {
   const router = useRouter()
-  const [isPending, setIsPending] = React.useState(false)
+  const [completeOpen, setCompleteOpen] = React.useState(false)
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false)
-
-  const handleComplete = async () => {
-    setIsPending(true)
-    try {
-      await completeMeeting({ data: { id: meeting.id, summary: null } })
-      toast.success('Встреча отмечена как проведённая')
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось обновить встречу')
-    } finally {
-      setIsPending(false)
-    }
-  }
-
-  const handleCancel = async () => {
-    setIsPending(true)
-    try {
-      await cancelMeeting({ data: { id: meeting.id } })
-      toast.success('Встреча отменена')
-      await router.invalidate()
-    } catch {
-      toast.error('Не удалось отменить встречу')
-    } finally {
-      setIsPending(false)
-    }
-  }
+  const [cancelOpen, setCancelOpen] = React.useState(false)
 
   return (
     <div className="flex items-center justify-end gap-1">
@@ -78,8 +46,7 @@ function MeetingActions({ meeting }: { meeting: MeetingRow }) {
           <Button
             variant="outline"
             size="xs"
-            disabled={isPending}
-            onClick={() => void handleComplete()}
+            onClick={() => setCompleteOpen(true)}
           >
             <CheckIcon className="size-3" />
             Проведена
@@ -87,7 +54,6 @@ function MeetingActions({ meeting }: { meeting: MeetingRow }) {
           <Button
             variant="outline"
             size="xs"
-            disabled={isPending}
             onClick={() => setRescheduleOpen(true)}
           >
             <CalendarSyncIcon className="size-3" />
@@ -96,35 +62,33 @@ function MeetingActions({ meeting }: { meeting: MeetingRow }) {
           <Button
             variant="outline"
             size="xs"
-            disabled={isPending}
-            onClick={() => void handleCancel()}
+            onClick={() => setCancelOpen(true)}
           >
             <XIcon className="size-3" />
             Отмена
           </Button>
         </>
       )}
-      <Button asChild variant="ghost" size="icon-sm">
-        <Link to="/meetings/$id/view" params={{ id: meeting.id }}>
-          <EyeIcon className="size-4" />
-        </Link>
-      </Button>
-      <Button asChild variant="ghost" size="icon-sm">
-        <Link to="/meetings/$id/update" params={{ id: meeting.id }}>
-          <EditIcon className="size-4" />
-        </Link>
-      </Button>
-      <Button asChild variant="destructiveGhost" size="icon-sm">
-        <Link to="/meetings/$id/delete" params={{ id: meeting.id }}>
-          <Trash2Icon className="size-4" />
-        </Link>
-      </Button>
 
+      <CompleteMeetingDialog
+        meetingId={meeting.id}
+        initialSummary={meeting.summary}
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        onCompleted={() => router.invalidate()}
+      />
       <RescheduleMeetingDialog
         meetingId={meeting.id}
+        currentScheduledAt={meeting.scheduledAt}
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
         onRescheduled={() => router.invalidate()}
+      />
+      <CancelMeetingDialog
+        meetingId={meeting.id}
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancelled={() => router.invalidate()}
       />
     </div>
   )
@@ -141,6 +105,16 @@ export const columns: ColumnDef<MeetingRow>[] = [
         Название <ArrowUpDown className="ml-2 size-4" />
       </Button>
     ),
+    cell: ({ row }) => (
+      <Link
+        to="/meetings/$id/view"
+        params={{ id: row.original.id }}
+        search={(prev) => prev}
+        className="font-medium text-primary hover:underline"
+      >
+        {row.original.title}
+      </Link>
+    ),
   },
   {
     accessorKey: 'companyName',
@@ -154,16 +128,29 @@ export const columns: ColumnDef<MeetingRow>[] = [
     accessorKey: 'meetingType',
     header: 'Тип',
     cell: ({ row }) => (
-      <Badge variant="outline">{TYPE_LABELS[row.original.meetingType]}</Badge>
+      <div className="flex flex-col items-start gap-0.5">
+        <Badge variant="outline">{TYPE_LABELS[row.original.meetingType]}</Badge>
+        <span className="text-xs text-muted-foreground">
+          {row.original.locationType === 'office'
+            ? (row.original.meetingRoomName ?? 'Офис')
+            : 'У клиента'}
+        </span>
+      </div>
     ),
   },
   {
     accessorKey: 'status',
     header: 'Статус',
     cell: ({ row }) => (
-      <Badge variant={STATUS_VARIANTS[row.original.status]}>
-        {STATUS_LABELS[row.original.status]}
-      </Badge>
+      <div className="flex flex-col items-start gap-0.5">
+        <Badge variant={STATUS_VARIANTS[row.original.status]}>
+          {STATUS_LABELS[row.original.status]}
+        </Badge>
+        <RescheduledBadge
+          count={row.original.rescheduleCount}
+          className="px-1.5 py-0 text-xs"
+        />
+      </div>
     ),
   },
   {

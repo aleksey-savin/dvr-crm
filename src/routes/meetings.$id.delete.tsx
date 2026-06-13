@@ -23,7 +23,8 @@ function RouteComponent() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleClose = () => router.navigate({ to: '/meetings' })
+  const handleClose = () =>
+    router.navigate({ to: '/meetings', search: (prev) => prev })
 
   const handleConfirm = async () => {
     setIsLoading(true)
@@ -31,7 +32,7 @@ function RouteComponent() {
       await softDeleteMeeting({ data: { id: meeting.id } })
       toast.success('Встреча удалена')
       router.invalidate()
-      router.navigate({ to: '/meetings' })
+      router.navigate({ to: '/meetings', search: (prev) => prev })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Произошла ошибка')
     } finally {

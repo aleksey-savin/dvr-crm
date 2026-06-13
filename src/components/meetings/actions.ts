@@ -1,38 +1,31 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, lt, ne, sql } from 'drizzle-orm'
 import * as z from 'zod'
 import { db } from '@/db'
 import {
   meeting,
   meetingParticipant,
   meetingExternalParticipant,
+  meetingRoom,
   targetAction,
-  targetActionType,
   user,
   department,
   company,
 } from '@/db/schema'
-import type { MeetingRow, MeetingDetail } from '@/types'
-
-async function getTargetActionTypeId(slug: string): Promise<string | null> {
-  const type = await db.query.targetActionType.findFirst({
-    where: and(
-      eq(targetActionType.slug, slug),
-      isNull(targetActionType.deletedAt),
-    ),
-  })
-  if (!type) {
-    console.warn(
-      `[target-action] type with slug "${slug}" not found — skipping insert. Run pnpm db:seed:target-action-types.`,
-    )
-    return null
-  }
-  return type.id
-}
+import { ensureTargetActionTypeId } from '@/components/target-actions/ensure-type'
+import type {
+  InitiativeOption,
+  MeetingRow,
+  MeetingDetail,
+  RoomConflict,
+  UserOption,
+} from '@/types'
 
 const meetingInputSchema = z.object({
   title: z.string().min(1),
   meetingType: z.enum(['client', 'internal']),
+  locationType: z.enum(['client_site', 'office']),
+  meetingRoomId: z.string().nullable(),
   scheduledAt: z.string(),
   endedAt: z.string().nullable(),
   companyId: z.string().nullable(),
@@ -52,6 +45,112 @@ const meetingInputSchema = z.object({
   ),
 })
 
+// ---------------------------------------------------------------------------
+// Room booking
+// ---------------------------------------------------------------------------
+// Бронь переговорки — это сама встреча: запланированная офисная встреча с
+// выбранной комнатой занимает слот [scheduledAt, endedAt]. Отмена, перенос или
+// удаление встречи автоматически освобождают слот. Если планируемое окончание
+// не задано, слот считается часовым.
+
+const DEFAULT_SLOT_MS = 60 * 60 * 1000
+
+function effectiveSlotEnd(scheduledAt: Date, endedAt: Date | null): Date {
+  return endedAt && endedAt.getTime() > scheduledAt.getTime()
+    ? endedAt
+    : new Date(scheduledAt.getTime() + DEFAULT_SLOT_MS)
+}
+
+async function findRoomConflicts(opts: {
+  roomId: string
+  start: Date
+  end: Date
+  excludeMeetingId?: string
+}): Promise<RoomConflict[]> {
+  const rows = await db
+    .select({
+      id: meeting.id,
+      title: meeting.title,
+      scheduledAt: meeting.scheduledAt,
+      endedAt: meeting.endedAt,
+    })
+    .from(meeting)
+    .where(
+      and(
+        eq(meeting.meetingRoomId, opts.roomId),
+        eq(meeting.status, 'scheduled'),
+        isNull(meeting.deletedAt),
+        lt(meeting.scheduledAt, opts.end),
+        sql`COALESCE(${meeting.endedAt}, ${meeting.scheduledAt} + interval '1 hour') > ${opts.start}`,
+        ...(opts.excludeMeetingId
+          ? [ne(meeting.id, opts.excludeMeetingId)]
+          : []),
+      ),
+    )
+    .orderBy(meeting.scheduledAt)
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    scheduledAt: r.scheduledAt,
+    endedAt: effectiveSlotEnd(r.scheduledAt, r.endedAt),
+  }))
+}
+
+const conflictTimeFmt = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+async function assertRoomFree(opts: {
+  roomId: string
+  start: Date
+  end: Date | null
+  excludeMeetingId?: string
+}) {
+  const conflicts = await findRoomConflicts({
+    roomId: opts.roomId,
+    start: opts.start,
+    end: effectiveSlotEnd(opts.start, opts.end),
+    excludeMeetingId: opts.excludeMeetingId,
+  })
+  if (conflicts.length > 0) {
+    const first = conflicts[0]
+    throw new Error(
+      `Переговорка занята: «${first.title}», ${conflictTimeFmt.format(first.scheduledAt)} — ${conflictTimeFmt.format(first.endedAt)}`,
+    )
+  }
+}
+
+export const checkRoomAvailability = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      roomId: z.string(),
+      scheduledAt: z.string(),
+      endedAt: z.string().nullable(),
+      excludeMeetingId: z.string().nullable(),
+    }),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<{ available: boolean; conflicts: RoomConflict[] }> => {
+      const start = new Date(data.scheduledAt)
+      const conflicts = await findRoomConflicts({
+        roomId: data.roomId,
+        start,
+        end: effectiveSlotEnd(
+          start,
+          data.endedAt ? new Date(data.endedAt) : null,
+        ),
+        excludeMeetingId: data.excludeMeetingId ?? undefined,
+      })
+      return { available: conflicts.length === 0, conflicts }
+    },
+  )
+
 export const fetchMeetings = createServerFn().handler(
   async (): Promise<MeetingRow[]> => {
     const rows = await db
@@ -62,7 +161,12 @@ export const fetchMeetings = createServerFn().handler(
         endedAt: meeting.endedAt,
         status: meeting.status,
         meetingType: meeting.meetingType,
+        locationType: meeting.locationType,
+        meetingRoomId: meeting.meetingRoomId,
+        meetingRoomName: meetingRoom.name,
         summary: meeting.summary,
+        cancelReason: meeting.cancelReason,
+        rescheduleCount: meeting.rescheduleCount,
         organizerId: meeting.organizerId,
         organizerName: user.name,
         departmentId: meeting.departmentId,
@@ -78,6 +182,7 @@ export const fetchMeetings = createServerFn().handler(
       .leftJoin(user, eq(meeting.organizerId, user.id))
       .leftJoin(department, eq(meeting.departmentId, department.id))
       .leftJoin(company, eq(meeting.companyId, company.id))
+      .leftJoin(meetingRoom, eq(meeting.meetingRoomId, meetingRoom.id))
       .where(isNull(meeting.deletedAt))
       .orderBy(meeting.scheduledAt)
 
@@ -88,7 +193,12 @@ export const fetchMeetings = createServerFn().handler(
       endedAt: r.endedAt,
       status: r.status as MeetingRow['status'],
       meetingType: r.meetingType as MeetingRow['meetingType'],
+      locationType: r.locationType as MeetingRow['locationType'],
+      meetingRoomId: r.meetingRoomId,
+      meetingRoomName: r.meetingRoomName ?? null,
       summary: r.summary,
+      cancelReason: r.cancelReason,
+      rescheduleCount: r.rescheduleCount,
       organizerId: r.organizerId,
       organizerName: r.organizerName ?? null,
       departmentId: r.departmentId,
@@ -110,6 +220,8 @@ export const fetchMeeting = createServerFn()
         organizer: { columns: { id: true, name: true } },
         department: { columns: { id: true, name: true } },
         company: { columns: { id: true, name: true } },
+        meetingRoom: { columns: { id: true, name: true } },
+        initiative: { columns: { id: true, title: true } },
         participants: {
           with: { user: { columns: { id: true, name: true } } },
         },
@@ -132,7 +244,12 @@ export const fetchMeeting = createServerFn()
       endedAt: row.endedAt,
       status: row.status as MeetingRow['status'],
       meetingType: row.meetingType as MeetingRow['meetingType'],
+      locationType: row.locationType as MeetingRow['locationType'],
+      meetingRoomId: row.meetingRoomId,
+      meetingRoomName: row.meetingRoom?.name ?? null,
       summary: row.summary,
+      cancelReason: row.cancelReason,
+      rescheduleCount: row.rescheduleCount,
       organizerId: row.organizerId,
       organizerName: row.organizer?.name ?? null,
       departmentId: row.departmentId,
@@ -145,6 +262,7 @@ export const fetchMeeting = createServerFn()
       tenderId: row.tenderId,
       accountId: row.accountId,
       initiativeId: row.initiativeId,
+      initiativeTitle: row.initiative?.title ?? null,
       rescheduledFromMeetingId: row.rescheduledFromMeetingId,
       participants: row.participants.map((p) => ({
         userId: p.userId,
@@ -162,14 +280,28 @@ export const addMeeting = createServerFn()
   .inputValidator(meetingInputSchema)
   .handler(async ({ data }) => {
     const scheduledDate = new Date(data.scheduledAt)
+    const endedDate = data.endedAt ? new Date(data.endedAt) : null
+    // Комната имеет смысл только для офисных встреч.
+    const meetingRoomId =
+      data.locationType === 'office' ? data.meetingRoomId : null
+
+    if (meetingRoomId) {
+      await assertRoomFree({
+        roomId: meetingRoomId,
+        start: scheduledDate,
+        end: endedDate,
+      })
+    }
 
     const [inserted] = await db
       .insert(meeting)
       .values({
         title: data.title,
         meetingType: data.meetingType,
+        locationType: data.locationType,
+        meetingRoomId,
         scheduledAt: scheduledDate,
-        endedAt: data.endedAt ? new Date(data.endedAt) : null,
+        endedAt: endedDate,
         companyId: data.companyId,
         departmentId: data.departmentId,
         organizerId: data.organizerId,
@@ -210,12 +342,33 @@ export const updateMeeting = createServerFn()
     // NOTE: scheduledAt is intentionally NOT updated here — use rescheduleMeeting
     // to move a meeting (which creates a new record and a meeting_rescheduled
     // target action). Updating other fields (title, participants, etc.) is fine.
+    const existing = await db.query.meeting.findFirst({
+      where: and(eq(meeting.id, data.id), isNull(meeting.deletedAt)),
+      columns: { scheduledAt: true, status: true },
+    })
+    if (!existing) throw new Error('Встреча не найдена')
+
+    const endedDate = data.endedAt ? new Date(data.endedAt) : null
+    const meetingRoomId =
+      data.locationType === 'office' ? data.meetingRoomId : null
+
+    if (meetingRoomId && existing.status === 'scheduled') {
+      await assertRoomFree({
+        roomId: meetingRoomId,
+        start: existing.scheduledAt,
+        end: endedDate,
+        excludeMeetingId: data.id,
+      })
+    }
+
     await db
       .update(meeting)
       .set({
         title: data.title,
         meetingType: data.meetingType,
-        endedAt: data.endedAt ? new Date(data.endedAt) : null,
+        locationType: data.locationType,
+        meetingRoomId,
+        endedAt: endedDate,
         companyId: data.companyId,
         departmentId: data.departmentId,
         organizerId: data.organizerId,
@@ -254,9 +407,7 @@ export const updateMeeting = createServerFn()
   })
 
 export const completeMeeting = createServerFn()
-  .inputValidator(
-    z.object({ id: z.string(), summary: z.string().nullable() }),
-  )
+  .inputValidator(z.object({ id: z.string(), summary: z.string().nullable() }))
   .handler(async ({ data }) => {
     const now = new Date()
 
@@ -270,32 +421,35 @@ export const completeMeeting = createServerFn()
 
     const slug =
       updated.meetingType === 'client' ? 'client_meeting' : 'internal_meeting'
-    const typeId = await getTargetActionTypeId(slug)
-    if (typeId) {
-      const plannedAt = (updated.endedAt ?? now).toISOString().split('T')[0]
-      await db.insert(targetAction).values({
-        typeId,
-        responsibleUserId: updated.organizerId,
-        departmentId: updated.departmentId,
-        plannedAt,
-        completedAt: updated.endedAt ?? now,
-        status: 'completed',
-        sourceType: 'meeting',
-        sourceId: updated.id,
-        accountId: updated.accountId,
-        leadId: updated.leadId,
-        tenderId: updated.tenderId,
-        initiativeId: updated.initiativeId,
-      })
-    }
+    const typeId = await ensureTargetActionTypeId(slug)
+    const plannedAt = (updated.endedAt ?? now).toISOString().split('T')[0]
+    await db.insert(targetAction).values({
+      typeId,
+      responsibleUserId: updated.organizerId,
+      departmentId: updated.departmentId,
+      plannedAt,
+      completedAt: updated.endedAt ?? now,
+      status: 'completed',
+      sourceType: 'meeting',
+      sourceId: updated.id,
+      accountId: updated.accountId,
+      leadId: updated.leadId,
+      tenderId: updated.tenderId,
+      initiativeId: updated.initiativeId,
+    })
   })
 
 export const cancelMeeting = createServerFn()
-  .inputValidator(z.object({ id: z.string() }))
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      reason: z.string().min(1, 'Причина обязательна'),
+    }),
+  )
   .handler(async ({ data }) => {
     await db
       .update(meeting)
-      .set({ status: 'cancelled' })
+      .set({ status: 'cancelled', cancelReason: data.reason })
       .where(eq(meeting.id, data.id))
   })
 
@@ -310,84 +464,61 @@ export const rescheduleMeeting = createServerFn()
   .handler(async ({ data }) => {
     const existing = await db.query.meeting.findFirst({
       where: and(eq(meeting.id, data.id), isNull(meeting.deletedAt)),
-      with: {
-        participants: { columns: { userId: true } },
-        externalParticipants: {
-          columns: { name: true, contactId: true },
-        },
-      },
     })
     if (!existing) throw new Error('Встреча не найдена')
 
     const newDate = new Date(data.newScheduledAt)
 
-    // 1. Mark the old meeting as rescheduled.
+    // Keep the planned duration (and therefore the booked slot length) when
+    // the original meeting had a planned end.
+    const plannedDurationMs =
+      existing.endedAt &&
+      existing.endedAt.getTime() > existing.scheduledAt.getTime()
+        ? existing.endedAt.getTime() - existing.scheduledAt.getTime()
+        : null
+    const newEndedAt = plannedDurationMs
+      ? new Date(newDate.getTime() + plannedDurationMs)
+      : null
+
+    if (existing.meetingRoomId) {
+      await assertRoomFree({
+        roomId: existing.meetingRoomId,
+        start: newDate,
+        end: newEndedAt,
+        excludeMeetingId: existing.id,
+      })
+    }
+
+    // Перенос двигает даты самой встречи — без записи-дубликата. Пометка о
+    // переносе: счётчик rescheduleCount (бейдж в UI) и целевое действие.
     await db
       .update(meeting)
-      .set({ status: 'rescheduled' })
+      .set({
+        scheduledAt: newDate,
+        endedAt: newEndedAt,
+        rescheduleCount: sql`${meeting.rescheduleCount} + 1`,
+      })
       .where(eq(meeting.id, data.id))
 
-    // 2. Create a new meeting record copying the relevant fields.
-    const [created] = await db
-      .insert(meeting)
-      .values({
-        title: existing.title,
-        meetingType: existing.meetingType,
-        scheduledAt: newDate,
-        endedAt: null,
-        companyId: existing.companyId,
-        departmentId: existing.departmentId,
-        organizerId: existing.organizerId,
-        summary: null,
-        accountId: existing.accountId,
-        leadId: existing.leadId,
-        tenderId: existing.tenderId,
-        initiativeId: existing.initiativeId,
-        rescheduledFromMeetingId: existing.id,
-        status: 'scheduled',
-      })
-      .returning({ id: meeting.id })
+    const typeId = await ensureTargetActionTypeId('meeting_rescheduled')
+    const now = new Date()
+    await db.insert(targetAction).values({
+      typeId,
+      responsibleUserId: existing.organizerId,
+      departmentId: existing.departmentId,
+      plannedAt: now.toISOString().split('T')[0],
+      completedAt: now,
+      status: 'completed',
+      reason: data.reason,
+      sourceType: 'meeting',
+      sourceId: existing.id,
+      accountId: existing.accountId,
+      leadId: existing.leadId,
+      tenderId: existing.tenderId,
+      initiativeId: existing.initiativeId,
+    })
 
-    if (existing.participants.length > 0) {
-      await db.insert(meetingParticipant).values(
-        existing.participants.map((p) => ({
-          meetingId: created.id,
-          userId: p.userId,
-        })),
-      )
-    }
-    if (existing.externalParticipants.length > 0) {
-      await db.insert(meetingExternalParticipant).values(
-        existing.externalParticipants.map((ep) => ({
-          meetingId: created.id,
-          name: ep.name,
-          contactId: ep.contactId,
-        })),
-      )
-    }
-
-    // 3. Record a target action for the reschedule itself.
-    const typeId = await getTargetActionTypeId('meeting_rescheduled')
-    if (typeId) {
-      const now = new Date()
-      await db.insert(targetAction).values({
-        typeId,
-        responsibleUserId: existing.organizerId,
-        departmentId: existing.departmentId,
-        plannedAt: now.toISOString().split('T')[0],
-        completedAt: now,
-        status: 'completed',
-        reason: data.reason,
-        sourceType: 'meeting',
-        sourceId: created.id,
-        accountId: existing.accountId,
-        leadId: existing.leadId,
-        tenderId: existing.tenderId,
-        initiativeId: existing.initiativeId,
-      })
-    }
-
-    return { id: created.id }
+    return { id: existing.id }
   })
 
 export const softDeleteMeeting = createServerFn()
@@ -413,21 +544,31 @@ export const fetchDepartments = createServerFn().handler(async () => {
   })
 })
 
-export const fetchUsers = createServerFn().handler(async () => {
-  return db.query.user.findMany({
-    columns: { id: true, name: true },
-    where: (u, { eq }) => eq(u.banned, false),
-    orderBy: (u, { asc }) => [asc(u.name)],
-  })
-})
+export const fetchUsers = createServerFn().handler(
+  async (): Promise<UserOption[]> => {
+    return db.query.user.findMany({
+      columns: { id: true, name: true, departmentId: true },
+      where: (u, { eq }) => eq(u.banned, false),
+      orderBy: (u, { asc }) => [asc(u.name)],
+    })
+  },
+)
 
-export const fetchInitiatives = createServerFn().handler(async () => {
-  return db.query.initiative.findMany({
-    columns: { id: true, title: true },
-    where: (i, { isNull }) => isNull(i.deletedAt),
-    orderBy: (i, { desc }) => [desc(i.createdAt)],
-  })
-})
+export const fetchInitiatives = createServerFn().handler(
+  async (): Promise<InitiativeOption[]> => {
+    return db.query.initiative.findMany({
+      columns: {
+        id: true,
+        title: true,
+        companyId: true,
+        departmentId: true,
+        responsibleUserId: true,
+      },
+      where: (i, { isNull }) => isNull(i.deletedAt),
+      orderBy: (i, { desc }) => [desc(i.createdAt)],
+    })
+  },
+)
 
 export const fetchMeetingsByInitiative = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ initiativeId: z.string() }))
@@ -440,7 +581,12 @@ export const fetchMeetingsByInitiative = createServerFn({ method: 'GET' })
         endedAt: meeting.endedAt,
         status: meeting.status,
         meetingType: meeting.meetingType,
+        locationType: meeting.locationType,
+        meetingRoomId: meeting.meetingRoomId,
+        meetingRoomName: meetingRoom.name,
         summary: meeting.summary,
+        cancelReason: meeting.cancelReason,
+        rescheduleCount: meeting.rescheduleCount,
         organizerId: meeting.organizerId,
         organizerName: user.name,
         departmentId: meeting.departmentId,
@@ -456,6 +602,7 @@ export const fetchMeetingsByInitiative = createServerFn({ method: 'GET' })
       .leftJoin(user, eq(meeting.organizerId, user.id))
       .leftJoin(department, eq(meeting.departmentId, department.id))
       .leftJoin(company, eq(meeting.companyId, company.id))
+      .leftJoin(meetingRoom, eq(meeting.meetingRoomId, meetingRoom.id))
       .where(
         and(
           isNull(meeting.deletedAt),
@@ -471,7 +618,12 @@ export const fetchMeetingsByInitiative = createServerFn({ method: 'GET' })
       endedAt: r.endedAt,
       status: r.status as MeetingRow['status'],
       meetingType: r.meetingType as MeetingRow['meetingType'],
+      locationType: r.locationType as MeetingRow['locationType'],
+      meetingRoomId: r.meetingRoomId,
+      meetingRoomName: r.meetingRoomName ?? null,
       summary: r.summary,
+      cancelReason: r.cancelReason,
+      rescheduleCount: r.rescheduleCount,
       organizerId: r.organizerId,
       organizerName: r.organizerName ?? null,
       departmentId: r.departmentId,

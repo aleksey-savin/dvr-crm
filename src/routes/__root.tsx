@@ -73,6 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               <SidebarProvider>
                 <AppSidebar />
                 <SidebarInset
+                  className="min-w-0"
                   style={
                     accentColor
                       ? ({

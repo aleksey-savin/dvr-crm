@@ -46,6 +46,7 @@ export function InitiativeQuickActions({
         open={meetingOpen}
         onOpenChange={setMeetingOpen}
         title="Новая встреча"
+        contentClassName="sm:max-w-2xl"
       >
         <MeetingForm
           presetInitiativeId={initiativeId}

@@ -16,6 +16,8 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
   {
     dashboard: { label: 'Дашборд', showAddButton: false },
     clients: { label: 'Клиенты', showAddButton: true },
+    reports: { label: 'Отчёты', showAddButton: false },
+    'sales-plans': { label: 'Планы продаж', showAddButton: true },
     companies: { label: 'Компании', showAddButton: true },
     wishlist: { label: 'Вишлист', showAddButton: true },
     leads: { label: 'Лиды', showAddButton: true },
@@ -27,6 +29,8 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     industries: { label: 'Отрасли', showAddButton: true },
     'contact-roles': { label: 'Роли контактов', showAddButton: true },
     'signal-types': { label: 'Типы сигналов', showAddButton: true },
+    'meeting-rooms': { label: 'Переговорки', showAddButton: true },
+    meetings: { label: 'Встречи', showAddButton: true },
     sources: { label: 'Источники', showAddButton: true },
     'lead-sources': { label: 'Источники лидов', showAddButton: true },
     'refusal-reasons': { label: 'Причины отказа', showAddButton: true },
@@ -179,7 +183,7 @@ export function AppBreadcrumb() {
           {!isViewPage && segments.length > 0 && showAddButton && (
             <BreadcrumbItem>
               <Button asChild size="sm" className="gap-2 ml-2">
-                <Link to={`/${addSegment}/new` as any}>
+                <Link to={`/${addSegment}/new` as any} search={true}>
                   <PlusIcon className="size-4" />
                 </Link>
               </Button>

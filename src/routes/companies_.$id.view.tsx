@@ -364,6 +364,11 @@ function HeaderActions({
   if (activeAccount?.accountType === 'wishlist') {
     return (
       <div className="flex items-center gap-1 shrink-0">
+        <Button asChild variant="outline" size="sm" className="gap-2">
+          <Link to="/clients/new" search={{ companyId }}>
+            <UserPlusIcon className="size-4" />В клиенты
+          </Link>
+        </Button>
         <Button asChild variant="ghost" size="sm" className="gap-2">
           <Link to="/wishlist/$id/update" params={{ id: activeAccount.id }}>
             <EditIcon className="size-4" />
@@ -1002,7 +1007,11 @@ function RouteComponent() {
                 value={account.id}
                 className="mt-0 flex flex-col gap-6 data-[state=inactive]:hidden"
               >
-                <ClientAccountTab account={account} companyId={item.id} onRefresh={refresh} />
+                <ClientAccountTab
+                  account={account}
+                  companyId={item.id}
+                  onRefresh={refresh}
+                />
               </TabsContent>
             ))}
 

@@ -1,19 +1,12 @@
 import * as React from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
-import {
-  CalendarSyncIcon,
-  CheckIcon,
-  EyeIcon,
-  XIcon,
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { CalendarSyncIcon, CheckIcon, EyeIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  cancelMeeting,
-  completeMeeting,
-} from '@/components/meetings/actions'
+import { CancelMeetingDialog } from '@/components/meetings/cancel-meeting-dialog'
+import { CompleteMeetingDialog } from '@/components/meetings/complete-meeting-dialog'
 import { RescheduleMeetingDialog } from '@/components/meetings/reschedule-meeting-dialog'
+import { RescheduledBadge } from '@/components/meetings/rescheduled-badge'
 import type { MeetingRow, MeetingStatus, MeetingType } from '@/types'
 
 const STATUS_LABELS: Record<MeetingStatus, string> = {
@@ -40,52 +33,31 @@ const TYPE_LABELS: Record<MeetingType, string> = {
 
 function MeetingRowItem({ m }: { m: MeetingRow }) {
   const router = useRouter()
-  const [isBusy, setIsBusy] = React.useState(false)
+  const [completeOpen, setCompleteOpen] = React.useState(false)
   const [rescheduleOpen, setRescheduleOpen] = React.useState(false)
-
-  const handleComplete = async () => {
-    setIsBusy(true)
-    try {
-      await completeMeeting({ data: { id: m.id, summary: null } })
-      toast.success('Встреча отмечена как проведённая')
-      await router.invalidate()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось')
-    } finally {
-      setIsBusy(false)
-    }
-  }
-
-  const handleCancel = async () => {
-    setIsBusy(true)
-    try {
-      await cancelMeeting({ data: { id: m.id } })
-      toast.success('Встреча отменена')
-      await router.invalidate()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Не удалось')
-    } finally {
-      setIsBusy(false)
-    }
-  }
+  const [cancelOpen, setCancelOpen] = React.useState(false)
 
   return (
     <li className="flex flex-col gap-1.5 rounded-md border p-2">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-sm font-medium">{m.title}</span>
-            <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+            <span className="text-base font-medium">{m.title}</span>
+            <Badge variant="outline" className="px-1.5 py-0 text-xs">
               {TYPE_LABELS[m.meetingType]}
             </Badge>
             <Badge
               variant={STATUS_VARIANTS[m.status]}
-              className="px-1.5 py-0 text-[10px]"
+              className="px-1.5 py-0 text-xs"
             >
               {STATUS_LABELS[m.status]}
             </Badge>
+            <RescheduledBadge
+              count={m.rescheduleCount}
+              className="px-1.5 py-0 text-xs"
+            />
           </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
+          <div className="mt-0.5 text-sm text-muted-foreground">
             {new Date(m.scheduledAt).toLocaleString('ru-RU', {
               day: '2-digit',
               month: '2-digit',
@@ -104,8 +76,7 @@ function MeetingRowItem({ m }: { m: MeetingRow }) {
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-emerald-600"
                 title="Проведена"
-                disabled={isBusy}
-                onClick={() => void handleComplete()}
+                onClick={() => setCompleteOpen(true)}
               >
                 <CheckIcon className="size-3.5" />
               </Button>
@@ -114,7 +85,6 @@ function MeetingRowItem({ m }: { m: MeetingRow }) {
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-amber-600"
                 title="Перенести"
-                disabled={isBusy}
                 onClick={() => setRescheduleOpen(true)}
               >
                 <CalendarSyncIcon className="size-3.5" />
@@ -124,8 +94,7 @@ function MeetingRowItem({ m }: { m: MeetingRow }) {
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-destructive"
                 title="Отменить"
-                disabled={isBusy}
-                onClick={() => void handleCancel()}
+                onClick={() => setCancelOpen(true)}
               >
                 <XIcon className="size-3.5" />
               </Button>
@@ -139,11 +108,25 @@ function MeetingRowItem({ m }: { m: MeetingRow }) {
         </div>
       </div>
 
+      <CompleteMeetingDialog
+        meetingId={m.id}
+        initialSummary={m.summary}
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        onCompleted={() => router.invalidate()}
+      />
       <RescheduleMeetingDialog
         meetingId={m.id}
+        currentScheduledAt={m.scheduledAt}
         open={rescheduleOpen}
         onOpenChange={setRescheduleOpen}
         onRescheduled={() => router.invalidate()}
+      />
+      <CancelMeetingDialog
+        meetingId={m.id}
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        onCancelled={() => router.invalidate()}
       />
     </li>
   )

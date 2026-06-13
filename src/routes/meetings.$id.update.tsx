@@ -12,11 +12,12 @@ function RouteComponent() {
   const router = useRouter()
   const meeting = Route.useLoaderData()
 
-  const handleClose = () => router.navigate({ to: '/meetings' })
+  const handleClose = () =>
+    router.navigate({ to: '/meetings', search: (prev) => prev })
 
   const handleSuccess = () => {
     router.invalidate()
-    router.navigate({ to: '/meetings' })
+    router.navigate({ to: '/meetings', search: (prev) => prev })
   }
 
   return (

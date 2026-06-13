@@ -75,6 +75,16 @@ const navMain = [
     ],
   },
   {
+    title: 'Отчёты',
+    url: '#',
+    items: [
+      {
+        title: 'Целевые клиенты',
+        url: '/reports',
+      },
+    ],
+  },
+  {
     title: 'Активность',
     url: '#',
     items: [
@@ -105,12 +115,20 @@ const navMain = [
         url: '/target-action-types',
       },
       {
+        title: 'Планы продаж',
+        url: '/sales-plans',
+      },
+      {
         title: 'Роли контактов',
         url: '/contact-roles',
       },
       {
         title: 'Типы сигналов',
         url: '/signal-types',
+      },
+      {
+        title: 'Переговорки',
+        url: '/meeting-rooms',
       },
       {
         title: 'Источники лидов',

@@ -16,6 +16,8 @@ import { rescheduleMeeting } from '@/components/meetings/actions'
 
 type Props = {
   meetingId: string
+  /** Текущее время встречи — для предзаполнения новой даты. */
+  currentScheduledAt?: Date | string | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onRescheduled?: () => void
@@ -28,6 +30,7 @@ function toDatetimeLocal(d: Date) {
 
 export function RescheduleMeetingDialog({
   meetingId,
+  currentScheduledAt = null,
   open,
   onOpenChange,
   onRescheduled,
@@ -38,10 +41,14 @@ export function RescheduleMeetingDialog({
 
   React.useEffect(() => {
     if (open) {
-      setNewDate(toDatetimeLocal(new Date()))
+      setNewDate(
+        toDatetimeLocal(
+          currentScheduledAt ? new Date(currentScheduledAt) : new Date(),
+        ),
+      )
       setReason('')
     }
-  }, [open])
+  }, [open, currentScheduledAt])
 
   const handleSubmit = async () => {
     if (!newDate) {
@@ -72,11 +79,7 @@ export function RescheduleMeetingDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Перенос встречи</DialogTitle>
-          <DialogDescription>
-            Старая запись будет помечена как перенесённая, а на новую дату
-            создана новая запись со всеми участниками. Это действие зафиксируется
-            в целевых действиях.
-          </DialogDescription>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3">

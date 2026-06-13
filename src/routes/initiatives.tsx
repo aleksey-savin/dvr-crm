@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { createFileRoute, Outlet, useRouter, useSearch } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Outlet,
+  useRouter,
+  useSearch,
+} from '@tanstack/react-router'
 import * as z from 'zod'
 import {
   CalendarPlusIcon,
@@ -35,7 +40,10 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import type { PipelineWithStages } from '@/types'
-import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
+import {
+  useScopedDepartmentIds,
+  matchesDepartmentScope,
+} from '@/hooks/use-department-scope'
 
 const searchSchema = z.object({
   pipeline: z.string().optional(),
@@ -72,7 +80,9 @@ function RouteComponent() {
   const visiblePipelines = React.useMemo(() => {
     if (!scopedDeptIds) return pipelines
     return pipelines.filter(
-      (p) => p.departmentIds.length === 0 || p.departmentIds.some((id) => scopedDeptIds.has(id)),
+      (p) =>
+        p.departmentIds.length === 0 ||
+        p.departmentIds.some((id) => scopedDeptIds.has(id)),
     )
   }, [pipelines, scopedDeptIds])
 
@@ -92,7 +102,8 @@ function RouteComponent() {
 
   // Derived: fall back to first visible pipeline when the selected one is gone or filtered out
   const selectedPipeline =
-    visiblePipelines.find((p) => p.id === selectedPipelineId) ?? visiblePipelines.at(0)
+    visiblePipelines.find((p) => p.id === selectedPipelineId) ??
+    visiblePipelines.at(0)
   const effectivePipelineId = selectedPipeline?.id ?? ''
 
   const responsibleNames = Array.from(
@@ -114,8 +125,7 @@ function RouteComponent() {
   const filtered = initiatives.filter((i) => {
     if (effectivePipelineId && i.pipelineId !== effectivePipelineId)
       return false
-    if (!matchesDepartmentScope(scopedDeptIds, i.departmentId))
-      return false
+    if (!matchesDepartmentScope(scopedDeptIds, i.departmentId)) return false
     if (
       responsibleFilter.length > 0 &&
       (!i.responsibleUserName ||
@@ -297,6 +307,7 @@ function RouteComponent() {
         open={newMeetingOpen}
         onOpenChange={setNewMeetingOpen}
         title="Новая встреча"
+        contentClassName="sm:max-w-2xl"
       >
         <MeetingForm
           onSuccess={async () => {

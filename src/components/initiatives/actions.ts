@@ -299,7 +299,22 @@ export const fetchInitiative = createServerFn({ method: 'GET' })
     const row = await db.query.initiative.findFirst({
       where: and(eq(initiative.id, data.id), isNull(initiative.deletedAt)),
       with: {
-        pipeline: { columns: { id: true, name: true } },
+        pipeline: {
+          columns: { id: true, name: true },
+          with: {
+            stages: {
+              columns: {
+                id: true,
+                name: true,
+                color: true,
+                order: true,
+                isWon: true,
+                isLost: true,
+              },
+              orderBy: [asc(pipelineStage.order)],
+            },
+          },
+        },
         stage: {
           columns: {
             id: true,
@@ -312,7 +327,7 @@ export const fetchInitiative = createServerFn({ method: 'GET' })
         },
         company: { columns: { id: true, name: true } },
         companyAccount: { columns: { id: true, companyId: true } },
-        department: { columns: { id: true, name: true } },
+        department: { columns: { id: true, name: true, accentColor: true } },
         responsible: { columns: { id: true, name: true } },
         sourceLead: { columns: { id: true, title: true } },
         sourceSignal: { columns: { id: true, title: true } },

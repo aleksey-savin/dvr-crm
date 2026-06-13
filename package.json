@@ -1,6 +1,6 @@
 {
   "name": "dvr-crm",
-  "version": "0.6.2",
+  "version": "0.7.1",
   "private": true,
   "type": "module",
   "imports": {
@@ -20,6 +20,7 @@
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
     "db:seed:target-action-types": "tsx scripts/seed-target-action-types.ts",
+    "db:import:xlsx": "tsx scripts/import-table-xlsx.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -102,6 +103,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^16.0.0",
     "drizzle-kit": "^0.31.8",
+    "exceljs": "^4.4.0",
     "husky": "^9.1.7",
     "jsdom": "^27.0.0",
     "lint-staged": "^17.0.5",

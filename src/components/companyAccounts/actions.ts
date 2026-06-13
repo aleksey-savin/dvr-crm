@@ -31,6 +31,7 @@ import {
   lt,
   ne,
   notInArray,
+  or,
   sql,
 } from 'drizzle-orm'
 import * as z from 'zod'
@@ -173,6 +174,59 @@ async function setCompanyAccountDepartments(
       departmentId,
     })),
   )
+}
+
+// When a company is turned into a client for a department, that department is
+// detached from the company's wishlist record(s). If it was the last department
+// on a record, the whole wishlist record is removed. No-op when the department
+// is not on the wishlist (i.e. a plain new client, not a conversion).
+async function detachCompanyFromWishlist(
+  companyId: string,
+  departmentId: string,
+) {
+  const wishlistAccounts = await db.query.companyAccount.findMany({
+    where: and(
+      eq(companyAccount.companyId, companyId),
+      eq(companyAccount.accountType, 'wishlist'),
+    ),
+    columns: { id: true, businessUnitId: true },
+    with: { departments: { columns: { departmentId: true } } },
+  })
+
+  for (const wishlistAccount of wishlistAccounts) {
+    const departmentIds =
+      wishlistAccount.departments.length > 0
+        ? wishlistAccount.departments.map((item) => item.departmentId)
+        : [wishlistAccount.businessUnitId]
+
+    if (!departmentIds.includes(departmentId)) continue
+
+    const remaining = departmentIds.filter((id) => id !== departmentId)
+
+    if (remaining.length === 0) {
+      await db
+        .delete(companyAccount)
+        .where(eq(companyAccount.id, wishlistAccount.id))
+      continue
+    }
+
+    await db
+      .delete(companyAccountDepartments)
+      .where(
+        and(
+          eq(companyAccountDepartments.companyAccountId, wishlistAccount.id),
+          eq(companyAccountDepartments.departmentId, departmentId),
+        ),
+      )
+
+    // Keep businessUnitId pointing at a department still on the record.
+    if (wishlistAccount.businessUnitId === departmentId) {
+      await db
+        .update(companyAccount)
+        .set({ businessUnitId: remaining[0] })
+        .where(eq(companyAccount.id, wishlistAccount.id))
+    }
+  }
 }
 
 async function getNextWishlistPosition(
@@ -671,44 +725,6 @@ export const getFilteredUsersByDepartments = createServerFn({ method: 'GET' })
       .orderBy(user.name)
   })
 
-export const getFilteredCompanies = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      businessUnitId: z.string(),
-      excludeAccountId: z.string().optional(),
-    }),
-  )
-  .handler(async ({ data }) => {
-    const clientCompanyIds = db
-      .select({ id: companyAccount.companyId })
-      .from(companyAccount)
-      .where(
-        and(
-          eq(companyAccount.businessUnitId, data.businessUnitId),
-          eq(companyAccount.accountType, 'client'),
-          data.excludeAccountId
-            ? ne(companyAccount.id, data.excludeAccountId)
-            : undefined,
-        ),
-      )
-
-    const wishlistCompanyIds = db
-      .select({ id: companyAccount.companyId })
-      .from(companyAccount)
-      .where(eq(companyAccount.accountType, 'wishlist'))
-
-    return db
-      .select({ id: company.id, name: company.name })
-      .from(company)
-      .where(
-        and(
-          notInArray(company.id, clientCompanyIds),
-          notInArray(company.id, wishlistCompanyIds),
-        ),
-      )
-      .orderBy(company.name)
-  })
-
 export const getClientCandidateCompanies = createServerFn({ method: 'GET' })
   .inputValidator(
     z.object({
@@ -717,42 +733,57 @@ export const getClientCandidateCompanies = createServerFn({ method: 'GET' })
     }),
   )
   .handler(async ({ data }) => {
-    const wishlistCompanyIds = db
+    // Without a target department we can't decide per-department availability
+    // here, so list every company and defer the department-step filtering to
+    // getFilteredDepartments. A company on the wishlist is intentionally still
+    // listed — it just won't be assignable to its wishlist departments there.
+    if (!data.businessUnitId) {
+      return db
+        .select({ id: company.id, name: company.name })
+        .from(company)
+        .orderBy(company.name)
+    }
+
+    // Scoped to a fixed sales department: exclude companies that are already a
+    // client there, and companies on that department's wishlist (those are
+    // converted from the wishlist/company page, not added through this search).
+    const scopedClientCompanyIds = db
       .select({ id: companyAccount.companyId })
       .from(companyAccount)
       .where(
         and(
-          eq(companyAccount.accountType, 'wishlist'),
+          eq(companyAccount.accountType, 'client'),
+          eq(companyAccount.businessUnitId, data.businessUnitId),
           data.excludeAccountId
             ? ne(companyAccount.id, data.excludeAccountId)
             : undefined,
         ),
       )
 
-    const scopedClientCompanyIds = data.businessUnitId
-      ? db
-          .select({ id: companyAccount.companyId })
-          .from(companyAccount)
-          .where(
-            and(
-              eq(companyAccount.accountType, 'client'),
-              eq(companyAccount.businessUnitId, data.businessUnitId),
-              data.excludeAccountId
-                ? ne(companyAccount.id, data.excludeAccountId)
-                : undefined,
-            ),
-          )
-      : undefined
+    const scopedWishlistCompanyIds = db
+      .selectDistinct({ id: companyAccount.companyId })
+      .from(companyAccount)
+      .leftJoin(
+        companyAccountDepartments,
+        eq(companyAccountDepartments.companyAccountId, companyAccount.id),
+      )
+      .where(
+        and(
+          eq(companyAccount.accountType, 'wishlist'),
+          or(
+            eq(companyAccount.businessUnitId, data.businessUnitId),
+            eq(companyAccountDepartments.departmentId, data.businessUnitId),
+          ),
+        ),
+      )
 
     return db
       .select({ id: company.id, name: company.name })
       .from(company)
       .where(
         and(
-          notInArray(company.id, wishlistCompanyIds),
-          scopedClientCompanyIds
-            ? notInArray(company.id, scopedClientCompanyIds)
-            : undefined,
+          notInArray(company.id, scopedClientCompanyIds),
+          notInArray(company.id, scopedWishlistCompanyIds),
         ),
       )
       .orderBy(company.name)
@@ -763,6 +794,7 @@ export const getFilteredDepartments = createServerFn({ method: 'GET' })
     z.object({
       companyId: z.string(),
       excludeAccountId: z.string().optional(),
+      includeWishlistDepartments: z.boolean().optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -779,6 +811,35 @@ export const getFilteredDepartments = createServerFn({ method: 'GET' })
         ),
       )
 
+    // Departments where this company sits on the wishlist. Such a department
+    // can only be turned into a client from the wishlist/company page, so the
+    // generic "new client" search hides it. Opening the form from the company
+    // page (includeWishlistDepartments) allows the conversion. Both the join
+    // table and the legacy businessUnitId fallback are covered.
+    const wishlistDepartmentIds = db
+      .select({ id: companyAccountDepartments.departmentId })
+      .from(companyAccountDepartments)
+      .innerJoin(
+        companyAccount,
+        eq(companyAccountDepartments.companyAccountId, companyAccount.id),
+      )
+      .where(
+        and(
+          eq(companyAccount.companyId, data.companyId),
+          eq(companyAccount.accountType, 'wishlist'),
+        ),
+      )
+
+    const wishlistBusinessUnitIds = db
+      .select({ id: companyAccount.businessUnitId })
+      .from(companyAccount)
+      .where(
+        and(
+          eq(companyAccount.companyId, data.companyId),
+          eq(companyAccount.accountType, 'wishlist'),
+        ),
+      )
+
     return db
       .select({ id: department.id, name: department.name })
       .from(department)
@@ -786,6 +847,12 @@ export const getFilteredDepartments = createServerFn({ method: 'GET' })
         and(
           eq(department.departmentType, 'sales'),
           notInArray(department.id, existingBusinessUnitIds),
+          data.includeWishlistDepartments
+            ? undefined
+            : notInArray(department.id, wishlistDepartmentIds),
+          data.includeWishlistDepartments
+            ? undefined
+            : notInArray(department.id, wishlistBusinessUnitIds),
         ),
       )
       .orderBy(department.name)
@@ -821,6 +888,7 @@ export const addAccount = createServerFn({ method: 'POST' })
       .returning({ id: companyAccount.id })
 
     await setCompanyAccountManagers(inserted.id, data.managerUserIds ?? [])
+    await detachCompanyFromWishlist(data.companyId, data.businessUnitId)
     await recalculateClientClassifications([inserted.id])
 
     return inserted.id

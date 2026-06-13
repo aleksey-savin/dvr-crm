@@ -676,6 +676,48 @@ export const accountTargetForecast = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Sales Plan — top-down yearly target per (business unit, manager, segment).
+// This is the «План» row in the «ГКС» sheet footer (M22/M59…), set manually.
+// Combined plan = target + nontarget (derived, not stored).
+// ---------------------------------------------------------------------------
+
+export const salesPlan = pgTable(
+  'sales_plan',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    departmentId: text('department_id')
+      .notNull()
+      .references(() => department.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    segment: text('segment', { enum: ['target', 'nontarget'] }).notNull(),
+    value: numeric('value').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique('sales_plan_department_user_year_segment_unique').on(
+      table.departmentId,
+      table.userId,
+      table.year,
+      table.segment,
+    ),
+    index('sales_plan_departmentId_year_idx').on(
+      table.departmentId,
+      table.year,
+    ),
+    index('sales_plan_userId_year_idx').on(table.userId, table.year),
+  ],
+)
+
+// ---------------------------------------------------------------------------
 // Todos
 // `companyAccountId` replaces the former `clientId` + `wishlistClientId`
 // ---------------------------------------------------------------------------
@@ -799,6 +841,22 @@ export const commentRead = pgTable(
 // Meeting
 // ---------------------------------------------------------------------------
 
+export const meetingRoom = pgTable(
+  'meeting_room',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (t) => [unique('meeting_room_name_unique').on(t.name)],
+)
+
 export const meeting = pgTable(
   'meeting',
   {
@@ -808,6 +866,8 @@ export const meeting = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     title: text('title').notNull(),
     summary: text('summary'),
+    cancelReason: text('cancel_reason'),
+    rescheduleCount: integer('reschedule_count').notNull().default(0),
     transcription: text('transcription'),
     companyId: text('company_id').references(() => company.id, {
       onDelete: 'set null',
@@ -822,6 +882,12 @@ export const meeting = pgTable(
     meetingType: text('meeting_type', { enum: ['client', 'internal'] })
       .notNull()
       .default('client'),
+    locationType: text('location_type', { enum: ['client_site', 'office'] })
+      .notNull()
+      .default('office'),
+    meetingRoomId: text('meeting_room_id').references(() => meetingRoom.id, {
+      onDelete: 'set null',
+    }),
     organizerId: text('organizer_id').references(() => user.id, {
       onDelete: 'set null',
     }),
@@ -857,6 +923,7 @@ export const meeting = pgTable(
     index('meeting_status_idx').on(table.status),
     index('meeting_scheduled_at_idx').on(table.scheduledAt),
     index('meeting_deleted_at_idx').on(table.deletedAt),
+    index('meeting_meeting_room_id_idx').on(table.meetingRoomId),
     index('meeting_initiative_id_idx').on(table.initiativeId),
     index('meeting_rescheduled_from_meeting_id_idx').on(
       table.rescheduledFromMeetingId,
@@ -1645,6 +1712,17 @@ export const accountTargetForecastRelations = relations(
   }),
 )
 
+export const salesPlanRelations = relations(salesPlan, ({ one }) => ({
+  department: one(department, {
+    fields: [salesPlan.departmentId],
+    references: [department.id],
+  }),
+  user: one(user, {
+    fields: [salesPlan.userId],
+    references: [user.id],
+  }),
+}))
+
 export const accountUpsellingOpportunityRelations = relations(
   accountUpsellingOpportunity,
   ({ one }) => ({
@@ -1797,6 +1875,10 @@ export const meetingRelations = relations(meeting, ({ one, many }) => ({
     fields: [meeting.initiativeId],
     references: [initiative.id],
   }),
+  meetingRoom: one(meetingRoom, {
+    fields: [meeting.meetingRoomId],
+    references: [meetingRoom.id],
+  }),
   rescheduledFrom: one(meeting, {
     fields: [meeting.rescheduledFromMeetingId],
     references: [meeting.id],
@@ -1805,6 +1887,10 @@ export const meetingRelations = relations(meeting, ({ one, many }) => ({
   rescheduledTo: many(meeting, { relationName: 'meetingReschedule' }),
   participants: many(meetingParticipant),
   externalParticipants: many(meetingExternalParticipant),
+}))
+
+export const meetingRoomRelations = relations(meetingRoom, ({ many }) => ({
+  meetings: many(meeting),
 }))
 
 export const meetingParticipantRelations = relations(

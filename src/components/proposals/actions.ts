@@ -4,36 +4,15 @@ import { notFound } from '@tanstack/react-router'
 import { and, asc, eq, isNull, ne } from 'drizzle-orm'
 import * as z from 'zod'
 import { db } from '@/db'
-import {
-  proposal,
-  initiative,
-  user,
-  targetAction,
-  targetActionType,
-} from '@/db/schema'
+import { proposal, initiative, user, targetAction } from '@/db/schema'
 import { auth } from 'utils/auth'
+import { ensureTargetActionTypeId } from '@/components/target-actions/ensure-type'
 import type { ProposalRow } from '@/types'
 
 async function getCurrentUserId(): Promise<string | null> {
   const request = getRequest()
   const session = await auth.api.getSession({ headers: request.headers })
   return session?.user.id ?? null
-}
-
-async function getTargetActionTypeId(slug: string): Promise<string | null> {
-  const type = await db.query.targetActionType.findFirst({
-    where: and(
-      eq(targetActionType.slug, slug),
-      isNull(targetActionType.deletedAt),
-    ),
-  })
-  if (!type) {
-    console.warn(
-      `[target-action] type with slug "${slug}" not found — skipping insert. Run pnpm db:seed:target-action-types.`,
-    )
-    return null
-  }
-  return type.id
 }
 
 const PROPOSAL_SELECT = {
@@ -201,27 +180,25 @@ export const prepareProposal = createServerFn({ method: 'POST' })
     const updated = preparedRows.at(0)
     if (!updated) throw notFound()
 
-    const typeId = await getTargetActionTypeId('proposal_ready')
-    if (typeId) {
-      const initiativeRow = await db.query.initiative.findFirst({
-        where: eq(initiative.id, updated.initiativeId),
-        columns: { departmentId: true, responsibleUserId: true },
-      })
-      const currentUserId = await getCurrentUserId()
-      await db.insert(targetAction).values({
-        typeId,
-        responsibleUserId:
-          currentUserId ?? initiativeRow?.responsibleUserId ?? null,
-        departmentId: initiativeRow?.departmentId ?? null,
-        plannedAt: now.toISOString().split('T')[0],
-        completedAt: now,
-        status: 'completed',
-        sourceType: 'proposal',
-        sourceId: updated.id,
-        initiativeId: updated.initiativeId,
-        proposalId: updated.id,
-      })
-    }
+    const typeId = await ensureTargetActionTypeId('proposal_ready')
+    const initiativeRow = await db.query.initiative.findFirst({
+      where: eq(initiative.id, updated.initiativeId),
+      columns: { departmentId: true, responsibleUserId: true },
+    })
+    const currentUserId = await getCurrentUserId()
+    await db.insert(targetAction).values({
+      typeId,
+      responsibleUserId:
+        currentUserId ?? initiativeRow?.responsibleUserId ?? null,
+      departmentId: initiativeRow?.departmentId ?? null,
+      plannedAt: now.toISOString().split('T')[0],
+      completedAt: now,
+      status: 'completed',
+      sourceType: 'proposal',
+      sourceId: updated.id,
+      initiativeId: updated.initiativeId,
+      proposalId: updated.id,
+    })
   })
 
 export const sendProposal = createServerFn({ method: 'POST' })
@@ -254,26 +231,24 @@ export const sendProposal = createServerFn({ method: 'POST' })
         ),
       )
 
-    const typeId = await getTargetActionTypeId('proposal_sent')
-    if (typeId) {
-      const initiativeRow = await db.query.initiative.findFirst({
-        where: eq(initiative.id, updated.initiativeId),
-        columns: { departmentId: true, responsibleUserId: true },
-      })
-      await db.insert(targetAction).values({
-        typeId,
-        responsibleUserId:
-          currentUserId ?? initiativeRow?.responsibleUserId ?? null,
-        departmentId: initiativeRow?.departmentId ?? null,
-        plannedAt: now.toISOString().split('T')[0],
-        completedAt: now,
-        status: 'completed',
-        sourceType: 'proposal',
-        sourceId: updated.id,
-        initiativeId: updated.initiativeId,
-        proposalId: updated.id,
-      })
-    }
+    const typeId = await ensureTargetActionTypeId('proposal_sent')
+    const initiativeRow = await db.query.initiative.findFirst({
+      where: eq(initiative.id, updated.initiativeId),
+      columns: { departmentId: true, responsibleUserId: true },
+    })
+    await db.insert(targetAction).values({
+      typeId,
+      responsibleUserId:
+        currentUserId ?? initiativeRow?.responsibleUserId ?? null,
+      departmentId: initiativeRow?.departmentId ?? null,
+      plannedAt: now.toISOString().split('T')[0],
+      completedAt: now,
+      status: 'completed',
+      sourceType: 'proposal',
+      sourceId: updated.id,
+      initiativeId: updated.initiativeId,
+      proposalId: updated.id,
+    })
   })
 
 export const softDeleteProposal = createServerFn({ method: 'POST' })

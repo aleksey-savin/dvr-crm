@@ -84,90 +84,86 @@ export function InitiativeProposalsSection({ proposals }: Props) {
   return (
     <div className="space-y-3">
       <ul className="flex flex-col gap-2">
-          {proposals.map((p) => {
-            const isBusy = busyId === p.id
-            return (
-              <li
-                key={p.id}
-                className="flex flex-col gap-1.5 rounded-md border p-2"
-              >
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-sm font-medium">{p.title}</span>
-                      <Badge
-                        variant="secondary"
-                        className="px-1.5 py-0 text-[10px]"
-                      >
-                        v{p.version}
+        {proposals.map((p) => {
+          const isBusy = busyId === p.id
+          return (
+            <li
+              key={p.id}
+              className="flex flex-col gap-1.5 rounded-md border p-2"
+            >
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-base font-medium">{p.title}</span>
+                    <Badge variant="secondary" className="px-1.5 py-0 text-xs">
+                      v{p.version}
+                    </Badge>
+                    <Badge
+                      variant={STATUS_VARIANTS[p.status]}
+                      className="px-1.5 py-0 text-xs"
+                    >
+                      {STATUS_LABELS[p.status]}
+                    </Badge>
+                    {p.isCurrent && (
+                      <Badge variant="success" className="px-1.5 py-0 text-xs">
+                        актуальное
                       </Badge>
-                      <Badge
-                        variant={STATUS_VARIANTS[p.status]}
-                        className="px-1.5 py-0 text-[10px]"
-                      >
-                        {STATUS_LABELS[p.status]}
-                      </Badge>
-                      {p.isCurrent && (
-                        <Badge
-                          variant="success"
-                          className="px-1.5 py-0 text-[10px]"
-                        >
-                          актуальное
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {p.amount && <span>{moneyFmt.format(Number(p.amount))}</span>}
-                      {p.sentAt && (
-                        <span>
-                          · отправлено{' '}
-                          {new Date(p.sentAt).toLocaleDateString('ru-RU')}
-                        </span>
-                      )}
-                      {p.senderUserName && <span>· {p.senderUserName}</span>}
-                    </div>
+                    )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-0.5">
-                    {p.status === 'draft' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-amber-600"
-                        title="Подготовлено"
-                        disabled={isBusy}
-                        onClick={() => void handlePrepare(p.id)}
-                      >
-                        <CheckIcon className="size-3.5" />
-                      </Button>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    {p.amount && (
+                      <span>{moneyFmt.format(Number(p.amount))}</span>
                     )}
-                    {(p.status === 'draft' || p.status === 'prepared') && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-emerald-600"
-                        title="Отправить"
-                        disabled={isBusy}
-                        onClick={() => void handleSend(p.id)}
-                      >
-                        <SendIcon className="size-3.5" />
-                      </Button>
+                    {p.sentAt && (
+                      <span>
+                        · отправлено{' '}
+                        {new Date(p.sentAt).toLocaleDateString('ru-RU')}
+                      </span>
                     )}
+                    {p.senderUserName && <span>· {p.senderUserName}</span>}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-0.5">
+                  {p.status === 'draft' && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-7 text-muted-foreground hover:text-destructive"
-                      title="Удалить"
+                      className="size-7 text-muted-foreground hover:text-amber-600"
+                      title="Подготовлено"
                       disabled={isBusy}
-                      onClick={() => void handleDelete(p.id)}
+                      onClick={() => void handlePrepare(p.id)}
                     >
-                      <Trash2Icon className="size-3.5" />
+                      <CheckIcon className="size-3.5" />
                     </Button>
-                  </div>
+                  )}
+                  {(p.status === 'draft' || p.status === 'prepared') && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-muted-foreground hover:text-emerald-600"
+                      title="Отправить"
+                      disabled={isBusy}
+                      onClick={() => void handleSend(p.id)}
+                    >
+                      <SendIcon className="size-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 text-muted-foreground hover:text-destructive"
+                    title="Удалить"
+                    disabled={isBusy}
+                    onClick={() => void handleDelete(p.id)}
+                  >
+                    <Trash2Icon className="size-3.5" />
+                  </Button>
                 </div>
-              </li>
-            )
-          })}
-        </ul>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

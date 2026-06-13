@@ -156,7 +156,7 @@ export function DepartmentMembersSheet({
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-4 pb-4">
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
+              <div className="flex items-center gap-2 text-base font-medium">
                 <CrownIcon className="size-4" />
                 Руководитель
               </div>
@@ -199,7 +199,7 @@ export function DepartmentMembersSheet({
 
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
+              <div className="flex items-center gap-2 text-base font-medium">
                 <BriefcaseBusinessIcon className="size-4" />
                 Сотрудники
               </div>
@@ -347,12 +347,12 @@ function PersonRow({
         )}
       </span>
       <div className="min-w-0">
-        <div className="truncate text-sm font-medium">{user.name}</div>
-        <div className="truncate text-xs text-muted-foreground">
+        <div className="truncate text-base font-medium">{user.name}</div>
+        <div className="truncate text-sm text-muted-foreground">
           {user.position ?? 'Должность не указана'}
         </div>
         {user.phone && (
-          <div className="truncate text-xs text-muted-foreground">
+          <div className="truncate text-sm text-muted-foreground">
             {user.phone}
           </div>
         )}

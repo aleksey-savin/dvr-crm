@@ -51,6 +51,14 @@ export type CompanyOption = {
   name: string
 }
 
+export type InitiativeOption = {
+  id: string
+  title: string
+  companyId: string | null
+  departmentId: string | null
+  responsibleUserId: string | null
+}
+
 export type CompanyAccountOption = {
   id: string
   companyName: string | null
@@ -322,6 +330,12 @@ export type SignalTypeRow = {
   createdAt: Date
 }
 
+export type MeetingRoomRow = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
 export type SourceRow = {
   id: string
   name: string
@@ -521,6 +535,8 @@ export type MeetingStatus =
 
 export type MeetingType = 'client' | 'internal'
 
+export type MeetingLocationType = 'client_site' | 'office'
+
 export type TargetActionStatus = 'planned' | 'completed' | 'cancelled'
 
 export type TargetActionSource =
@@ -539,7 +555,12 @@ export type MeetingRow = {
   endedAt: Date | null
   status: MeetingStatus
   meetingType: MeetingType
+  locationType: MeetingLocationType
+  meetingRoomId: string | null
+  meetingRoomName: string | null
   summary: string | null
+  cancelReason: string | null
+  rescheduleCount: number
   organizerId: string | null
   organizerName: string | null
   departmentId: string | null
@@ -568,7 +589,20 @@ export type MeetingDetail = MeetingRow & {
   tenderId: string | null
   accountId: string | null
   initiativeId: string | null
+  initiativeTitle: string | null
   rescheduledFromMeetingId: string | null
+}
+
+export type MeetingRoomOption = {
+  id: string
+  name: string
+}
+
+export type RoomConflict = {
+  id: string
+  title: string
+  scheduledAt: Date
+  endedAt: Date
 }
 
 export type TargetActionTypeRow = {
@@ -624,4 +658,95 @@ export type ProposalRow = {
   sentAt: Date | null
   createdAt: Date
   updatedAt: Date
+}
+
+// ─── Reports — Target clients (план/факт по менеджерам, лист «ГКС») ───────────
+
+export type ReportSegment = 'target' | 'nontarget'
+
+export type ReportManager = {
+  id: string
+  name: string
+}
+
+// Per-manager fact for a single client row (prior year + current year)
+export type ClientManagerFact = {
+  lastYearFact: number
+  factYtd: number
+}
+
+// One client row in the целевые / нецелевые table
+export type TargetClientReportRow = {
+  accountId: string
+  companyId: string
+  name: string
+  managers: string[]
+  gpLastYear: number | null
+  forecast: number | null
+  factYtd: number | null
+  // per-manager ВП breakdown (keyed by managerId) — for the client × manager matrix
+  byManager: Record<string, ClientManagerFact>
+}
+
+// Per-manager aggregates within one segment
+export type SegmentManagerCell = {
+  managerId: string
+  lastYearFact: number
+  plan: number
+  forecast: number
+  factYtd: number
+}
+
+export type SegmentTotals = {
+  lastYearFact: number
+  plan: number
+  forecast: number
+  factYtd: number
+  clientCount: number
+  avgCheckLastYear: number | null
+}
+
+export type ReportSegmentData = {
+  rows: TargetClientReportRow[]
+  byManager: SegmentManagerCell[]
+  totals: SegmentTotals
+}
+
+// Combined (target + nontarget) per-manager view — «ОБЩИЕ» + «Цель НОВЫЕ»
+export type CombinedManagerCell = {
+  managerId: string
+  plan: number
+  forecast: number
+  factYtd: number
+  newTarget: number
+}
+
+export type TargetClientsReport = {
+  year: number
+  lastYear: number
+  departmentId: string
+  managers: ReportManager[]
+  target: ReportSegmentData
+  nontarget: ReportSegmentData
+  combined: {
+    byManager: CombinedManagerCell[]
+    totals: {
+      plan: number
+      forecast: number
+      factYtd: number
+      newTarget: number
+    }
+  }
+}
+
+// Sales plan admin row («Планы продаж»)
+export type SalesPlanRow = {
+  id: string
+  departmentId: string
+  departmentName: string
+  userId: string
+  userName: string
+  year: number
+  segment: ReportSegment
+  value: string
 }
