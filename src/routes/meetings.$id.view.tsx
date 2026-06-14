@@ -20,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { fetchMeeting } from '@/components/meetings/actions'
+import { MeetingDocuments } from '@/components/meetings/meeting-documents'
 import { CancelMeetingDialog } from '@/components/meetings/cancel-meeting-dialog'
 import { CompleteMeetingDialog } from '@/components/meetings/complete-meeting-dialog'
 import { RescheduleMeetingDialog } from '@/components/meetings/reschedule-meeting-dialog'
@@ -504,6 +505,16 @@ function RouteComponent() {
               </Field>
             )}
           </div>
+        </section>
+
+        <section className="space-y-3 px-4 py-4">
+          <SectionTitle count={meeting.documents.length}>
+            Документы
+          </SectionTitle>
+          <MeetingDocuments
+            meetingId={meeting.id}
+            documents={meeting.documents}
+          />
         </section>
       </div>
 

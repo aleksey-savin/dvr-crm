@@ -407,6 +407,34 @@
       "when": 1781255569950,
       "tag": "0057_special_owl",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1781318817792,
+      "tag": "0058_tense_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1781340354277,
+      "tag": "0059_absurd_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1781413159631,
+      "tag": "0060_fantastic_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1781418829993,
+      "tag": "0061_windy_roulette",
+      "breakpoints": true
     }
   ]
 }

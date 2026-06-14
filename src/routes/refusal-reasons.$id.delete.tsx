@@ -12,7 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { deleteRefusalReason, fetchRefusalReason } from '@/components/refusal-reasons/actions'
+import {
+  deleteRefusalReason,
+  fetchRefusalReason,
+} from '@/components/refusal-reasons/actions'
 
 export const Route = createFileRoute('/refusal-reasons/$id/delete')({
   loader: ({ params }) => fetchRefusalReason({ data: params }),

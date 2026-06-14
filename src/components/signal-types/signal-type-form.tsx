@@ -5,7 +5,10 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { addSignalType, updateSignalType } from '@/components/signal-types/actions'
+import {
+  addSignalType,
+  updateSignalType,
+} from '@/components/signal-types/actions'
 import type { SelectSignalType } from '@/db/types'
 
 const formSchema = z.object({

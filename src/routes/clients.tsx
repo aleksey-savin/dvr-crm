@@ -21,7 +21,11 @@ import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useDepartmentStore } from '@/stores/department-store'
-import { useScopedDepartmentIds, matchesDepartmentScope } from '@/hooks/use-department-scope'
+import { usePersistedFilter } from '@/stores/filters-store'
+import {
+  useScopedDepartmentIds,
+  matchesDepartmentScope,
+} from '@/hooks/use-department-scope'
 import { collectDepartmentDescendants } from '@/lib/department-tree'
 import { fetchClients } from '@/components/companyAccounts/actions'
 
@@ -39,15 +43,25 @@ function RouteComponent() {
   const selectedDept = departments.find((d) => d.id === selectedDepartmentId)
   const scopedDeptIds = useScopedDepartmentIds()
 
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>('all')
-  const [managerFilter, setManagerFilter] = React.useState<string[]>([])
+  const [statusFilter, setStatusFilter] = usePersistedFilter<StatusFilter>(
+    'clients',
+    'status',
+    'all',
+  )
+  const [managerFilter, setManagerFilter] = usePersistedFilter<string[]>(
+    'clients',
+    'manager',
+    [],
+  )
 
   // Only allow adding a client when the scope is (or contains) a sales dept.
   const canAddClient = (() => {
     if (!selectedDepartmentId) return true
     if (selectedDept?.departmentType === 'sales') return true
     if (selectedDept?.departmentType === 'administrative') {
-      const ids = collectDepartmentDescendants(departments, [selectedDepartmentId])
+      const ids = collectDepartmentDescendants(departments, [
+        selectedDepartmentId,
+      ])
       return ids.some(
         (id) =>
           departments.find((d) => d.id === id)?.departmentType === 'sales',

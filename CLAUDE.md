@@ -121,6 +121,15 @@ not named after the route).
   `actions.ts` and import them into the route
 - Plain async helpers called only from within server handlers (e.g.
   `requireOwner`) live in the same `actions.ts` — no need to wrap them in `createServerFn`
+- **Server-only modules** (`@/db`, `utils/auth`, `@/lib/s3`) may be referenced
+  ONLY inside `createServerFn().handler()` bodies, or in **non-exported** helpers
+  used solely by handlers. Never reference them from an `export`ed plain function
+  (or at module top level) in a client-reachable `actions.ts`: the client
+  transform strips handler bodies and unused non-exported helpers, but keeps
+  exported declarations — so the server module ends up evaluated in the browser.
+  The production build hides this via tree-shaking, but `pnpm dev` crashes (e.g.
+  `Buffer is not defined`, from `pg`). Inline server-only logic into each handler
+  rather than exporting a shared plain helper that touches `@/db`/S3.
 - `inputValidator` is required on server functions that accept parameters
 
 ## Drizzle ORM
@@ -234,10 +243,63 @@ with a `<Badge variant="secondary">` per item.
 
 - Delete components take an `entityId` prop, not the whole `entity` object
 - File uploads — always `<DocumentUploader>` from
-  `src/components/ui/document-uploader.tsx`: the component manages all upload
-  state itself; you only provide the callbacks `onUpload(file, base64)` (upload
-  the document → link it to the entity → return the `DocumentItem`) and
-  `onRemove(doc)`; `accept` is optional (defaults to PDF/DOC/XLS/JPG/PNG)
+  `src/components/ui/document-uploader.tsx` (see **File uploads (S3)** below)
+
+### File uploads (S3)
+
+Documents are stored in an **external S3-compatible bucket** (Yandex Cloud or
+similar; no local MinIO) configured via `S3_*` env vars. Flow: the client reads
+the file to base64 (`readFileAsBase64`), sends it through the `uploadDocument`
+server function, which validates size/MIME server-side, PUTs the object
+(`uploadBase64FileToS3`) and stores metadata in the `document` table — returning a
+`DocumentItem` (`{ id, name, url }`, where `url` is the S3 object key). Files are
+never uploaded directly from the browser; all bucket access is server-side.
+
+Shared, entity-agnostic layer:
+
+- `src/lib/s3.ts` — S3 client + `uploadBase64FileToS3` / `getS3SignedObjectUrl` /
+  `deleteS3Object` (Node-only — like `@/db`, kept out of the client bundle by
+  tree-shaking; reference its exports **only inside server-function handlers**,
+  never at the top level of a client-reachable module. `@aws-sdk/client-s3` +
+  `@aws-sdk/s3-request-presigner`)
+- `src/lib/file-upload.ts` — `readFileAsBase64` and key/base64 helpers
+- `src/components/ui/document-uploader.tsx` — `<DocumentUploader>`; owns all
+  upload UI state. Props: `documents`, `onUpload(file, base64)`, `onRemove(doc)`,
+  optional `onOpen(doc)` and `accept`
+- `src/components/documents/actions.ts` — shared `uploadDocument` /
+  `resolveDocumentUrl` server functions, the `DOCUMENT_FILE_ACCEPT` constant
+  (PDF/DOC/DOCX/XLS/XLSX/JPG/PNG, ≤ 50 MB) and the `deleteDocumentWithObject`
+  helper
+
+Per-entity wiring (join-table pattern, mirrors the shared `document` table):
+
+- Add a `{entity}_document` join table (`{entity}Id` + `documentId`, both
+  `onDelete: 'cascade'`, an index on `{entity}Id`, a unique pair) and a
+  `{entity}Documents: many(...)` relation on the entity; sync `src/db/types.ts`.
+- Add `documents: DocumentRef[]` to the entity's domain type (`src/types.ts`) and
+  load it in the entity's fetch (relational
+  `with: { {entity}Documents: { with: { document } } }`, or a grouped second
+  query keyed by entity id).
+- Add `add{Entity}Document` / `remove{Entity}Document` in the entity's
+  `actions.ts`; `remove` calls `deleteDocumentWithObject(documentId)` (deleting
+  the `document` row cascades the join row and removes the S3 object).
+- Add a thin consumer `*-documents.tsx` that wires `uploadDocument` (passing
+  `pathPrefix` / `fileNamePrefix`) → `add{Entity}Document`,
+  `remove{Entity}Document`, and `onOpen` via `resolveDocumentUrl`.
+
+S3 keys follow `{pathPrefix}/{fileNamePrefix}_{datetime}.{ext}` (e.g.
+`proposals/proposal_…`). Open a stored document via the popup pattern: open
+`window.open('about:blank')` synchronously, then `popup.location.replace(url)`
+with the URL from `resolveDocumentUrl` (a presigned URL valid 10 min, or the
+stored http URL as-is).
+
+Currently wired: **Commercial Proposals** (`proposal_document`, in the КП list
+inside the initiative view) and **Meetings** (`meeting_document`, in the meeting
+detail panel).
+
+Env vars (`.env`): `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET_NAME`,
+`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE` (optional
+`S3_KMS_KEY_ID`).
 
 ## TanStack Table
 
@@ -278,7 +340,12 @@ with a `<Badge variant="secondary">` per item.
 - Table filter controls — only `<MultiFilterCombobox>` from
   `@/components/tables/multi-filter-combobox`. Never use `<Select>` for table
   filters — every filter must support multi-selection
-- Filter state lives in the route component as arrays (`useState<StatusType[]>([])`).
+- Filter / view-toggle state is persisted across reloads via
+  `usePersistedFilter(routeKey, filterKey, default)` from `@/stores/filters-store`
+  (a Zustand `persist` store) — a drop-in `useState` replacement. Use it for
+  list filters and view toggles instead of plain `useState` so they survive a
+  page reload (P0 requirement). State tied to the URL (search params) or the
+  DB (drag order) stays where it is.
   Static option lists (statuses, types) are module-level constants; dynamic
   lists (users, industries) are derived inline from loader data each render
   (no `useMemo`) and only rendered when `options.length > 0`
@@ -326,6 +393,14 @@ Details for every entity (fields, relations, business rules) are in
   available via the external API, see `API_USAGE.md`; a meeting-room booking is
   an office meeting with `meetingRoomId` — there is no separate bookings table)
 - **Finance and planning:** Goal, Sales Plan, Sales Fact
+- **KPI planning:** Target Action Plan (per user × target-action type × month;
+  a manager sets their own plan → `pending`, a department head/admin adjusts and
+  approves → `approved`). Fact = count of completed Target Actions; the
+  `meeting_rescheduled` type is fact-only and excluded from planning. Surfaced on
+  `/target-actions` (Отчёты) and the dashboard widgets
+- **App config (singletons):** Client Classification Settings and Email Settings
+  (SMTP config + on/off switch, edited in `/preferences`) — one fixed-id row each,
+  read/created via an `ensure…()` helper in `src/lib/`
 - **Classifiers:** action/signal types, statuses, contact roles, industries,
   sources, refusal reasons, tags
 - Archive via `is_active` instead of physical deletion; historical relations

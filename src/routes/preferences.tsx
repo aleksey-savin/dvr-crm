@@ -42,6 +42,7 @@ import {
   CopyIcon,
   CheckIcon,
   KeyRoundIcon,
+  MailIcon,
   SaveIcon,
   Settings2Icon,
 } from 'lucide-react'
@@ -52,6 +53,7 @@ import {
   getApiKeys,
   updateClientClassificationSettings,
 } from '@/components/preferences/actions'
+import { SmtpSettingsForm } from '@/components/preferences/smtp-settings-form'
 import type {
   SelectApiKey,
   SelectClientClassificationSettings,
@@ -306,6 +308,10 @@ function RouteComponent() {
             <KeyRoundIcon className="size-4" />
             API ключи
           </TabsTrigger>
+          <TabsTrigger value="notifications" className="gap-2">
+            <MailIcon className="size-4" />
+            Уведомления
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="classification" className="space-y-6">
@@ -549,6 +555,10 @@ function RouteComponent() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="notifications" className="space-y-6">
+          <SmtpSettingsForm userId={userId} />
         </TabsContent>
       </Tabs>
 

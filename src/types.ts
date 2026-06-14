@@ -548,6 +548,14 @@ export type TargetActionSource =
   | 'proposal'
   | 'manual'
 
+// Плоское представление вложенного документа (совпадает с DocumentItem
+// из document-uploader); используется в доменных типах сущностей.
+export type DocumentRef = {
+  id: string
+  name: string
+  url: string
+}
+
 export type MeetingRow = {
   id: string
   title: string
@@ -591,6 +599,7 @@ export type MeetingDetail = MeetingRow & {
   initiativeId: string | null
   initiativeTitle: string | null
   rescheduledFromMeetingId: string | null
+  documents: DocumentRef[]
 }
 
 export type MeetingRoomOption = {
@@ -610,6 +619,7 @@ export type TargetActionTypeRow = {
   name: string
   slug: string
   isSystem: boolean
+  isPlannable: boolean
   createdAt: Date
 }
 
@@ -634,30 +644,192 @@ export type TargetActionRow = {
   createdAt: Date
 }
 
+// ─── Target Action Plan / KPI report ─────────────────────────────────────────
+
+export type TargetActionPlanStatus = 'pending' | 'approved'
+
+/**
+ * Одна строка отчёта план/факт: связка (менеджер × тип ЦД) за месяц.
+ * Используется и в менеджерском виде (свои строки), и в руководительском
+ * (группировка по менеджеру через DataTable.groupBy).
+ */
+export type TargetActionPlanRow = {
+  userId: string
+  userName: string
+  departmentId: string | null
+  departmentName: string | null
+  typeId: string
+  typeName: string
+  planId: string | null
+  plannedCount: number
+  factCount: number
+  status: TargetActionPlanStatus
+}
+
+export type TargetActionReport = {
+  year: number
+  month: number
+  rows: TargetActionPlanRow[]
+  /** true — текущий пользователь руководитель/admin (может править чужие планы). */
+  canManageOthers: boolean
+}
+
+/** Сводка по менеджеру для дашборда руководителя. */
+export type TargetActionManagerSummary = {
+  userId: string
+  userName: string
+  totalPlanned: number
+  totalFact: number
+}
+
+export type TargetActionDashboard = {
+  month: number
+  year: number
+  /** План/факт текущего пользователя по типам (менеджерский виджет). */
+  mine: TargetActionPlanRow[]
+  /** true — пользователь руководитель/admin (показываем сводку по команде). */
+  isHead: boolean
+  team: TargetActionManagerSummary[] | null
+}
+
+// ─── Target Action analytics report (/target-actions) ────────────────────────
+
+export type TargetActionPeriodType = 'month' | 'quarter' | 'year'
+
+export type TargetActionPeriod = {
+  type: TargetActionPeriodType
+  year: number
+  /** month 1–12 | quarter 1–4 | ignored (0) for 'year' */
+  periodIndex: number
+}
+
+/** One manager × one target-action type cell. percent is null when planned === 0. */
+export type TargetActionTypeCell = {
+  typeId: string
+  planned: number
+  fact: number
+  percent: number | null
+}
+
+export type TargetActionAnalyticsType = {
+  id: string
+  name: string
+  /** Fact-only types (isPlannable=false) show count only — no plan, no percent. */
+  isPlannable: boolean
+}
+
+/** One manager row of the analytics matrix; cells keyed by typeId. */
+export type TargetActionAnalyticsRow = {
+  userId: string
+  userName: string
+  departmentId: string | null
+  departmentName: string | null
+  cells: Record<string, TargetActionTypeCell>
+  totalPlanned: number
+  totalFact: number
+  overallPercent: number | null
+}
+
+export type TargetActionAnalytics = {
+  period: TargetActionPeriod
+  /** resolved inclusive ISO range (yyyy-mm-dd). */
+  start: string
+  end: string
+  label: string
+  types: TargetActionAnalyticsType[]
+  rows: TargetActionAnalyticsRow[]
+  totals: {
+    byType: Record<
+      string,
+      { planned: number; fact: number; percent: number | null }
+    >
+    totalPlanned: number
+    totalFact: number
+    overallPercent: number | null
+  }
+}
+
+// ─── Manager detail (Sheet) ──────────────────────────────────────────────────
+
+export type ManagerReportClient = {
+  accountId: string
+  companyId: string
+  companyName: string
+  businessUnit: string | null
+  isTarget: boolean
+  isLost: boolean
+}
+
+/** One labelled detail line of a completed action; companyId makes it a link. */
+export type ManagerActionDetail = {
+  label: string
+  value: string
+  companyId?: string | null
+}
+
+/** A single completed target action with the concrete context that produced it. */
+export type ManagerCompletedAction = {
+  id: string
+  typeId: string
+  typeName: string
+  completedAt: Date
+  sourceType: TargetActionSource
+  /** Title of the linked initiative (initiative → title). */
+  initiativeTitle: string | null
+  /** Meeting context when the action came from a meeting. */
+  meetingId: string | null
+  meetingTitle: string | null
+  meetingAt: Date | null
+  /** Meeting length in minutes (endedAt − scheduledAt), computed server-side. */
+  meetingDurationMin: number | null
+  meetingSummary: string | null
+  meetingParticipants: string[]
+  /** Company resolved via the linked initiative (initiative → company). */
+  companyId: string | null
+  companyName: string | null
+  /** Only the populated context lines (client, initiative, КП, lead, …). */
+  details: ManagerActionDetail[]
+  result: string | null
+  reason: string | null
+}
+
+export type ManagerReportDetail = {
+  user: {
+    id: string
+    name: string
+    position: string | null
+    phone: string | null
+    email: string
+    image: string | null
+    departmentName: string | null
+  }
+  summary: TargetActionAnalyticsRow
+  types: TargetActionAnalyticsType[]
+  clients: ManagerReportClient[]
+  completedActions: ManagerCompletedAction[]
+}
+
 // ─── Proposal (Коммерческое предложение) ─────────────────────────────────────
 
-export type ProposalStatus = 'draft' | 'prepared' | 'sent'
-
-export type ProposalType = 'initial' | 'revised' | 'final'
+export type ProposalStatus = 'draft' | 'prepared' | 'approved' | 'sent'
 
 export type ProposalRow = {
   id: string
   initiativeId: string
   initiativeTitle: string | null
-  title: string
   version: number
   status: ProposalStatus
-  proposalType: ProposalType | null
-  amount: string | null
-  validUntil: string | null
+  /** Вычисляемое: КП с наибольшим номером версии в инициативе. */
   isCurrent: boolean
   description: string | null
   senderUserId: string | null
   senderUserName: string | null
   preparedAt: Date | null
+  approvedAt: Date | null
   sentAt: Date | null
   createdAt: Date
   updatedAt: Date
+  documents: DocumentRef[]
 }
 
 // ─── Reports — Target clients (план/факт по менеджерам, лист «ГКС») ───────────

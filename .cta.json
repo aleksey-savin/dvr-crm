@@ -15,10 +15,5 @@
   "routerOnly": false,
   "version": 1,
   "framework": "react-cra",
-  "chosenAddOns": [
-    "eslint",
-    "nitro",
-    "drizzle",
-    "shadcn"
-  ]
+  "chosenAddOns": ["eslint", "nitro", "drizzle", "shadcn"]
 }

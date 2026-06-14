@@ -6,6 +6,7 @@ import { columns } from '@/components/tables/sales-plan-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
 import { fetchSalesPlans } from '@/components/reports/actions'
+import { usePersistedFilter } from '@/stores/filters-store'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -22,7 +23,11 @@ export const Route = createFileRoute('/sales-plans')({
 
 function RouteComponent() {
   const plans = Route.useLoaderData()
-  const [yearFilter, setYearFilter] = React.useState<string[]>([])
+  const [yearFilter, setYearFilter] = usePersistedFilter<string[]>(
+    'sales-plans',
+    'year',
+    [],
+  )
 
   const yearOptions: Array<TableFilterOption> = Array.from(
     new Set(plans.map((p) => String(p.year))),

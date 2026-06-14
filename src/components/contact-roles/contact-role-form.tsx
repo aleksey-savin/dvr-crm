@@ -5,7 +5,10 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { addContactRole, updateContactRole } from '@/components/contact-roles/actions'
+import {
+  addContactRole,
+  updateContactRole,
+} from '@/components/contact-roles/actions'
 import type { SelectContactRole } from '@/db/types'
 
 const formSchema = z.object({

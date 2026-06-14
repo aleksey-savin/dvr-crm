@@ -72,6 +72,14 @@ export function DataTable<TData, TValue>({
 
   const [globalFilter, setGlobalFilter] = React.useState('')
   const [draggingId, setDraggingId] = React.useState<string | null>(null)
+  const [overId, setOverId] = React.useState<string | null>(null)
+  const [overGroupKey, setOverGroupKey] = React.useState<string | null>(null)
+
+  const clearDrag = () => {
+    setDraggingId(null)
+    setOverId(null)
+    setOverGroupKey(null)
+  }
 
   const globalFilterFn: FilterFn<any> = (row, columnId, filterValue) => {
     const searchValue = filterValue.toLowerCase()
@@ -126,25 +134,38 @@ export function DataTable<TData, TValue>({
           if (!rowReorder || !draggingId || draggingId === rowId) return
           event.preventDefault()
           event.dataTransfer.dropEffect = 'move'
+          setOverId(rowId ?? null)
+          setOverGroupKey(null)
         }}
-        onDrop={(event) => {
+        onDrop={async (event) => {
           event.preventDefault()
           if (!rowReorder || !draggingId || draggingId === rowId) return
-          void rowReorder.onDrop({
-            activeId: draggingId,
+          const activeId = draggingId
+          const snapshot = table.getRowModel().rows.map((item) => item.original)
+          setOverId(null)
+          setOverGroupKey(null)
+          // Keep the row dimmed until the server reorder + invalidate lands, so
+          // positions resettle in one step instead of flickering mid-drag.
+          await rowReorder.onDrop({
+            activeId,
             overId: rowId,
             groupKey,
-            rows: table.getRowModel().rows.map((item) => item.original),
+            rows: snapshot,
           })
           setDraggingId(null)
         }}
-        onDragEnd={() => setDraggingId(null)}
+        onDragEnd={clearDrag}
         onClick={onRowClick ? () => onRowClick(row.original) : undefined}
         className={cn(
           rowClassName?.(row.original),
           isDraggable && 'cursor-grab active:cursor-grabbing',
           onRowClick && 'cursor-pointer',
           rowId && draggingId === rowId && 'opacity-50',
+          rowId &&
+            overId === rowId &&
+            draggingId !== null &&
+            draggingId !== rowId &&
+            'shadow-[inset_0_2px_0_0_var(--primary)]',
         )}
       >
         {row.getVisibleCells().map((cell) => (
@@ -223,23 +244,34 @@ export function DataTable<TData, TValue>({
                         if (!rowReorder || !draggingId) return
                         event.preventDefault()
                         event.dataTransfer.dropEffect = 'move'
+                        setOverGroupKey(key)
+                        setOverId(null)
                       }}
-                      onDrop={(event) => {
+                      onDrop={async (event) => {
                         event.preventDefault()
                         if (!rowReorder || !draggingId) return
-                        void rowReorder.onDrop({
-                          activeId: draggingId,
+                        const activeId = draggingId
+                        const snapshot = table
+                          .getRowModel()
+                          .rows.map((item) => item.original)
+                        setOverId(null)
+                        setOverGroupKey(null)
+                        await rowReorder.onDrop({
+                          activeId,
                           groupKey: key,
-                          rows: table
-                            .getRowModel()
-                            .rows.map((item) => item.original),
+                          rows: snapshot,
                         })
                         setDraggingId(null)
                       }}
                     >
                       <TableCell
                         colSpan={columns.length}
-                        className="bg-muted/50 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                        className={cn(
+                          'bg-muted/50 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground',
+                          overGroupKey === key &&
+                            draggingId !== null &&
+                            'shadow-[inset_0_0_0_2px_var(--primary)]',
+                        )}
                       >
                         {label}
                       </TableCell>

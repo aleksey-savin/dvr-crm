@@ -2,6 +2,8 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRightIcon, CalendarDaysIcon, FileTextIcon } from 'lucide-react'
 
 import { fetchLatestPublishedRelease } from '@/components/changelog/actions'
+import { fetchTargetActionDashboard } from '@/components/target-actions/actions'
+import { DashboardTargetActions } from '@/components/target-actions/dashboard-target-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,14 +17,22 @@ import {
 
 export const Route = createFileRoute('/dashboard')({
   component: RouteComponent,
-  loader: () => fetchLatestPublishedRelease(),
+  loader: async () => {
+    const [latestRelease, targetActions] = await Promise.all([
+      fetchLatestPublishedRelease(),
+      fetchTargetActionDashboard({ data: {} }),
+    ])
+    return { latestRelease, targetActions }
+  },
 })
 
 function RouteComponent() {
-  const latestRelease = Route.useLoaderData()
+  const { latestRelease, targetActions } = Route.useLoaderData()
 
   return (
     <div className="flex w-full max-w-5xl flex-1 flex-col gap-6">
+      <DashboardTargetActions data={targetActions} />
+
       <Card className="rounded-lg w-full">
         <CardHeader>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import {
   addTargetActionType,
@@ -12,6 +13,7 @@ import type { TargetActionTypeRow } from '@/types'
 
 const formSchema = z.object({
   name: z.string().min(1, 'Название обязательно'),
+  isPlannable: z.boolean(),
 })
 
 export function TargetActionTypeForm({
@@ -24,15 +26,24 @@ export function TargetActionTypeForm({
   const form = useForm({
     defaultValues: {
       name: item?.name ?? '',
+      isPlannable: item?.isPlannable ?? true,
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
       try {
         if (item) {
-          await updateTargetActionType({ data: { id: item.id, name: value.name } })
+          await updateTargetActionType({
+            data: {
+              id: item.id,
+              name: value.name,
+              isPlannable: value.isPlannable,
+            },
+          })
           toast.success('Тип ЦД обновлён')
         } else {
-          await addTargetActionType({ data: { name: value.name } })
+          await addTargetActionType({
+            data: { name: value.name, isPlannable: value.isPlannable },
+          })
           toast.success('Тип ЦД создан')
         }
         onSuccess?.()
@@ -66,6 +77,25 @@ export function TargetActionTypeForm({
               placeholder="Название типа целевого действия"
             />
             <FieldError errors={field.state.meta.errors} />
+          </Field>
+        )}
+      </form.Field>
+
+      <form.Field name="isPlannable">
+        {(field) => (
+          <Field>
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <Checkbox
+                checked={field.state.value}
+                onCheckedChange={(v) => field.handleChange(v === true)}
+              />
+              Учитывать в плане
+            </label>
+            <p className="text-sm text-muted-foreground">
+              Отключите для KPI, которые никто не планирует (например, перенос
+              встречи): в отчёте такой тип показывается только количеством, без
+              плана и процентов.
+            </p>
           </Field>
         )}
       </form.Field>

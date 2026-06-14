@@ -36,7 +36,11 @@ export const useDepartmentStore = create<DepartmentStore>()(
         const nextSelectedId = isStillAccessible ? selectedDepartmentId : null
         const selectedAccentColor =
           departments.find((d) => d.id === nextSelectedId)?.accentColor ?? null
-        set({ departments, selectedDepartmentId: nextSelectedId, selectedAccentColor })
+        set({
+          departments,
+          selectedDepartmentId: nextSelectedId,
+          selectedAccentColor,
+        })
       },
 
       setSelectedDepartmentId: (id) => {

@@ -22,7 +22,7 @@ import {
 import { ChevronDown } from 'lucide-react'
 import { NavUser } from './nav-user'
 import { authClient } from 'utils/auth-client'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useDepartmentStore } from '@/stores/department-store'
 import { fetchSidebarDepartments } from '@/components/departments/actions'
@@ -81,6 +81,10 @@ const navMain = [
       {
         title: 'Целевые клиенты',
         url: '/reports',
+      },
+      {
+        title: 'Целевые действия',
+        url: '/reports/target-actions',
       },
     ],
   },
@@ -186,6 +190,38 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     image: '/images/avatar.png',
   }
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  const isActive = (url: string) =>
+    pathname === url || pathname.startsWith(`${url}/`)
+
+  // Active item gets the standard accent; tint it with the selected department
+  // colour when one is set, so the highlight matches the unit accent.
+  const activeAccentStyle = (
+    active: boolean,
+  ): React.CSSProperties | undefined =>
+    active && accentColor
+      ? ({
+          '--sidebar-accent': `color-mix(in srgb, ${accentColor} 18%, transparent)`,
+        } as React.CSSProperties)
+      : undefined
+
+  const renderNavLink = (child: { title: string; url: string }) => {
+    const active = isActive(child.url)
+    return (
+      <SidebarMenuItem key={child.title}>
+        <SidebarMenuButton
+          asChild
+          isActive={active}
+          className="text-base"
+          style={activeAccentStyle(active)}
+        >
+          <Link to={child.url}>{child.title}</Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
   return (
     <Sidebar
       className={accentColor ? 'sidebar-dept-accent' : undefined}
@@ -217,15 +253,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarGroupLabel>
                 <CollapsibleContent>
                   <SidebarGroupContent>
-                    <SidebarMenu>
-                      {item.items.map((child) => (
-                        <SidebarMenuItem key={child.title}>
-                          <SidebarMenuButton asChild className="text-base">
-                            <Link to={child.url}>{child.title}</Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
+                    <SidebarMenu>{item.items.map(renderNavLink)}</SidebarMenu>
                   </SidebarGroupContent>
                 </CollapsibleContent>
               </SidebarGroup>
@@ -233,15 +261,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           ) : (
             <SidebarGroup key="untitled">
               <SidebarGroupContent>
-                <SidebarMenu>
-                  {item.items.map((child) => (
-                    <SidebarMenuItem key={child.title}>
-                      <SidebarMenuButton asChild className="text-base">
-                        <Link to={child.url}>{child.title}</Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
+                <SidebarMenu>{item.items.map(renderNavLink)}</SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           ),

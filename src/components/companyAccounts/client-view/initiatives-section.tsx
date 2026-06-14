@@ -23,7 +23,9 @@ type Props = {
 export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
   const [initiatives, setInitiatives] = React.useState<InitiativeRow[]>([])
   const [isCreating, setIsCreating] = React.useState(false)
-  const [formOptions, setFormOptions] = React.useState<Awaited<ReturnType<typeof fetchInitiativeFormOptions>> | null>(null)
+  const [formOptions, setFormOptions] = React.useState<Awaited<
+    ReturnType<typeof fetchInitiativeFormOptions>
+  > | null>(null)
 
   React.useEffect(() => {
     fetchAccountInitiatives({ data: { companyAccountId: clientId } })
@@ -41,7 +43,9 @@ export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
 
   const handleCreateSuccess = async (initiativeId?: string) => {
     setIsCreating(false)
-    const rows = await fetchAccountInitiatives({ data: { companyAccountId: clientId } })
+    const rows = await fetchAccountInitiatives({
+      data: { companyAccountId: clientId },
+    })
     setInitiatives(rows)
     onRefresh?.()
     if (initiativeId) {
@@ -66,7 +70,12 @@ export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
       icon={GitMergeIcon}
       title="Инициативы"
       action={
-        <Button variant="ghost" size="sm" className="gap-1.5" onClick={handleOpenCreate}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          onClick={handleOpenCreate}
+        >
           <PlusIcon className="size-3.5" />
           Добавить
         </Button>
@@ -80,9 +89,7 @@ export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
         <ul className="flex flex-col gap-2">
           {initiatives.map((item) => {
             const isOverdue =
-              item.dueDate &&
-              new Date(item.dueDate) < today &&
-              !item.closedAt
+              item.dueDate && new Date(item.dueDate) < today && !item.closedAt
 
             return (
               <li
@@ -102,7 +109,9 @@ export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span
                           className="size-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: item.stageColor ?? '#6b7280' }}
+                          style={{
+                            backgroundColor: item.stageColor ?? '#6b7280',
+                          }}
                         />
                         {item.stageName}
                       </span>
@@ -147,7 +156,9 @@ export function InitiativesSection({ clientId, companyId, onRefresh }: Props) {
       {formOptions && (
         <ResponsiveDialog
           open={isCreating}
-          onOpenChange={(open) => { if (!open) setIsCreating(false) }}
+          onOpenChange={(open) => {
+            if (!open) setIsCreating(false)
+          }}
           title="Новая инициатива"
           description="Создание инициативы"
           contentClassName="sm:max-w-2xl"

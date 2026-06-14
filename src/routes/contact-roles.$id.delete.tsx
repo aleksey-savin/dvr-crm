@@ -12,7 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { deleteContactRole, fetchContactRole } from '@/components/contact-roles/actions'
+import {
+  deleteContactRole,
+  fetchContactRole,
+} from '@/components/contact-roles/actions'
 
 export const Route = createFileRoute('/contact-roles/$id/delete')({
   loader: ({ params }) => fetchContactRole({ data: params }),

@@ -9,9 +9,7 @@ export const columns: ColumnDef<SignalTypeRow>[] = [
   {
     accessorKey: 'name',
     header: 'Наименование',
-    cell: ({ row }) => (
-      <Badge variant="secondary">{row.original.name}</Badge>
-    ),
+    cell: ({ row }) => <Badge variant="secondary">{row.original.name}</Badge>,
   },
   {
     accessorKey: 'createdAt',

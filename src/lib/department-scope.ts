@@ -23,7 +23,11 @@ export async function getAccessibleDepartmentIds(): Promise<string[]> {
   if (!session?.user) return []
 
   const allDepts = await db
-    .select({ id: department.id, parentId: department.parentId, headUserId: department.headUserId })
+    .select({
+      id: department.id,
+      parentId: department.parentId,
+      headUserId: department.headUserId,
+    })
     .from(department)
 
   if (session.user.role === 'admin') {

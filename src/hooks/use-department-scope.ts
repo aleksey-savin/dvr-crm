@@ -11,7 +11,9 @@ export function useScopedDepartmentIds(): Set<string> | null {
   const departments = useDepartmentStore((s) => s.departments)
   return React.useMemo(() => {
     if (!selectedDepartmentId) return null
-    return new Set(collectDepartmentDescendants(departments, [selectedDepartmentId]))
+    return new Set(
+      collectDepartmentDescendants(departments, [selectedDepartmentId]),
+    )
   }, [selectedDepartmentId, departments])
 }
 

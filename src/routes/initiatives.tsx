@@ -30,6 +30,7 @@ import { PipelineDeleteDialog } from '@/components/pipelines/pipeline-delete-dia
 import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/tables/initiative-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
+import { usePersistedFilter } from '@/stores/filters-store'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
@@ -86,12 +87,22 @@ function RouteComponent() {
     )
   }, [pipelines, scopedDeptIds])
 
-  const [viewMode, setViewMode] = React.useState<ViewMode>('kanban')
+  const [viewMode, setViewMode] = usePersistedFilter<ViewMode>(
+    'initiatives',
+    'viewMode',
+    'kanban',
+  )
   const [selectedPipelineId, setSelectedPipelineId] = React.useState<string>(
     search.pipeline ?? visiblePipelines.at(0)?.id ?? '',
   )
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
-  const [departmentFilter, setDepartmentFilter] = React.useState<string[]>([])
+  const [responsibleFilter, setResponsibleFilter] = usePersistedFilter<
+    string[]
+  >('initiatives', 'responsible', [])
+  const [departmentFilter, setDepartmentFilter] = usePersistedFilter<string[]>(
+    'initiatives',
+    'department',
+    [],
+  )
   const [pipelineFormOpen, setPipelineFormOpen] = React.useState(false)
   const [editingPipeline, setEditingPipeline] =
     React.useState<PipelineWithStages | null>(null)

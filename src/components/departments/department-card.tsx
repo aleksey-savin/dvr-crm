@@ -8,8 +8,8 @@ import { formatRuCount, getInitials } from './text-utils'
 
 const DEPT_TYPE_LABEL: Record<string, string> = {
   sales: 'Продающее',
-  production: 'Производственное',
-  administrative: 'Административное',
+  production: 'Сервисные',
+  administrative: 'Управляющая компания (УК)',
 }
 
 export function DepartmentCard({

@@ -38,8 +38,8 @@ const accentColorSchema = z
 
 const DEPARTMENT_TYPE_OPTIONS = [
   { value: 'sales', label: 'Продающее' },
-  { value: 'production', label: 'Производственное' },
-  { value: 'administrative', label: 'Административное' },
+  { value: 'production', label: 'Сервисные' },
+  { value: 'administrative', label: 'Управляющая компания (УК)' },
 ] as const
 
 const formSchema = z.object({

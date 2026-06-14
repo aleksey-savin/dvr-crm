@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, isNull, lt, ne, sql } from 'drizzle-orm'
+import { getRequest } from '@tanstack/react-start/server'
+import { and, eq, inArray, isNull, lt, ne, sql } from 'drizzle-orm'
 import * as z from 'zod'
 import { db } from '@/db'
 import {
@@ -7,12 +8,16 @@ import {
   meetingParticipant,
   meetingExternalParticipant,
   meetingRoom,
+  meetingDocument,
+  document,
   targetAction,
   user,
   department,
   company,
 } from '@/db/schema'
 import { ensureTargetActionTypeId } from '@/components/target-actions/ensure-type'
+import { deleteS3Object } from '@/lib/s3'
+import { auth } from 'utils/auth'
 import type {
   InitiativeOption,
   MeetingRow,
@@ -228,6 +233,9 @@ export const fetchMeeting = createServerFn()
         externalParticipants: {
           columns: { id: true, name: true, contactId: true },
         },
+        meetingDocuments: {
+          with: { document: { columns: { id: true, name: true, url: true } } },
+        },
       },
     })
     if (!row) throw new Error('Встреча не найдена')
@@ -273,6 +281,7 @@ export const fetchMeeting = createServerFn()
         name: ep.name,
         contactId: ep.contactId,
       })),
+      documents: row.meetingDocuments.map((md) => md.document),
     }
   })
 
@@ -423,20 +432,49 @@ export const completeMeeting = createServerFn()
       updated.meetingType === 'client' ? 'client_meeting' : 'internal_meeting'
     const typeId = await ensureTargetActionTypeId(slug)
     const plannedAt = (updated.endedAt ?? now).toISOString().split('T')[0]
-    await db.insert(targetAction).values({
-      typeId,
-      responsibleUserId: updated.organizerId,
-      departmentId: updated.departmentId,
-      plannedAt,
-      completedAt: updated.endedAt ?? now,
-      status: 'completed',
-      sourceType: 'meeting',
-      sourceId: updated.id,
-      accountId: updated.accountId,
-      leadId: updated.leadId,
-      tenderId: updated.tenderId,
-      initiativeId: updated.initiativeId,
-    })
+    const completedAt = updated.endedAt ?? now
+
+    // ЦД (KPI «провёл встречу») выполняет каждый внутренний участник, а не
+    // только организатор. Собираем уникальное множество: организатор + участники.
+    const participants = await db
+      .select({ userId: meetingParticipant.userId })
+      .from(meetingParticipant)
+      .where(eq(meetingParticipant.meetingId, updated.id))
+
+    const userIds = Array.from(
+      new Set(
+        [updated.organizerId, ...participants.map((p) => p.userId)].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    )
+
+    if (userIds.length > 0) {
+      // Отдел берём у самого участника — KPI атрибутируется по его отделу,
+      // с откатом на отдел встречи, если у пользователя отдел не задан.
+      const users = await db
+        .select({ id: user.id, departmentId: user.departmentId })
+        .from(user)
+        .where(inArray(user.id, userIds))
+      const deptByUser = new Map(users.map((u) => [u.id, u.departmentId]))
+
+      await db.insert(targetAction).values(
+        userIds.map((userId) => ({
+          typeId,
+          responsibleUserId: userId,
+          departmentId: deptByUser.get(userId) ?? updated.departmentId,
+          plannedAt,
+          completedAt,
+          status: 'completed' as const,
+          sourceType: 'meeting' as const,
+          sourceId: updated.id,
+          accountId: updated.accountId,
+          leadId: updated.leadId,
+          tenderId: updated.tenderId,
+          initiativeId: updated.initiativeId,
+        })),
+      )
+    }
   })
 
 export const cancelMeeting = createServerFn()
@@ -633,4 +671,52 @@ export const fetchMeetingsByInitiative = createServerFn({ method: 'GET' })
       participantCount: Number(r.participantCount),
       createdAt: r.createdAt,
     }))
+  })
+
+// ─── Документы встречи (вложения в S3) ───────────────────────────────────────
+
+async function getCurrentUserId(): Promise<string | null> {
+  const request = getRequest()
+  const session = await auth.api.getSession({ headers: request.headers })
+  return session?.user.id ?? null
+}
+
+const meetingDocumentSchema = z.object({
+  meetingId: z.string().min(1),
+  documentId: z.string().min(1),
+})
+
+export const addMeetingDocument = createServerFn({ method: 'POST' })
+  .inputValidator(meetingDocumentSchema)
+  .handler(async ({ data }) => {
+    const userId = await getCurrentUserId()
+    if (!userId) throw new Error('Не авторизовано')
+
+    await db.insert(meetingDocument).values({
+      meetingId: data.meetingId,
+      documentId: data.documentId,
+    })
+  })
+
+export const removeMeetingDocument = createServerFn({ method: 'POST' })
+  .inputValidator(meetingDocumentSchema)
+  .handler(async ({ data }) => {
+    const userId = await getCurrentUserId()
+    if (!userId) throw new Error('Не авторизовано')
+
+    const link = await db.query.meetingDocument.findFirst({
+      where: and(
+        eq(meetingDocument.meetingId, data.meetingId),
+        eq(meetingDocument.documentId, data.documentId),
+      ),
+      with: { document: { columns: { url: true } } },
+    })
+    if (!link) return
+
+    // Удаление записи document каскадом снимет привязку в meeting_document.
+    await db.delete(document).where(eq(document.id, data.documentId))
+    const fileRef = link.document.url.trim()
+    if (fileRef && !/^https?:\/\//i.test(fileRef)) {
+      await deleteS3Object(fileRef).catch(() => {})
+    }
   })

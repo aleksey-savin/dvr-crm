@@ -32,6 +32,16 @@ function UserActions({ user }: { user: UserRow }) {
           >
             Изменить
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              navigate({
+                to: '/users/$id/reset-password',
+                params: { id: user.id },
+              })
+            }
+          >
+            Сбросить пароль
+          </DropdownMenuItem>
           {user.banned ? (
             <DropdownMenuItem
               onClick={() =>
@@ -68,9 +78,7 @@ export const columns: ColumnDef<UserRow>[] = [
   {
     accessorKey: 'name',
     header: 'Имя',
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.name}</span>
-    ),
+    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
   {
     accessorKey: 'email',

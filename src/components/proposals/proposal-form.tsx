@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
+import { PaperclipIcon, XIcon } from 'lucide-react'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,17 +27,24 @@ import {
   updateProposal,
   fetchInitiativesForProposal,
 } from '@/components/proposals/actions'
-import type { ProposalRow } from '@/types'
+import {
+  DOCUMENT_FILE_ACCEPT,
+  resolveDocumentUrl,
+} from '@/components/documents/actions'
+import { readFileAsBase64 } from '@/lib/file-upload'
+import type { ProposalRow, ProposalStatus } from '@/types'
 
-const NULLABLE_PLACEHOLDER = '__none__'
+const STATUS_OPTIONS: { value: ProposalStatus; label: string }[] = [
+  { value: 'draft', label: 'Черновик' },
+  { value: 'prepared', label: 'Подготовлено' },
+  { value: 'approved', label: 'Согласовано' },
+  { value: 'sent', label: 'Отправлено' },
+]
 
 const formSchema = z.object({
   initiativeId: z.string().min(1, 'Выберите инициативу'),
-  title: z.string().min(1, 'Название обязательно'),
-  amount: z.string().nullable(),
-  validUntil: z.string().nullable(),
+  status: z.enum(['draft', 'prepared', 'approved', 'sent']),
   description: z.string().nullable(),
-  proposalType: z.enum(['initial', 'revised', 'final']).nullable(),
 })
 
 type InitiativeOption = { id: string; title: string }
@@ -54,44 +62,55 @@ export function ProposalForm({
   onSuccess,
 }: Props) {
   const [initiatives, setInitiatives] = React.useState<InitiativeOption[]>([])
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
+  const [fileInputKey, setFileInputKey] = React.useState(0)
+  const existingDoc = item?.documents[0] ?? null
 
   React.useEffect(() => {
     fetchInitiativesForProposal().then(setInitiatives).catch(console.error)
   }, [])
 
-  const isQuickMode = !item && presetInitiativeId !== null
+  // Инициатива фиксирована при редактировании или при создании из карточки
+  // инициативы — в этих случаях выбор инициативы скрыт.
+  const hideInitiativePicker = item != null || presetInitiativeId !== null
 
   const form = useForm({
     defaultValues: {
       initiativeId: item?.initiativeId ?? presetInitiativeId ?? '',
-      title: item?.title ?? '',
-      amount: item?.amount ?? null,
-      validUntil: item?.validUntil ?? null,
+      status: item?.status ?? 'draft',
       description: item?.description ?? null,
-      proposalType: (item?.proposalType ?? null) as
-        | 'initial'
-        | 'revised'
-        | 'final'
-        | null,
     },
     validators: { onSubmit: formSchema },
     onSubmit: async ({ value }) => {
       try {
+        const file = selectedFile
+          ? {
+              fileName: selectedFile.name,
+              mimeType: selectedFile.type || 'application/octet-stream',
+              fileSize: selectedFile.size,
+              fileBase64: await readFileAsBase64(selectedFile),
+            }
+          : null
         if (item) {
           await updateProposal({
             data: {
               id: item.id,
               initiativeId: value.initiativeId,
-              title: value.title,
-              amount: value.amount,
-              validUntil: value.validUntil,
+              status: value.status,
               description: value.description,
-              proposalType: value.proposalType,
+              file,
             },
           })
           toast.success('КП обновлено')
         } else {
-          await addProposal({ data: value })
+          await addProposal({
+            data: {
+              initiativeId: value.initiativeId,
+              status: value.status,
+              description: value.description,
+              file,
+            },
+          })
           toast.success('КП создано')
         }
         onSuccess?.()
@@ -101,6 +120,28 @@ export function ProposalForm({
     },
   })
 
+  const handleOpenExisting = async () => {
+    if (!existingDoc) return
+    const popup = window.open('about:blank')
+    try {
+      const { url } = await resolveDocumentUrl({
+        data: { documentId: existingDoc.id },
+      })
+      if (popup) popup.location.replace(url)
+      else window.open(url, '_blank')
+    } catch (error) {
+      popup?.close()
+      toast.error(
+        error instanceof Error ? error.message : 'Не удалось открыть документ',
+      )
+    }
+  }
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null)
+    setFileInputKey((k) => k + 1)
+  }
+
   return (
     <form
       className="flex flex-col gap-4"
@@ -109,7 +150,7 @@ export function ProposalForm({
         form.handleSubmit()
       }}
     >
-      {!isQuickMode && (
+      {!hideInitiativePicker && (
         <form.Field name="initiativeId">
           {(field) => (
             <Field
@@ -145,89 +186,76 @@ export function ProposalForm({
         </form.Field>
       )}
 
-      <form.Field name="title">
-        {(field) => (
-          <Field
-            data-invalid={
-              field.state.meta.isTouched && !field.state.meta.isValid
-            }
-          >
-            <FieldLabel htmlFor={field.name}>Название *</FieldLabel>
-            <Input
-              id={field.name}
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              onBlur={field.handleBlur}
-              placeholder="Например: PR-поддержка запуска проекта"
-            />
-            <FieldError errors={field.state.meta.errors} />
-          </Field>
-        )}
-      </form.Field>
-
-      <div className="grid grid-cols-2 gap-4">
-        <form.Field name="amount">
-          {(field) => (
-            <Field>
-              <FieldLabel htmlFor={field.name}>Сумма, ₽</FieldLabel>
-              <Input
-                id={field.name}
-                inputMode="decimal"
-                value={field.state.value ?? ''}
-                onChange={(e) => field.handleChange(e.target.value || null)}
-                placeholder="0"
-              />
-            </Field>
-          )}
-        </form.Field>
-
-        <form.Field name="validUntil">
-          {(field) => (
-            <Field>
-              <FieldLabel htmlFor={field.name}>Срок действия</FieldLabel>
-              <Input
-                id={field.name}
-                type="date"
-                value={field.state.value ?? ''}
-                onChange={(e) => field.handleChange(e.target.value || null)}
-              />
-            </Field>
-          )}
-        </form.Field>
-      </div>
-
-      <form.Field name="proposalType">
+      <form.Field name="status">
         {(field) => (
           <Field>
-            <FieldLabel>Тип</FieldLabel>
+            <FieldLabel>Статус</FieldLabel>
             <Select
-              value={field.state.value ?? NULLABLE_PLACEHOLDER}
-              onValueChange={(v) =>
-                field.handleChange(
-                  v === NULLABLE_PLACEHOLDER
-                    ? null
-                    : (v as 'initial' | 'revised' | 'final'),
-                )
-              }
+              value={field.state.value}
+              onValueChange={(v) => field.handleChange(v as ProposalStatus)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Не выбран" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={NULLABLE_PLACEHOLDER}>Не выбран</SelectItem>
-                <SelectItem value="initial">Первичное</SelectItem>
-                <SelectItem value="revised">Уточнённое</SelectItem>
-                <SelectItem value="final">Финальное</SelectItem>
+                {STATUS_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>
         )}
       </form.Field>
 
+      <Field>
+        <FieldLabel htmlFor="proposal-file">Файл КП</FieldLabel>
+        {existingDoc && !selectedFile && (
+          <div className="flex items-center gap-2 border px-3 py-2 text-sm">
+            <PaperclipIcon className="size-3.5 shrink-0 text-muted-foreground" />
+            <button
+              type="button"
+              className="min-w-0 flex-1 truncate text-left hover:underline"
+              title={existingDoc.name}
+              onClick={() => void handleOpenExisting()}
+            >
+              {existingDoc.name}
+            </button>
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Input
+            id="proposal-file"
+            key={fileInputKey}
+            type="file"
+            accept={DOCUMENT_FILE_ACCEPT}
+            className="h-auto cursor-pointer py-2"
+            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+          />
+          {selectedFile && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              title="Убрать файл"
+              onClick={clearSelectedFile}
+            >
+              <XIcon className="size-4" />
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {existingDoc ? 'Загрузите новый файл, чтобы заменить текущий. ' : ''}
+          PDF, DOC, DOCX, XLS, XLSX, JPG, PNG. До 50 МБ.
+        </p>
+      </Field>
+
       <form.Field name="description">
         {(field) => (
           <Field>
-            <FieldLabel htmlFor={field.name}>Описание</FieldLabel>
+            <FieldLabel htmlFor={field.name}>Заметки</FieldLabel>
             <Textarea
               id={field.name}
               value={field.state.value ?? ''}

@@ -10,6 +10,7 @@ import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/companyAccounts/wishlist-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
+import { usePersistedFilter } from '@/stores/filters-store'
 import {
   fetchWishlistAccounts,
   reorderWishlistAccounts,
@@ -133,10 +134,19 @@ function RouteComponent() {
   const router = useRouter()
   const scopedDeptIds = useScopedDepartmentIds()
 
-  const [groupFilter, setGroupFilter] =
-    React.useState<WishlistGroupFilter>('all')
-  const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
+  const [groupFilter, setGroupFilter] = usePersistedFilter<WishlistGroupFilter>(
+    'wishlist',
+    'group',
+    'all',
+  )
+  const [industryFilter, setIndustryFilter] = usePersistedFilter<string[]>(
+    'wishlist',
+    'industry',
+    [],
+  )
+  const [responsibleFilter, setResponsibleFilter] = usePersistedFilter<
+    string[]
+  >('wishlist', 'responsible', [])
 
   const departmentFiltered = !scopedDeptIds
     ? items

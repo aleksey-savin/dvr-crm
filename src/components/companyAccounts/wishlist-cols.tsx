@@ -11,6 +11,7 @@ import {
   Trash2Icon,
 } from 'lucide-react'
 import type { WishlistAccountRow, WishlistTodo } from '@/types'
+import { WishlistRowActions } from '@/components/companyAccounts/wishlist-row-actions'
 
 export type { WishlistAccountRow, WishlistTodo }
 
@@ -283,6 +284,10 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
             <Trash2Icon />
           </Link>
         </Button>
+        <WishlistRowActions
+          id={row.original.id}
+          currentState={row.original.wishlistState}
+        />
       </div>
     ),
   },

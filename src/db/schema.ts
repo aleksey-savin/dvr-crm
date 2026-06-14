@@ -838,6 +838,61 @@ export const commentRead = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Documents (загрузка файлов в S3): общая таблица `document` + per-entity
+// join-таблицы. URL хранит ключ объекта в S3 (или внешний http-URL).
+// ---------------------------------------------------------------------------
+
+export const document = pgTable('document', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: text('name').notNull(),
+  url: text('url').notNull(),
+  uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
+  uploadedBy: text('uploaded_by')
+    .notNull()
+    .references(() => user.id),
+})
+
+export const proposalDocument = pgTable(
+  'proposal_document',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    proposalId: text('proposal_id')
+      .notNull()
+      .references(() => proposal.id, { onDelete: 'cascade' }),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => document.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    index('proposal_document_proposal_idx').on(table.proposalId),
+    unique('proposal_document_unique').on(table.proposalId, table.documentId),
+  ],
+)
+
+export const meetingDocument = pgTable(
+  'meeting_document',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    meetingId: text('meeting_id')
+      .notNull()
+      .references(() => meeting.id, { onDelete: 'cascade' }),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => document.id, { onDelete: 'cascade' }),
+  },
+  (table) => [
+    index('meeting_document_meeting_idx').on(table.meetingId),
+    unique('meeting_document_unique').on(table.meetingId, table.documentId),
+  ],
+)
+
+// ---------------------------------------------------------------------------
 // Meeting
 // ---------------------------------------------------------------------------
 
@@ -981,6 +1036,9 @@ export const targetActionType = pgTable(
     name: text('name').notNull(),
     slug: text('slug').notNull(),
     isSystem: boolean('is_system').notNull().default(false),
+    // Whether this type participates in KPI planning. Fact-only types (e.g.
+    // meeting reschedule) are reported by count only — no plan, no percent.
+    isPlannable: boolean('is_plannable').notNull().default(true),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
@@ -1073,6 +1131,63 @@ export const targetAction = pgTable(
 )
 
 // ---------------------------------------------------------------------------
+// Target Action Plan (план по целевым действиям — KPI-цель на месяц)
+// Менеджер ставит план себе (status='pending'); руководитель корректирует и
+// согласовывает (status='approved'). Факт считается из target_action.
+// ---------------------------------------------------------------------------
+
+export const targetActionPlan = pgTable(
+  'target_action_plan',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    departmentId: text('department_id').references(() => department.id, {
+      onDelete: 'set null',
+    }),
+    typeId: text('type_id')
+      .notNull()
+      .references(() => targetActionType.id, { onDelete: 'cascade' }),
+    year: integer('year').notNull(),
+    month: integer('month').notNull(),
+    plannedCount: integer('planned_count').notNull().default(0),
+    status: text('status', { enum: ['pending', 'approved'] })
+      .notNull()
+      .default('pending'),
+    approvedByUserId: text('approved_by_user_id').references(() => user.id, {
+      onDelete: 'set null',
+    }),
+    approvedAt: timestamp('approved_at'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique('target_action_plan_user_type_year_month_unique').on(
+      table.userId,
+      table.typeId,
+      table.year,
+      table.month,
+    ),
+    index('target_action_plan_user_period_idx').on(
+      table.userId,
+      table.year,
+      table.month,
+    ),
+    index('target_action_plan_department_period_idx').on(
+      table.departmentId,
+      table.year,
+      table.month,
+    ),
+  ],
+)
+
+// ---------------------------------------------------------------------------
 // Proposal (Коммерческое предложение)
 // ---------------------------------------------------------------------------
 
@@ -1085,24 +1200,18 @@ export const proposal = pgTable(
     initiativeId: text('initiative_id')
       .notNull()
       .references(() => initiative.id, { onDelete: 'cascade' }),
-    title: text('title').notNull(),
     version: integer('version').notNull().default(1),
     status: text('status', {
-      enum: ['draft', 'prepared', 'sent'],
+      enum: ['draft', 'prepared', 'approved', 'sent'],
     })
       .notNull()
       .default('draft'),
-    proposalType: text('proposal_type', {
-      enum: ['initial', 'revised', 'final'],
-    }),
-    amount: numeric('amount', { precision: 15, scale: 2 }),
-    validUntil: date('valid_until'),
-    isCurrent: boolean('is_current').notNull().default(false),
     description: text('description'),
     senderUserId: text('sender_user_id').references(() => user.id, {
       onDelete: 'set null',
     }),
     preparedAt: timestamp('prepared_at'),
+    approvedAt: timestamp('approved_at'),
     sentAt: timestamp('sent_at'),
     deletedAt: timestamp('deleted_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -1160,6 +1269,31 @@ export const clientClassificationSettings = pgTable(
       .notNull(),
   },
 )
+
+// ---------------------------------------------------------------------------
+// Email settings (singleton SMTP-конфиг для уведомлений — пока только конфиг)
+// ---------------------------------------------------------------------------
+
+export const emailSettings = pgTable('email_settings', {
+  id: text('id').primaryKey().default('default'),
+  enabled: boolean('enabled').notNull().default(false),
+  host: text('host'),
+  port: integer('port'),
+  secure: text('secure', { enum: ['none', 'ssl_tls', 'starttls'] })
+    .notNull()
+    .default('none'),
+  username: text('username'),
+  password: text('password'),
+  fromEmail: text('from_email'),
+  updatedByUserId: text('updated_by_user_id').references(() => user.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+})
 
 // ---------------------------------------------------------------------------
 // Changelog
@@ -1594,6 +1728,41 @@ export const commentReadRelations = relations(commentRead, ({ one }) => ({
   }),
 }))
 
+export const documentRelations = relations(document, ({ one }) => ({
+  uploadedByUser: one(user, {
+    fields: [document.uploadedBy],
+    references: [user.id],
+  }),
+}))
+
+export const proposalDocumentRelations = relations(
+  proposalDocument,
+  ({ one }) => ({
+    proposal: one(proposal, {
+      fields: [proposalDocument.proposalId],
+      references: [proposal.id],
+    }),
+    document: one(document, {
+      fields: [proposalDocument.documentId],
+      references: [document.id],
+    }),
+  }),
+)
+
+export const meetingDocumentRelations = relations(
+  meetingDocument,
+  ({ one }) => ({
+    meeting: one(meeting, {
+      fields: [meetingDocument.meetingId],
+      references: [meeting.id],
+    }),
+    document: one(document, {
+      fields: [meetingDocument.documentId],
+      references: [document.id],
+    }),
+  }),
+)
+
 export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
@@ -1722,6 +1891,30 @@ export const salesPlanRelations = relations(salesPlan, ({ one }) => ({
     references: [user.id],
   }),
 }))
+
+export const targetActionPlanRelations = relations(
+  targetActionPlan,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [targetActionPlan.userId],
+      references: [user.id],
+      relationName: 'targetActionPlanUser',
+    }),
+    department: one(department, {
+      fields: [targetActionPlan.departmentId],
+      references: [department.id],
+    }),
+    type: one(targetActionType, {
+      fields: [targetActionPlan.typeId],
+      references: [targetActionType.id],
+    }),
+    approvedBy: one(user, {
+      fields: [targetActionPlan.approvedByUserId],
+      references: [user.id],
+      relationName: 'targetActionPlanApprovedBy',
+    }),
+  }),
+)
 
 export const accountUpsellingOpportunityRelations = relations(
   accountUpsellingOpportunity,
@@ -1887,6 +2080,7 @@ export const meetingRelations = relations(meeting, ({ one, many }) => ({
   rescheduledTo: many(meeting, { relationName: 'meetingReschedule' }),
   participants: many(meetingParticipant),
   externalParticipants: many(meetingExternalParticipant),
+  meetingDocuments: many(meetingDocument),
 }))
 
 export const meetingRoomRelations = relations(meetingRoom, ({ many }) => ({
@@ -1980,6 +2174,7 @@ export const proposalRelations = relations(proposal, ({ one, many }) => ({
     references: [user.id],
   }),
   targetActions: many(targetAction),
+  proposalDocuments: many(proposalDocument),
 }))
 
 export const todoRelations = relations(todo, ({ one, many }) => ({

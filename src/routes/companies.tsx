@@ -33,7 +33,9 @@ function RouteComponent() {
   const [statusFilter, setStatusFilter] = React.useState<string[]>([])
 
   const industryOptions: Array<TableFilterOption> = Array.from(
-    new Set(items.map((c) => c.industry).filter((n): n is string => n !== null)),
+    new Set(
+      items.map((c) => c.industry).filter((n): n is string => n !== null),
+    ),
   )
     .sort((a, b) => a.localeCompare(b, 'ru'))
     .map((name) => ({ value: name, label: name }))
@@ -45,7 +47,8 @@ function RouteComponent() {
       const matches = statusFilter.some((s) => {
         if (s === 'wishlist') return c.isWishlist
         if (s === 'target') return c.clients.some((cl) => cl.isTarget)
-        if (s === 'regular') return c.clients.some((cl) => !cl.isTarget && !cl.isLost)
+        if (s === 'regular')
+          return c.clients.some((cl) => !cl.isTarget && !cl.isLost)
         if (s === 'lost') return c.clients.some((cl) => cl.isLost)
         return false
       })

@@ -73,7 +73,9 @@ export const columns: ColumnDef<InitiativeRow>[] = [
       </Button>
     ),
     cell: ({ row }) =>
-      row.original.companyName ?? <span className="text-muted-foreground">—</span>,
+      row.original.companyName ?? (
+        <span className="text-muted-foreground">—</span>
+      ),
   },
   {
     accessorKey: 'responsibleUserName',

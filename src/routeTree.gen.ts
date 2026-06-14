@@ -44,6 +44,7 @@ import { Route as TagsNewRouteImport } from './routes/tags.new'
 import { Route as SignalsNewRouteImport } from './routes/signals.new'
 import { Route as SignalTypesNewRouteImport } from './routes/signal-types.new'
 import { Route as SalesPlansNewRouteImport } from './routes/sales-plans.new'
+import { Route as ReportsTargetActionsRouteImport } from './routes/reports_.target-actions'
 import { Route as RefusalReasonsNewRouteImport } from './routes/refusal-reasons.new'
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
 import { Route as MeetingsNewRouteImport } from './routes/meetings.new'
@@ -61,6 +62,7 @@ import { Route as WishlistIdUpdateRouteImport } from './routes/wishlist.$id.upda
 import { Route as WishlistIdDeleteRouteImport } from './routes/wishlist.$id.delete'
 import { Route as UsersIdUpdateRouteImport } from './routes/users.$id.update'
 import { Route as UsersIdUnbanRouteImport } from './routes/users.$id.unban'
+import { Route as UsersIdResetPasswordRouteImport } from './routes/users.$id.reset-password'
 import { Route as UsersIdDeleteRouteImport } from './routes/users.$id.delete'
 import { Route as UsersIdBanRouteImport } from './routes/users.$id.ban'
 import { Route as TodosIdViewRouteImport } from './routes/todos_.$id.view'
@@ -290,6 +292,11 @@ const SalesPlansNewRoute = SalesPlansNewRouteImport.update({
   path: '/new',
   getParentRoute: () => SalesPlansRoute,
 } as any)
+const ReportsTargetActionsRoute = ReportsTargetActionsRouteImport.update({
+  id: '/reports_/target-actions',
+  path: '/reports/target-actions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RefusalReasonsNewRoute = RefusalReasonsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -373,6 +380,11 @@ const UsersIdUpdateRoute = UsersIdUpdateRouteImport.update({
 const UsersIdUnbanRoute = UsersIdUnbanRouteImport.update({
   id: '/$id/unban',
   path: '/$id/unban',
+  getParentRoute: () => UsersRoute,
+} as any)
+const UsersIdResetPasswordRoute = UsersIdResetPasswordRouteImport.update({
+  id: '/$id/reset-password',
+  path: '/$id/reset-password',
   getParentRoute: () => UsersRoute,
 } as any)
 const UsersIdDeleteRoute = UsersIdDeleteRouteImport.update({
@@ -682,6 +694,7 @@ export interface FileRoutesByFullPath {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
   '/signals/new': typeof SignalsNewRoute
@@ -744,6 +757,7 @@ export interface FileRoutesByFullPath {
   '/todos/$id/view': typeof TodosIdViewRoute
   '/users/$id/ban': typeof UsersIdBanRoute
   '/users/$id/delete': typeof UsersIdDeleteRoute
+  '/users/$id/reset-password': typeof UsersIdResetPasswordRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
   '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
@@ -789,6 +803,7 @@ export interface FileRoutesByTo {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
   '/signals/new': typeof SignalsNewRoute
@@ -851,6 +866,7 @@ export interface FileRoutesByTo {
   '/todos/$id/view': typeof TodosIdViewRoute
   '/users/$id/ban': typeof UsersIdBanRoute
   '/users/$id/delete': typeof UsersIdDeleteRoute
+  '/users/$id/reset-password': typeof UsersIdResetPasswordRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
   '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
@@ -897,6 +913,7 @@ export interface FileRoutesById {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports_/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
   '/signals/new': typeof SignalsNewRoute
@@ -959,6 +976,7 @@ export interface FileRoutesById {
   '/todos_/$id/view': typeof TodosIdViewRoute
   '/users/$id/ban': typeof UsersIdBanRoute
   '/users/$id/delete': typeof UsersIdDeleteRoute
+  '/users/$id/reset-password': typeof UsersIdResetPasswordRoute
   '/users/$id/unban': typeof UsersIdUnbanRoute
   '/users/$id/update': typeof UsersIdUpdateRoute
   '/wishlist/$id/delete': typeof WishlistIdDeleteRoute
@@ -1006,6 +1024,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
     | '/signals/new'
@@ -1068,6 +1087,7 @@ export interface FileRouteTypes {
     | '/todos/$id/view'
     | '/users/$id/ban'
     | '/users/$id/delete'
+    | '/users/$id/reset-password'
     | '/users/$id/unban'
     | '/users/$id/update'
     | '/wishlist/$id/delete'
@@ -1113,6 +1133,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
     | '/signals/new'
@@ -1175,6 +1196,7 @@ export interface FileRouteTypes {
     | '/todos/$id/view'
     | '/users/$id/ban'
     | '/users/$id/delete'
+    | '/users/$id/reset-password'
     | '/users/$id/unban'
     | '/users/$id/update'
     | '/wishlist/$id/delete'
@@ -1220,6 +1242,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports_/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
     | '/signals/new'
@@ -1282,6 +1305,7 @@ export interface FileRouteTypes {
     | '/todos_/$id/view'
     | '/users/$id/ban'
     | '/users/$id/delete'
+    | '/users/$id/reset-password'
     | '/users/$id/unban'
     | '/users/$id/update'
     | '/wishlist/$id/delete'
@@ -1317,6 +1341,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRouteWithChildren
   LeadsNewRoute: typeof LeadsNewRoute
+  ReportsTargetActionsRoute: typeof ReportsTargetActionsRoute
   SignalsNewRoute: typeof SignalsNewRoute
   TendersNewRoute: typeof TendersNewRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -1585,6 +1610,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesPlansNewRouteImport
       parentRoute: typeof SalesPlansRoute
     }
+    '/reports_/target-actions': {
+      id: '/reports_/target-actions'
+      path: '/reports/target-actions'
+      fullPath: '/reports/target-actions'
+      preLoaderRoute: typeof ReportsTargetActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/refusal-reasons/new': {
       id: '/refusal-reasons/new'
       path: '/new'
@@ -1702,6 +1734,13 @@ declare module '@tanstack/react-router' {
       path: '/$id/unban'
       fullPath: '/users/$id/unban'
       preLoaderRoute: typeof UsersIdUnbanRouteImport
+      parentRoute: typeof UsersRoute
+    }
+    '/users/$id/reset-password': {
+      id: '/users/$id/reset-password'
+      path: '/$id/reset-password'
+      fullPath: '/users/$id/reset-password'
+      preLoaderRoute: typeof UsersIdResetPasswordRouteImport
       parentRoute: typeof UsersRoute
     }
     '/users/$id/delete': {
@@ -2338,6 +2377,7 @@ interface UsersRouteChildren {
   UsersNewRoute: typeof UsersNewRoute
   UsersIdBanRoute: typeof UsersIdBanRoute
   UsersIdDeleteRoute: typeof UsersIdDeleteRoute
+  UsersIdResetPasswordRoute: typeof UsersIdResetPasswordRoute
   UsersIdUnbanRoute: typeof UsersIdUnbanRoute
   UsersIdUpdateRoute: typeof UsersIdUpdateRoute
 }
@@ -2346,6 +2386,7 @@ const UsersRouteChildren: UsersRouteChildren = {
   UsersNewRoute: UsersNewRoute,
   UsersIdBanRoute: UsersIdBanRoute,
   UsersIdDeleteRoute: UsersIdDeleteRoute,
+  UsersIdResetPasswordRoute: UsersIdResetPasswordRoute,
   UsersIdUnbanRoute: UsersIdUnbanRoute,
   UsersIdUpdateRoute: UsersIdUpdateRoute,
 }
@@ -2396,6 +2437,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRouteWithChildren,
   LeadsNewRoute: LeadsNewRoute,
+  ReportsTargetActionsRoute: ReportsTargetActionsRoute,
   SignalsNewRoute: SignalsNewRoute,
   TendersNewRoute: TendersNewRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

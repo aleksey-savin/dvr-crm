@@ -12,7 +12,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { deleteSignalType, fetchSignalType } from '@/components/signal-types/actions'
+import {
+  deleteSignalType,
+  fetchSignalType,
+} from '@/components/signal-types/actions'
 
 export const Route = createFileRoute('/signal-types/$id/delete')({
   loader: ({ params }) => fetchSignalType({ data: params }),

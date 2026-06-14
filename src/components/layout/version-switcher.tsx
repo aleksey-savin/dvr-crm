@@ -140,7 +140,11 @@ export function VersionSwitcher({
               <DropdownMenuItem
                 key={dept.id}
                 onSelect={() => setSelectedDepartmentId(dept.id)}
-                style={dept.depth > 0 ? { paddingLeft: dept.depth * 16 + 8 } : undefined}
+                style={
+                  dept.depth > 0
+                    ? { paddingLeft: dept.depth * 16 + 8 }
+                    : undefined
+                }
               >
                 <span className="flex items-center gap-2 flex-1">
                   {dept.accentColor ? (

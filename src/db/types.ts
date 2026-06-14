@@ -37,9 +37,11 @@ import type {
   meetingExternalParticipant,
   targetActionType,
   targetAction,
+  targetActionPlan,
   proposal,
   apiKey,
   clientClassificationSettings,
+  emailSettings,
   changelogRelease,
   lead,
   tender,
@@ -48,6 +50,9 @@ import type {
   pipelineStage,
   pipelineDepartment,
   initiative,
+  document,
+  proposalDocument,
+  meetingDocument,
 } from './schema'
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
@@ -285,6 +290,14 @@ export type UpdateTargetAction = Partial<
   Omit<InsertTargetAction, 'id' | 'createdAt' | 'updatedAt'>
 >
 
+// ─── Target Action Plan (план по целевым действиям) ──────────────────────────
+
+export type SelectTargetActionPlan = InferSelectModel<typeof targetActionPlan>
+export type InsertTargetActionPlan = InferInsertModel<typeof targetActionPlan>
+export type UpdateTargetActionPlan = Partial<
+  Omit<InsertTargetActionPlan, 'id' | 'createdAt' | 'updatedAt'>
+>
+
 // ─── Proposal (Коммерческое предложение) ─────────────────────────────────────
 
 export type SelectProposal = InferSelectModel<typeof proposal>
@@ -292,6 +305,18 @@ export type InsertProposal = InferInsertModel<typeof proposal>
 export type UpdateProposal = Partial<
   Omit<InsertProposal, 'id' | 'createdAt' | 'updatedAt'>
 >
+
+// ─── Documents (вложения, загрузка в S3) ─────────────────────────────────────
+
+export type SelectDocument = InferSelectModel<typeof document>
+export type InsertDocument = InferInsertModel<typeof document>
+export type UpdateDocument = Partial<Omit<InsertDocument, 'id' | 'uploadedAt'>>
+
+export type SelectProposalDocument = InferSelectModel<typeof proposalDocument>
+export type InsertProposalDocument = InferInsertModel<typeof proposalDocument>
+
+export type SelectMeetingDocument = InferSelectModel<typeof meetingDocument>
+export type InsertMeetingDocument = InferInsertModel<typeof meetingDocument>
 
 // ─── API Key ─────────────────────────────────────────────────────────────────
 
@@ -311,6 +336,14 @@ export type InsertClientClassificationSettings = InferInsertModel<
 >
 export type UpdateClientClassificationSettings = Partial<
   Omit<InsertClientClassificationSettings, 'id' | 'createdAt' | 'updatedAt'>
+>
+
+// ─── Email settings (SMTP-конфиг) ────────────────────────────────────────────
+
+export type SelectEmailSettings = InferSelectModel<typeof emailSettings>
+export type InsertEmailSettings = InferInsertModel<typeof emailSettings>
+export type UpdateEmailSettings = Partial<
+  Omit<InsertEmailSettings, 'id' | 'createdAt' | 'updatedAt'>
 >
 
 // ─── Changelog ──────────────────────────────────────────────────────────────

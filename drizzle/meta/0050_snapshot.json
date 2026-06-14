@@ -110,12 +110,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -212,12 +208,8 @@
           "name": "account_gross_profits_company_account_id_company_account_id_fk",
           "tableFrom": "account_gross_profits",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -287,12 +279,8 @@
           "name": "account_hooks_company_account_id_company_account_id_fk",
           "tableFrom": "account_hooks",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -362,12 +350,8 @@
           "name": "account_risks_company_account_id_company_account_id_fk",
           "tableFrom": "account_risks",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -464,12 +448,8 @@
           "name": "account_target_forecasts_company_account_id_company_account_id_fk",
           "tableFrom": "account_target_forecasts",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -539,12 +519,8 @@
           "name": "account_upselling_opportunities_company_account_id_company_account_id_fk",
           "tableFrom": "account_upselling_opportunities",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -604,12 +580,8 @@
           "name": "api_key_user_id_user_id_fk",
           "tableFrom": "api_key",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -746,12 +718,8 @@
           "name": "changelog_release_author_id_user_id_fk",
           "tableFrom": "changelog_release",
           "tableTo": "user",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -814,12 +782,8 @@
           "name": "client_classification_settings_updated_by_user_id_user_id_fk",
           "tableFrom": "client_classification_settings",
           "tableTo": "user",
-          "columnsFrom": [
-            "updated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -928,12 +892,8 @@
           "name": "comments_author_id_user_id_fk",
           "tableFrom": "comments",
           "tableTo": "user",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["author_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1014,12 +974,8 @@
           "name": "comment_attachments_comment_id_comments_id_fk",
           "tableFrom": "comment_attachments",
           "tableTo": "comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["comment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1091,12 +1047,8 @@
           "name": "comment_reads_comment_id_comments_id_fk",
           "tableFrom": "comment_reads",
           "tableTo": "comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["comment_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1104,12 +1056,8 @@
           "name": "comment_reads_user_id_user_id_fk",
           "tableFrom": "comment_reads",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1117,10 +1065,7 @@
       "compositePrimaryKeys": {
         "comment_reads_comment_id_user_id_pk": {
           "name": "comment_reads_comment_id_user_id_pk",
-          "columns": [
-            "comment_id",
-            "user_id"
-          ]
+          "columns": ["comment_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1201,12 +1146,8 @@
           "name": "company_industry_id_industry_id_fk",
           "tableFrom": "company",
           "tableTo": "industry",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1390,12 +1331,8 @@
           "name": "company_account_company_id_company_id_fk",
           "tableFrom": "company_account",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1403,12 +1340,8 @@
           "name": "company_account_business_unit_id_department_id_fk",
           "tableFrom": "company_account",
           "tableTo": "department",
-          "columnsFrom": [
-            "business_unit_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["business_unit_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1416,12 +1349,8 @@
           "name": "company_account_owner_user_id_user_id_fk",
           "tableFrom": "company_account",
           "tableTo": "user",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1493,12 +1422,8 @@
           "name": "company_account_departments_company_account_id_company_account_id_fk",
           "tableFrom": "company_account_departments",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1506,12 +1431,8 @@
           "name": "company_account_departments_department_id_department_id_fk",
           "tableFrom": "company_account_departments",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1519,10 +1440,7 @@
       "compositePrimaryKeys": {
         "company_account_departments_company_account_id_department_id_pk": {
           "name": "company_account_departments_company_account_id_department_id_pk",
-          "columns": [
-            "company_account_id",
-            "department_id"
-          ]
+          "columns": ["company_account_id", "department_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1591,12 +1509,8 @@
           "name": "company_account_managers_company_account_id_company_account_id_fk",
           "tableFrom": "company_account_managers",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1604,12 +1518,8 @@
           "name": "company_account_managers_user_id_user_id_fk",
           "tableFrom": "company_account_managers",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1617,10 +1527,7 @@
       "compositePrimaryKeys": {
         "company_account_managers_company_account_id_user_id_pk": {
           "name": "company_account_managers_company_account_id_user_id_pk",
-          "columns": [
-            "company_account_id",
-            "user_id"
-          ]
+          "columns": ["company_account_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1750,12 +1657,8 @@
           "name": "company_contact_company_id_company_id_fk",
           "tableFrom": "company_contact",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1763,12 +1666,8 @@
           "name": "company_contact_contact_role_id_contact_role_id_fk",
           "tableFrom": "company_contact",
           "tableTo": "contact_role",
-          "columnsFrom": [
-            "contact_role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["contact_role_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1846,12 +1745,8 @@
           "name": "company_counterparty_company_id_company_id_fk",
           "tableFrom": "company_counterparty",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1859,12 +1754,8 @@
           "name": "company_counterparty_counterparty_id_counterparty_id_fk",
           "tableFrom": "company_counterparty",
           "tableTo": "counterparty",
-          "columnsFrom": [
-            "counterparty_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["counterparty_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1874,10 +1765,7 @@
         "company_counterparty_unique": {
           "name": "company_counterparty_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "company_id",
-            "counterparty_id"
-          ]
+          "columns": ["company_id", "counterparty_id"]
         }
       },
       "policies": {},
@@ -1970,12 +1858,8 @@
           "name": "company_revenue_company_id_company_id_fk",
           "tableFrom": "company_revenue",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2024,9 +1908,7 @@
         "contact_role_name_unique": {
           "name": "contact_role_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -2204,12 +2086,8 @@
           "name": "department_head_user_id_user_id_fk",
           "tableFrom": "department",
           "tableTo": "user",
-          "columnsFrom": [
-            "head_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["head_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2217,12 +2095,8 @@
           "name": "department_parent_department_id_department_id_fk",
           "tableFrom": "department",
           "tableTo": "department",
-          "columnsFrom": [
-            "parent_department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["parent_department_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2428,12 +2302,8 @@
           "name": "gross_profit_fact_company_account_id_company_account_id_fk",
           "tableFrom": "gross_profit_fact",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2441,12 +2311,8 @@
           "name": "gross_profit_fact_manager_user_id_user_id_fk",
           "tableFrom": "gross_profit_fact",
           "tableTo": "user",
-          "columnsFrom": [
-            "manager_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["manager_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -2454,12 +2320,8 @@
           "name": "gross_profit_fact_department_id_department_id_fk",
           "tableFrom": "gross_profit_fact",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2508,9 +2370,7 @@
         "industry_name_unique": {
           "name": "industry_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -2817,12 +2677,8 @@
           "name": "initiative_pipeline_id_pipeline_id_fk",
           "tableFrom": "initiative",
           "tableTo": "pipeline",
-          "columnsFrom": [
-            "pipeline_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pipeline_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2830,12 +2686,8 @@
           "name": "initiative_stage_id_pipeline_stage_id_fk",
           "tableFrom": "initiative",
           "tableTo": "pipeline_stage",
-          "columnsFrom": [
-            "stage_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stage_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2843,12 +2695,8 @@
           "name": "initiative_company_account_id_company_account_id_fk",
           "tableFrom": "initiative",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2856,12 +2704,8 @@
           "name": "initiative_company_id_company_id_fk",
           "tableFrom": "initiative",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2869,12 +2713,8 @@
           "name": "initiative_department_id_department_id_fk",
           "tableFrom": "initiative",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2882,12 +2722,8 @@
           "name": "initiative_responsible_user_id_user_id_fk",
           "tableFrom": "initiative",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsible_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsible_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2895,12 +2731,8 @@
           "name": "initiative_source_lead_id_lead_id_fk",
           "tableFrom": "initiative",
           "tableTo": "lead",
-          "columnsFrom": [
-            "source_lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2908,12 +2740,8 @@
           "name": "initiative_source_signal_id_signal_id_fk",
           "tableFrom": "initiative",
           "tableTo": "signal",
-          "columnsFrom": [
-            "source_signal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_signal_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -2921,12 +2749,8 @@
           "name": "initiative_refusal_reason_id_refusal_reason_id_fk",
           "tableFrom": "initiative",
           "tableTo": "refusal_reason",
-          "columnsFrom": [
-            "refusal_reason_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["refusal_reason_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3162,12 +2986,8 @@
           "name": "lead_company_id_company_id_fk",
           "tableFrom": "lead",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3175,12 +2995,8 @@
           "name": "lead_department_id_department_id_fk",
           "tableFrom": "lead",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3188,12 +3004,8 @@
           "name": "lead_responsible_user_id_user_id_fk",
           "tableFrom": "lead",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsible_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsible_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3201,12 +3013,8 @@
           "name": "lead_industry_id_industry_id_fk",
           "tableFrom": "lead",
           "tableTo": "industry",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3214,12 +3022,8 @@
           "name": "lead_source_id_source_id_fk",
           "tableFrom": "lead",
           "tableTo": "source",
-          "columnsFrom": [
-            "source_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3227,12 +3031,8 @@
           "name": "lead_lost_reason_id_refusal_reason_id_fk",
           "tableFrom": "lead",
           "tableTo": "refusal_reason",
-          "columnsFrom": [
-            "lost_reason_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lost_reason_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3479,12 +3279,8 @@
           "name": "meeting_company_id_company_id_fk",
           "tableFrom": "meeting",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3492,12 +3288,8 @@
           "name": "meeting_organizer_id_user_id_fk",
           "tableFrom": "meeting",
           "tableTo": "user",
-          "columnsFrom": [
-            "organizer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organizer_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3505,12 +3297,8 @@
           "name": "meeting_department_id_department_id_fk",
           "tableFrom": "meeting",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3518,12 +3306,8 @@
           "name": "meeting_account_id_company_account_id_fk",
           "tableFrom": "meeting",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3531,12 +3315,8 @@
           "name": "meeting_lead_id_lead_id_fk",
           "tableFrom": "meeting",
           "tableTo": "lead",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3544,12 +3324,8 @@
           "name": "meeting_tender_id_tender_id_fk",
           "tableFrom": "meeting",
           "tableTo": "tender",
-          "columnsFrom": [
-            "tender_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tender_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3557,12 +3333,8 @@
           "name": "meeting_initiative_id_initiative_id_fk",
           "tableFrom": "meeting",
           "tableTo": "initiative",
-          "columnsFrom": [
-            "initiative_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initiative_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -3570,12 +3342,8 @@
           "name": "meeting_rescheduled_from_meeting_id_meeting_id_fk",
           "tableFrom": "meeting",
           "tableTo": "meeting",
-          "columnsFrom": [
-            "rescheduled_from_meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["rescheduled_from_meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3644,12 +3412,8 @@
           "name": "meeting_external_participant_meeting_id_meeting_id_fk",
           "tableFrom": "meeting_external_participant",
           "tableTo": "meeting",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3657,12 +3421,8 @@
           "name": "meeting_external_participant_contact_id_company_contact_id_fk",
           "tableFrom": "meeting_external_participant",
           "tableTo": "company_contact",
-          "columnsFrom": [
-            "contact_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["contact_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -3727,12 +3487,8 @@
           "name": "meeting_participant_meeting_id_meeting_id_fk",
           "tableFrom": "meeting_participant",
           "tableTo": "meeting",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3740,12 +3496,8 @@
           "name": "meeting_participant_user_id_user_id_fk",
           "tableFrom": "meeting_participant",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3753,10 +3505,7 @@
       "compositePrimaryKeys": {
         "meeting_participant_meeting_id_user_id_pk": {
           "name": "meeting_participant_meeting_id_user_id_pk",
-          "columns": [
-            "meeting_id",
-            "user_id"
-          ]
+          "columns": ["meeting_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -3863,12 +3612,8 @@
           "name": "pipeline_department_pipeline_id_pipeline_id_fk",
           "tableFrom": "pipeline_department",
           "tableTo": "pipeline",
-          "columnsFrom": [
-            "pipeline_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pipeline_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -3876,12 +3621,8 @@
           "name": "pipeline_department_department_id_department_id_fk",
           "tableFrom": "pipeline_department",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -3889,10 +3630,7 @@
       "compositePrimaryKeys": {
         "pipeline_department_pipeline_id_department_id_pk": {
           "name": "pipeline_department_pipeline_id_department_id_pk",
-          "columns": [
-            "pipeline_id",
-            "department_id"
-          ]
+          "columns": ["pipeline_id", "department_id"]
         }
       },
       "uniqueConstraints": {},
@@ -4008,12 +3746,8 @@
           "name": "pipeline_stage_pipeline_id_pipeline_id_fk",
           "tableFrom": "pipeline_stage",
           "tableTo": "pipeline",
-          "columnsFrom": [
-            "pipeline_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pipeline_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4182,12 +3916,8 @@
           "name": "proposal_initiative_id_initiative_id_fk",
           "tableFrom": "proposal",
           "tableTo": "initiative",
-          "columnsFrom": [
-            "initiative_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initiative_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -4195,12 +3925,8 @@
           "name": "proposal_sender_user_id_user_id_fk",
           "tableFrom": "proposal",
           "tableTo": "user",
-          "columnsFrom": [
-            "sender_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sender_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4249,9 +3975,7 @@
         "refusal_reason_name_unique": {
           "name": "refusal_reason_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -4340,12 +4064,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -4355,9 +4075,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -4562,12 +4280,8 @@
           "name": "signal_company_id_company_id_fk",
           "tableFrom": "signal",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4575,12 +4289,8 @@
           "name": "signal_department_id_department_id_fk",
           "tableFrom": "signal",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4588,12 +4298,8 @@
           "name": "signal_responsible_user_id_user_id_fk",
           "tableFrom": "signal",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsible_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsible_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4601,12 +4307,8 @@
           "name": "signal_industry_id_industry_id_fk",
           "tableFrom": "signal",
           "tableTo": "industry",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -4614,12 +4316,8 @@
           "name": "signal_signal_type_id_signal_type_id_fk",
           "tableFrom": "signal",
           "tableTo": "signal_type",
-          "columnsFrom": [
-            "signal_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["signal_type_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -4668,9 +4366,7 @@
         "signal_type_name_unique": {
           "name": "signal_type_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -4715,9 +4411,7 @@
         "source_name_unique": {
           "name": "source_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -4762,9 +4456,7 @@
         "tag_name_unique": {
           "name": "tag_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "policies": {},
@@ -5047,12 +4739,8 @@
           "name": "target_action_type_id_target_action_type_id_fk",
           "tableFrom": "target_action",
           "tableTo": "target_action_type",
-          "columnsFrom": [
-            "type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["type_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -5060,12 +4748,8 @@
           "name": "target_action_responsible_user_id_user_id_fk",
           "tableFrom": "target_action",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsible_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsible_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5073,12 +4757,8 @@
           "name": "target_action_department_id_department_id_fk",
           "tableFrom": "target_action",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5086,12 +4766,8 @@
           "name": "target_action_account_id_company_account_id_fk",
           "tableFrom": "target_action",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5099,12 +4775,8 @@
           "name": "target_action_lead_id_lead_id_fk",
           "tableFrom": "target_action",
           "tableTo": "lead",
-          "columnsFrom": [
-            "lead_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lead_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5112,12 +4784,8 @@
           "name": "target_action_tender_id_tender_id_fk",
           "tableFrom": "target_action",
           "tableTo": "tender",
-          "columnsFrom": [
-            "tender_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tender_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5125,12 +4793,8 @@
           "name": "target_action_signal_id_signal_id_fk",
           "tableFrom": "target_action",
           "tableTo": "signal",
-          "columnsFrom": [
-            "signal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["signal_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5138,12 +4802,8 @@
           "name": "target_action_initiative_id_initiative_id_fk",
           "tableFrom": "target_action",
           "tableTo": "initiative",
-          "columnsFrom": [
-            "initiative_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["initiative_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5151,12 +4811,8 @@
           "name": "target_action_proposal_id_proposal_id_fk",
           "tableFrom": "target_action",
           "tableTo": "proposal",
-          "columnsFrom": [
-            "proposal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["proposal_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5240,9 +4896,7 @@
         "target_action_type_slug_unique": {
           "name": "target_action_type_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -5486,12 +5140,8 @@
           "name": "tender_company_id_company_id_fk",
           "tableFrom": "tender",
           "tableTo": "company",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5499,12 +5149,8 @@
           "name": "tender_department_id_department_id_fk",
           "tableFrom": "tender",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5512,12 +5158,8 @@
           "name": "tender_responsible_user_id_user_id_fk",
           "tableFrom": "tender",
           "tableTo": "user",
-          "columnsFrom": [
-            "responsible_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["responsible_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5525,12 +5167,8 @@
           "name": "tender_approver_user_id_user_id_fk",
           "tableFrom": "tender",
           "tableTo": "user",
-          "columnsFrom": [
-            "approver_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["approver_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5538,12 +5176,8 @@
           "name": "tender_industry_id_industry_id_fk",
           "tableFrom": "tender",
           "tableTo": "industry",
-          "columnsFrom": [
-            "industry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["industry_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         },
@@ -5551,12 +5185,8 @@
           "name": "tender_lost_reason_id_refusal_reason_id_fk",
           "tableFrom": "tender",
           "tableTo": "refusal_reason",
-          "columnsFrom": [
-            "lost_reason_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["lost_reason_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5654,12 +5284,8 @@
           "name": "todos_department_id_department_id_fk",
           "tableFrom": "todos",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5667,12 +5293,8 @@
           "name": "todos_company_account_id_company_account_id_fk",
           "tableFrom": "todos",
           "tableTo": "company_account",
-          "columnsFrom": [
-            "company_account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_account_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5680,12 +5302,8 @@
           "name": "todos_user_id_user_id_fk",
           "tableFrom": "todos",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5757,12 +5375,8 @@
           "name": "todo_responsible_users_todo_id_todos_id_fk",
           "tableFrom": "todo_responsible_users",
           "tableTo": "todos",
-          "columnsFrom": [
-            "todo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["todo_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -5770,12 +5384,8 @@
           "name": "todo_responsible_users_user_id_user_id_fk",
           "tableFrom": "todo_responsible_users",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -5783,10 +5393,7 @@
       "compositePrimaryKeys": {
         "todo_responsible_users_todo_id_user_id_pk": {
           "name": "todo_responsible_users_todo_id_user_id_pk",
-          "columns": [
-            "todo_id",
-            "user_id"
-          ]
+          "columns": ["todo_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -5894,12 +5501,8 @@
           "name": "user_department_id_department_id_fk",
           "tableFrom": "user",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -5909,9 +5512,7 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},

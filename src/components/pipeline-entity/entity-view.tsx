@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
+import { usePersistedFilter } from '@/stores/filters-store'
 import { EntityKanban } from './entity-kanban'
 import { EntityList } from './entity-list'
 import type { EntityConfig, EntityRowBase } from './types'
@@ -33,14 +34,25 @@ export function EntityView<TRow extends EntityRowBase, TFull>({
 }: EntityViewProps<TRow, TFull>) {
   const router = useRouter()
   const scopedDeptIds = useScopedDepartmentIds()
-  const [viewMode, setViewMode] = React.useState<ViewMode>('kanban')
+  const filterScope = `pipeline-${config.type}`
+  const [viewMode, setViewMode] = usePersistedFilter<ViewMode>(
+    filterScope,
+    'viewMode',
+    'kanban',
+  )
   const [showArchived, setShowArchived] = React.useState(false)
   const [archivedRows, setArchivedRows] = React.useState<TRow[]>([])
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
-  const [industryFilter, setIndustryFilter] = React.useState<string[]>([])
-  const [extraFilterValues, setExtraFilterValues] = React.useState<
+  const [responsibleFilter, setResponsibleFilter] = usePersistedFilter<
+    string[]
+  >(filterScope, 'responsible', [])
+  const [industryFilter, setIndustryFilter] = usePersistedFilter<string[]>(
+    filterScope,
+    'industry',
+    [],
+  )
+  const [extraFilterValues, setExtraFilterValues] = usePersistedFilter<
     Record<string, string[]>
-  >({})
+  >(filterScope, 'extra', {})
   const [query, setQuery] = React.useState('')
   const [refusalReasons, setRefusalReasons] = React.useState<
     Array<{ id: string; name: string }>

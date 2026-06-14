@@ -56,10 +56,7 @@ export const deleteSource = createServerFn({ method: 'POST' })
   .inputValidator(z.string())
   .handler(async ({ data: id }) => {
     await db.transaction(async (tx) => {
-      await tx
-        .update(lead)
-        .set({ sourceId: null })
-        .where(eq(lead.sourceId, id))
+      await tx.update(lead).set({ sourceId: null }).where(eq(lead.sourceId, id))
 
       await tx.delete(source).where(eq(source.id, id))
     })

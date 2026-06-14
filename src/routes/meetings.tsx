@@ -5,6 +5,7 @@ import { DataTable } from '@/components/tables/data-table'
 import { columns } from '@/components/tables/meeting-cols'
 import { MultiFilterCombobox } from '@/components/tables/multi-filter-combobox'
 import type { TableFilterOption } from '@/components/tables/multi-filter-combobox'
+import { usePersistedFilter } from '@/stores/filters-store'
 import { fetchMeetings } from '@/components/meetings/actions'
 import { fetchMeetingRooms } from '@/components/meeting-rooms/actions'
 import { MeetingsCalendar } from '@/components/meetings/meetings-calendar'
@@ -92,9 +93,19 @@ function RouteComponent() {
   const { view, week, cal } = Route.useSearch()
   const isCalendar = view === 'calendar'
 
-  const [statusFilter, setStatusFilter] = React.useState<MeetingStatus[]>([])
-  const [typeFilter, setTypeFilter] = React.useState<MeetingType[]>([])
-  const [responsibleFilter, setResponsibleFilter] = React.useState<string[]>([])
+  const [statusFilter, setStatusFilter] = usePersistedFilter<MeetingStatus[]>(
+    'meetings',
+    'status',
+    [],
+  )
+  const [typeFilter, setTypeFilter] = usePersistedFilter<MeetingType[]>(
+    'meetings',
+    'type',
+    [],
+  )
+  const [responsibleFilter, setResponsibleFilter] = usePersistedFilter<
+    string[]
+  >('meetings', 'responsible', [])
 
   const responsibleOptions: Array<TableFilterOption> = Array.from(
     new Set(

@@ -43,7 +43,12 @@ function RouteComponent() {
   }
 
   return (
-    <AlertDialog open onOpenChange={(open) => { if (!open) handleClose() }}>
+    <AlertDialog
+      open
+      onOpenChange={(open) => {
+        if (!open) handleClose()
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Удалить инициативу?</AlertDialogTitle>
@@ -58,7 +63,10 @@ function RouteComponent() {
           <AlertDialogAction
             variant="destructive"
             disabled={isLoading}
-            onClick={(e) => { e.preventDefault(); handleConfirm() }}
+            onClick={(e) => {
+              e.preventDefault()
+              handleConfirm()
+            }}
           >
             {isLoading ? 'Удаление...' : 'Удалить'}
           </AlertDialogAction>

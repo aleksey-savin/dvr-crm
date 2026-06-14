@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { createFileRoute, Link, useNavigate, useRouter } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router'
 import { EditIcon, GitMergeIcon, Trash2Icon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -187,7 +192,9 @@ function RouteComponent() {
                 <CardTitle className="text-base">Причина отказа</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-sm">{lead.lostReason.name}</p>
+                <p className="whitespace-pre-wrap text-sm">
+                  {lead.lostReason.name}
+                </p>
               </CardContent>
             </Card>
           )}
@@ -243,7 +250,9 @@ function RouteComponent() {
         pipelines={pipelines}
         title="Конвертация лида в инициативу"
         description={
-          lead.title ? `Лид «${lead.title}»` : 'Создание инициативы на основе лида'
+          lead.title
+            ? `Лид «${lead.title}»`
+            : 'Создание инициативы на основе лида'
         }
         onConvert={handleConvert}
         onSuccess={handleConvertSuccess}

@@ -1049,6 +1049,36 @@ export const updateWishlistClient = createServerFn({ method: 'POST' })
     await setCompanyAccountManagers(data.id, data.managerUserIds ?? [])
   })
 
+/**
+ * Quick manual move of a wishlist account between states (active / basement /
+ * archived) without opening the full edit form. Places the account at the end
+ * of the target state, mirroring addWishlistClient.
+ */
+export const setWishlistState = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      id: z.string(),
+      wishlistState: z.enum(['active', 'basement', 'archived']),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const account = await db.query.companyAccount.findFirst({
+      where: and(
+        eq(companyAccount.id, data.id),
+        eq(companyAccount.accountType, 'wishlist'),
+      ),
+      columns: { id: true },
+    })
+    if (!account) throw new Error('Запись вишлиста не найдена')
+
+    const position = await getNextWishlistPosition(data.wishlistState)
+
+    await db
+      .update(companyAccount)
+      .set({ wishlistState: data.wishlistState, position })
+      .where(eq(companyAccount.id, data.id))
+  })
+
 export const joinWishlistDepartment = createServerFn({ method: 'POST' })
   .inputValidator(
     z.object({

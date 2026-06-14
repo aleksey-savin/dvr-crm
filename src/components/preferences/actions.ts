@@ -1,10 +1,15 @@
 import { db } from '@/db'
-import { apiKey, clientClassificationSettings } from '@/db/schema'
+import {
+  apiKey,
+  clientClassificationSettings,
+  emailSettings,
+} from '@/db/schema'
 import {
   CLIENT_CLASSIFICATION_SETTINGS_ID,
   ensureClientClassificationSettings,
   recalculateClientClassifications,
 } from '@/lib/client-classification'
+import { EMAIL_SETTINGS_ID, ensureEmailSettings } from '@/lib/email-settings'
 import { createServerFn } from '@tanstack/react-start'
 import { and, eq } from 'drizzle-orm'
 import * as z from 'zod'
@@ -116,4 +121,53 @@ export const updateClientClassificationSettings = createServerFn({
     })
 
     return { settings, recalculation }
+  })
+
+const emailSettingsSchema = z.object({
+  enabled: z.boolean(),
+  host: z.string().trim().optional(),
+  port: z.number().int().min(1).max(65535).nullable().optional(),
+  secure: z.enum(['none', 'ssl_tls', 'starttls']),
+  username: z.string().trim().optional(),
+  // Empty string means "keep the stored password".
+  password: z.string().optional(),
+  fromEmail: z.string().trim().optional(),
+  userId: z.string().optional(),
+})
+
+export const getEmailSettings = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    return ensureEmailSettings()
+  },
+)
+
+export const updateEmailSettings = createServerFn({ method: 'POST' })
+  .inputValidator(emailSettingsSchema)
+  .handler(async ({ data }) => {
+    const base = {
+      enabled: data.enabled,
+      host: data.host || null,
+      port: data.port ?? null,
+      secure: data.secure,
+      username: data.username || null,
+      fromEmail: data.fromEmail || null,
+      updatedByUserId: data.userId ?? null,
+    }
+
+    const [settings] = await db
+      .insert(emailSettings)
+      .values({
+        id: EMAIL_SETTINGS_ID,
+        ...base,
+        password: data.password || null,
+      })
+      .onConflictDoUpdate({
+        target: emailSettings.id,
+        set: data.password
+          ? { ...base, password: data.password, updatedAt: new Date() }
+          : { ...base, updatedAt: new Date() },
+      })
+      .returning()
+
+    return settings
   })
