@@ -77,6 +77,7 @@ export function EmployeesTable({
       columns={employeeColumns}
       data={filteredUsers}
       toolbar={toolbar || undefined}
+      tableClassName="text-base"
     />
   )
 }

@@ -673,6 +673,8 @@ export const fetchTargetActionDashboard = createServerFn()
         const agg = byUser.get(r.userId) ?? {
           userId: r.userId,
           userName: r.userName,
+          departmentId: r.departmentId,
+          departmentName: r.departmentName,
           totalPlanned: 0,
           totalFact: 0,
         }

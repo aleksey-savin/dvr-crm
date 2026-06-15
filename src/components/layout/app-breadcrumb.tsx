@@ -17,6 +17,7 @@ const ROUTE_LABELS: Record<string, { label: string; showAddButton: boolean }> =
     dashboard: { label: 'Дашборд', showAddButton: false },
     clients: { label: 'Клиенты', showAddButton: true },
     reports: { label: 'Отчёты', showAddButton: false },
+    'plan-fact': { label: 'План/факт', showAddButton: false },
     'target-actions': { label: 'Целевые действия', showAddButton: false },
     'sales-plans': { label: 'Планы продаж', showAddButton: true },
     companies: { label: 'Компании', showAddButton: true },

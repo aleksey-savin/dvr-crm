@@ -678,6 +678,8 @@ export type TargetActionReport = {
 export type TargetActionManagerSummary = {
   userId: string
   userName: string
+  departmentId: string | null
+  departmentName: string | null
   totalPlanned: number
   totalFact: number
 }

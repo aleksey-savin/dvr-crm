@@ -52,6 +52,8 @@ interface DataTableProps<TData, TValue> {
   groupBy?: GroupByConfig<TData>
   rowReorder?: RowReorderConfig<TData>
   onRowClick?: (row: TData) => void
+  /** Extra classes for the inner <Table> (e.g. a larger font for one table). */
+  tableClassName?: string
 }
 
 export function DataTable<TData, TValue>({
@@ -63,6 +65,7 @@ export function DataTable<TData, TValue>({
   groupBy,
   rowReorder,
   onRowClick,
+  tableClassName,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
@@ -193,7 +196,7 @@ export function DataTable<TData, TValue>({
         </div>
       )}
       <div className="overflow-hidden rounded-md border">
-        <Table>
+        <Table className={tableClassName}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>

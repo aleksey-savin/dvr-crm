@@ -191,7 +191,10 @@
 }
 
 .department-tree .department-tree-root {
+  /* Grow to the tree's content width so a wide tree stays fully reachable when
+     the container scrolls horizontally; min-width keeps a small tree centered. */
   min-width: 100%;
+  width: max-content;
   padding-top: 0;
 }
 

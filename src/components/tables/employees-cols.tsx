@@ -9,7 +9,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Имя
@@ -24,7 +24,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Подразделение
@@ -38,7 +38,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Должность
@@ -52,7 +52,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Телефон
@@ -76,7 +76,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Email
@@ -102,7 +102,7 @@ export const employeeColumns: ColumnDef<EmployeeRow>[] = [
     header: ({ column }) => (
       <Button
         variant="ghost"
-        className="-ml-3 font-semibold"
+        className="-ml-3 font-semibold text-base"
         onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
       >
         Последняя активность

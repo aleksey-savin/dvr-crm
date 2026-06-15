@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { EditIcon, EyeIcon, Trash2Icon, ArrowUpDown } from 'lucide-react'
-import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds } from '@/hooks/use-department-scope'
 import type { LostClientAccountRow } from '@/types'
 
 const currentYear = new Date().getFullYear()
@@ -25,9 +25,8 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
     },
     cell: ({ row }) => {
       const account = row.original
-      const selectedDepartmentId = useDepartmentStore(
-        (s) => s.selectedDepartmentId,
-      )
+      const scoped = useScopedDepartmentIds()
+      const showDepartment = !scoped || scoped.size > 1
 
       return (
         <div className="flex flex-col">
@@ -39,7 +38,7 @@ export const columns: ColumnDef<LostClientAccountRow>[] = [
           >
             {account.name}
           </Link>
-          {!selectedDepartmentId && (
+          {showDepartment && (
             <div className="text-xs text-muted-foreground">
               {account.businessUnit}
             </div>

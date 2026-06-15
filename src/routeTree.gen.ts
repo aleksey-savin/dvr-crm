@@ -45,6 +45,7 @@ import { Route as SignalsNewRouteImport } from './routes/signals.new'
 import { Route as SignalTypesNewRouteImport } from './routes/signal-types.new'
 import { Route as SalesPlansNewRouteImport } from './routes/sales-plans.new'
 import { Route as ReportsTargetActionsRouteImport } from './routes/reports_.target-actions'
+import { Route as ReportsPlanFactRouteImport } from './routes/reports_.plan-fact'
 import { Route as RefusalReasonsNewRouteImport } from './routes/refusal-reasons.new'
 import { Route as MyCompanyNewRouteImport } from './routes/my-company.new'
 import { Route as MeetingsNewRouteImport } from './routes/meetings.new'
@@ -295,6 +296,11 @@ const SalesPlansNewRoute = SalesPlansNewRouteImport.update({
 const ReportsTargetActionsRoute = ReportsTargetActionsRouteImport.update({
   id: '/reports_/target-actions',
   path: '/reports/target-actions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsPlanFactRoute = ReportsPlanFactRouteImport.update({
+  id: '/reports_/plan-fact',
+  path: '/reports/plan-fact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RefusalReasonsNewRoute = RefusalReasonsNewRouteImport.update({
@@ -694,6 +700,7 @@ export interface FileRoutesByFullPath {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports/plan-fact': typeof ReportsPlanFactRoute
   '/reports/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
@@ -803,6 +810,7 @@ export interface FileRoutesByTo {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports/plan-fact': typeof ReportsPlanFactRoute
   '/reports/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
@@ -913,6 +921,7 @@ export interface FileRoutesById {
   '/meetings/new': typeof MeetingsNewRoute
   '/my-company/new': typeof MyCompanyNewRoute
   '/refusal-reasons/new': typeof RefusalReasonsNewRoute
+  '/reports_/plan-fact': typeof ReportsPlanFactRoute
   '/reports_/target-actions': typeof ReportsTargetActionsRoute
   '/sales-plans/new': typeof SalesPlansNewRoute
   '/signal-types/new': typeof SignalTypesNewRoute
@@ -1024,6 +1033,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports/plan-fact'
     | '/reports/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
@@ -1133,6 +1143,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports/plan-fact'
     | '/reports/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
@@ -1242,6 +1253,7 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/my-company/new'
     | '/refusal-reasons/new'
+    | '/reports_/plan-fact'
     | '/reports_/target-actions'
     | '/sales-plans/new'
     | '/signal-types/new'
@@ -1341,6 +1353,7 @@ export interface RootRouteChildren {
   UsersRoute: typeof UsersRouteWithChildren
   WishlistRoute: typeof WishlistRouteWithChildren
   LeadsNewRoute: typeof LeadsNewRoute
+  ReportsPlanFactRoute: typeof ReportsPlanFactRoute
   ReportsTargetActionsRoute: typeof ReportsTargetActionsRoute
   SignalsNewRoute: typeof SignalsNewRoute
   TendersNewRoute: typeof TendersNewRoute
@@ -1615,6 +1628,13 @@ declare module '@tanstack/react-router' {
       path: '/reports/target-actions'
       fullPath: '/reports/target-actions'
       preLoaderRoute: typeof ReportsTargetActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports_/plan-fact': {
+      id: '/reports_/plan-fact'
+      path: '/reports/plan-fact'
+      fullPath: '/reports/plan-fact'
+      preLoaderRoute: typeof ReportsPlanFactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/refusal-reasons/new': {
@@ -2437,6 +2457,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersRoute: UsersRouteWithChildren,
   WishlistRoute: WishlistRouteWithChildren,
   LeadsNewRoute: LeadsNewRoute,
+  ReportsPlanFactRoute: ReportsPlanFactRoute,
   ReportsTargetActionsRoute: ReportsTargetActionsRoute,
   SignalsNewRoute: SignalsNewRoute,
   TendersNewRoute: TendersNewRoute,

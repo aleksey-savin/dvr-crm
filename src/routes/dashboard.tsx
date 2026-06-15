@@ -30,7 +30,7 @@ function RouteComponent() {
   const { latestRelease, targetActions } = Route.useLoaderData()
 
   return (
-    <div className="flex w-full max-w-5xl flex-1 flex-col gap-6">
+    <div className="flex w-full flex-1 flex-col gap-6">
       <DashboardTargetActions data={targetActions} />
 
       <Card className="rounded-lg w-full">

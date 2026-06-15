@@ -20,11 +20,10 @@ UI language is Russian.
 
 **Project documentation:**
 
-| File                | Contents                                                                           |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| `ENTITIES.md`       | Full domain model: purpose, fields, relations, and business rules for every entity |
-| `docs/tech_spec.md` | Technical specification: MVP scope, user roles, functional blocks                  |
-| `API_USAGE.md`      | External REST API (`POST /api/meetings`, Bearer auth via API key)                  |
+| File                | Contents                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| `docs/tech_spec.md` | Technical specification: MVP scope, user roles, functional blocks |
+| `API_USAGE.md`      | External REST API (`POST /api/meetings`, Bearer auth via API key) |
 
 ## Commands
 
@@ -377,8 +376,8 @@ Loader data is fetched in the route and passed as props.
 
 ## Domain Model (summary)
 
-Details for every entity (fields, relations, business rules) are in
-`ENTITIES.md`. MVP scope is in `docs/tech_spec.md`.
+The Drizzle schema (`src/db/schema.ts`) is the source of truth for every entity
+(fields, relations, business rules). MVP scope is in `docs/tech_spec.md`.
 
 - **Client model:** Company, Business Unit, Company Account in a Business Unit
   (the Company × Business Unit pairing — the attachment point for all

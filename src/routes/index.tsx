@@ -1,9 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+// The root path has no page of its own — send users to the dashboard.
+// Unauthenticated requests are redirected to /login earlier by authMiddleware.
 export const Route = createFileRoute('/')({
-  component: App,
+  beforeLoad: () => {
+    throw redirect({ to: '/dashboard' })
+  },
 })
-
-function App() {
-  return null
-}

@@ -8,8 +8,13 @@ type BadgeVariant = 'secondary' | 'success' | 'warning' | 'destructive'
 
 export const numberFmt = new Intl.NumberFormat('ru-RU')
 
-const pct = (fact: number, planned: number) =>
-  planned > 0 ? Math.round((fact / planned) * 100) : null
+/** Completion %: fact/plan rounded, or null when there is no plan. */
+export function completionPercent(
+  fact: number,
+  planned: number,
+): number | null {
+  return planned > 0 ? Math.round((fact / planned) * 100) : null
+}
 
 /** Recompute matrix totals from a (client-filtered) subset of manager rows. */
 export function recomputeTotals(
@@ -31,13 +36,16 @@ export function recomputeTotals(
     }
   }
   for (const t of types)
-    byType[t.id].percent = pct(byType[t.id].fact, byType[t.id].planned)
+    byType[t.id].percent = completionPercent(
+      byType[t.id].fact,
+      byType[t.id].planned,
+    )
 
   return {
     byType,
     totalPlanned,
     totalFact,
-    overallPercent: pct(totalFact, totalPlanned),
+    overallPercent: completionPercent(totalFact, totalPlanned),
   }
 }
 
@@ -51,4 +59,12 @@ export function completionVariant(percent: number | null): BadgeVariant {
   if (percent >= 100) return 'success'
   if (percent >= 60) return 'warning'
   return 'destructive'
+}
+
+/** Fill color for a <CompletionBar>, mirroring completionVariant thresholds. */
+export function completionBarColor(percent: number | null): string {
+  if (percent === null) return 'bg-muted-foreground/30'
+  if (percent >= 100) return 'bg-emerald-600'
+  if (percent >= 60) return 'bg-amber-500'
+  return 'bg-destructive'
 }

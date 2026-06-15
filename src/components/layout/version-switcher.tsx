@@ -17,9 +17,13 @@ import type { DepartmentOption } from '@/types'
 function buildFlatTree(
   departments: DepartmentOption[],
 ): Array<DepartmentOption & { depth: number }> {
+  const ids = new Set(departments.map((d) => d.id))
   const byParent = new Map<string | null, DepartmentOption[]>()
   for (const d of departments) {
-    const key = d.parentId ?? null
+    // A parent outside the accessible set is treated as a root, so a department
+    // head (whose top department's parent is not accessible) still sees their
+    // whole subtree in the switcher.
+    const key = d.parentId && ids.has(d.parentId) ? d.parentId : null
     if (!byParent.has(key)) byParent.set(key, [])
     byParent.get(key)!.push(d)
   }
@@ -74,7 +78,7 @@ export function VersionSwitcher({
   const { selectedDepartmentId, setSelectedDepartmentId } = useDepartmentStore()
 
   const selected = departments.find((d) => d.id === selectedDepartmentId)
-  const label = selected?.name ?? 'Все подразделения'
+  const label = selected?.name ?? ''
   const accentColor = selected?.accentColor
   const flatTree = buildFlatTree(departments)
 
@@ -123,19 +127,6 @@ export function VersionSwitcher({
             className="w-(--radix-dropdown-menu-trigger-width)"
             align="start"
           >
-            <DropdownMenuItem onSelect={() => setSelectedDepartmentId(null)}>
-              <span className="flex items-center gap-2 flex-1">
-                <span
-                  className="inline-block shrink-0"
-                  style={{ width: 8, height: 8 }}
-                />
-                Все подразделения
-              </span>
-              {selectedDepartmentId === null && (
-                <Check className="ml-auto size-4" />
-              )}
-            </DropdownMenuItem>
-
             {flatTree.map((dept) => (
               <DropdownMenuItem
                 key={dept.id}

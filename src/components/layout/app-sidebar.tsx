@@ -79,8 +79,8 @@ const navMain = [
     url: '#',
     items: [
       {
-        title: 'Целевые клиенты',
-        url: '/reports',
+        title: 'План/факт',
+        url: '/reports/plan-fact',
       },
       {
         title: 'Целевые действия',

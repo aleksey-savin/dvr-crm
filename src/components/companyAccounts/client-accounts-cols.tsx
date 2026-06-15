@@ -10,7 +10,7 @@ import {
   ArrowUpDown,
   PlusIcon,
 } from 'lucide-react'
-import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds } from '@/hooks/use-department-scope'
 import { GrossProfitFactDialog } from '@/components/companyAccounts/gross-profit-facts-section'
 
 export type ClientAccountStatus = 'target' | 'regular' | 'lost'
@@ -75,9 +75,8 @@ export const columns: ColumnDef<ClientAccountTableRow>[] = [
     ),
     cell: ({ row }) => {
       const item = row.original
-      const selectedDepartmentId = useDepartmentStore(
-        (s) => s.selectedDepartmentId,
-      )
+      const scoped = useScopedDepartmentIds()
+      const showDepartment = !scoped || scoped.size > 1
 
       return (
         <div className="flex justify-start">
@@ -90,7 +89,7 @@ export const columns: ColumnDef<ClientAccountTableRow>[] = [
             >
               {item.name}
             </Link>
-            {!selectedDepartmentId && (
+            {showDepartment && (
               <div className="text-xs text-muted-foreground">
                 {item.businessUnit}
               </div>

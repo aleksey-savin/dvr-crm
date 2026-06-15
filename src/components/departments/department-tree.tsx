@@ -21,7 +21,7 @@ export function DepartmentTree({
 
   return (
     <>
-      <div className="department-tree rounded-lg border bg-muted/30 md:p-8 ">
+      <div className="department-tree min-w-0 overflow-x-auto rounded-lg border bg-muted/30 px-4 pt-4 pb-12 md:px-8 md:pt-8">
         <ul className="department-tree-root">
           {roots.map((node) => (
             <DepartmentTreeItem

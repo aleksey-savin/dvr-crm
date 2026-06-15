@@ -7,7 +7,20 @@ interface DepartmentStore {
   selectedDepartmentId: string | null
   selectedAccentColor: string | null
   setDepartments: (departments: DepartmentOption[]) => void
-  setSelectedDepartmentId: (id: string | null) => void
+  setSelectedDepartmentId: (id: string) => void
+}
+
+/**
+ * The top-most department in the accessible list: the first root of the
+ * accessible forest (a department with no parent, or whose parent is outside
+ * the accessible set). Departments arrive ordered by name, so the first root
+ * is the alphabetically-first top-level unit. Used as the default scope.
+ */
+function findTopDepartmentId(departments: DepartmentOption[]): string | null {
+  if (departments.length === 0) return null
+  const ids = new Set(departments.map((d) => d.id))
+  const roots = departments.filter((d) => !d.parentId || !ids.has(d.parentId))
+  return (roots[0] ?? departments[0]).id
 }
 
 export const useDepartmentStore = create<DepartmentStore>()(
@@ -18,22 +31,16 @@ export const useDepartmentStore = create<DepartmentStore>()(
       selectedAccentColor: null,
 
       setDepartments: (departments) => {
-        // Auto-select the only department when the user has access to exactly one
-        if (departments.length === 1) {
-          const dept = departments[0]
-          set({
-            departments,
-            selectedDepartmentId: dept.id,
-            selectedAccentColor: dept.accentColor ?? null,
-          })
-          return
-        }
-
+        // The scope is always a concrete department: keep the persisted
+        // selection when it is still accessible, otherwise default to the
+        // top-most accessible department.
         const { selectedDepartmentId } = get()
-        const isStillAccessible = selectedDepartmentId
-          ? departments.some((d) => d.id === selectedDepartmentId)
-          : true
-        const nextSelectedId = isStillAccessible ? selectedDepartmentId : null
+        const persistedStillAccessible =
+          selectedDepartmentId != null &&
+          departments.some((d) => d.id === selectedDepartmentId)
+        const nextSelectedId = persistedStillAccessible
+          ? selectedDepartmentId
+          : findTopDepartmentId(departments)
         const selectedAccentColor =
           departments.find((d) => d.id === nextSelectedId)?.accentColor ?? null
         set({

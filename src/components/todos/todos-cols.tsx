@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpDown, EditIcon, EyeIcon, Trash2Icon } from 'lucide-react'
-import { useDepartmentStore } from '@/stores/department-store'
+import { useScopedDepartmentIds } from '@/hooks/use-department-scope'
 import { cn } from '@/lib/utils'
 import type { Todo } from '@/types'
 
@@ -33,9 +33,8 @@ export const columns: ColumnDef<Todo>[] = [
     ),
     cell: ({ row }) => {
       const todo = row.original
-      const selectedDepartmentId = useDepartmentStore(
-        (s) => s.selectedDepartmentId,
-      )
+      const scoped = useScopedDepartmentIds()
+      const showDepartment = !scoped || scoped.size > 1
       return (
         <div className="flex flex-col min-w-48">
           <span
@@ -46,7 +45,7 @@ export const columns: ColumnDef<Todo>[] = [
           >
             {todo.name}
           </span>
-          {!selectedDepartmentId && todo.department && (
+          {showDepartment && todo.department && (
             <span className="text-xs text-muted-foreground">
               {todo.department}
             </span>

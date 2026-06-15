@@ -2,27 +2,11 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
-import {
-  ArrowUpDown,
-  EditIcon,
-  EyeIcon,
-  GripVerticalIcon,
-  MessageSquareIcon,
-  Trash2Icon,
-} from 'lucide-react'
+import { ArrowUpDown, GripVerticalIcon } from 'lucide-react'
 import type { WishlistAccountRow, WishlistTodo } from '@/types'
 import { WishlistRowActions } from '@/components/companyAccounts/wishlist-row-actions'
 
 export type { WishlistAccountRow, WishlistTodo }
-
-const todoStatusVariant: Record<
-  WishlistTodo['status'],
-  'warning' | 'default' | 'success'
-> = {
-  'not started': 'warning',
-  'in progress': 'default',
-  completed: 'success',
-}
 
 export const columns: ColumnDef<WishlistAccountRow>[] = [
   {
@@ -182,58 +166,15 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
   },
   {
     id: 'todos',
-    accessorFn: (row) => row.todos.map((t) => t.name),
-    header: 'Задачи',
+    accessorFn: (row) =>
+      row.todos.filter((t) => t.status !== 'completed').length,
+    header: () => <div className="flex justify-center">Задачи</div>,
     cell: ({ row }) => {
-      const { todos } = row.original
-      if (todos.length === 0)
-        return <span className="text-muted-foreground/40 text-sm">—</span>
-      return (
-        <div className="flex flex-wrap gap-1.5 max-w-56">
-          {todos.map((todo) => (
-            <Badge key={todo.id} variant={todoStatusVariant[todo.status]}>
-              {todo.name}
-            </Badge>
-          ))}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: 'contactNotes',
-    header: 'Контакты',
-    cell: ({ row }) => {
-      const value = row.getValue<string | null>('contactNotes')
-      return value ? (
-        <span className="text-sm line-clamp-3 max-w-52 whitespace-normal">
-          {value}
-        </span>
-      ) : (
-        <span className="text-muted-foreground/40 text-sm">—</span>
-      )
-    },
-  },
-  {
-    id: 'commentsCount',
-    accessorKey: 'commentsCount',
-    header: ({ column }) => (
-      <div className="flex justify-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-        >
-          <MessageSquareIcon className="h-4 w-4" />
-          <ArrowUpDown className="ml-1 h-3 w-3" />
-        </Button>
-      </div>
-    ),
-    cell: ({ row }) => {
-      const count = row.getValue<number>('commentsCount')
+      const activeCount = row.getValue<number>('todos')
       return (
         <div className="flex justify-center">
-          {count > 0 ? (
-            <Badge variant="secondary">{count}</Badge>
+          {activeCount > 0 ? (
+            <Badge variant="secondary">{activeCount}</Badge>
           ) : (
             <span className="text-muted-foreground/40 text-sm">—</span>
           )}
@@ -265,25 +206,6 @@ export const columns: ColumnDef<WishlistAccountRow>[] = [
     header: '',
     cell: ({ row }) => (
       <div className="flex items-center justify-end gap-1">
-        <Button asChild variant="ghost" size="icon-sm">
-          <Link
-            to="/companies/$id/view"
-            params={{ id: row.original.companyId }}
-            search={{ tab: row.original.id }}
-          >
-            <EyeIcon />
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="icon-sm">
-          <Link to="/wishlist/$id/update" params={{ id: row.original.id }}>
-            <EditIcon />
-          </Link>
-        </Button>
-        <Button asChild variant="destructiveGhost" size="icon-sm">
-          <Link to="/wishlist/$id/delete" params={{ id: row.original.id }}>
-            <Trash2Icon />
-          </Link>
-        </Button>
         <WishlistRowActions
           id={row.original.id}
           currentState={row.original.wishlistState}
