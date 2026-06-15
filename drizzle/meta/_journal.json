@@ -435,6 +435,13 @@
       "when": 1781418829993,
       "tag": "0061_windy_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1781499567995,
+      "tag": "0062_slippery_hitman",
+      "breakpoints": true
     }
   ]
 }

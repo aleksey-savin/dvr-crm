@@ -13,6 +13,7 @@ import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { rescheduleMeeting } from '@/components/meetings/actions'
+import { datetimeLocalToISO, toDatetimeLocalInput } from '@/lib/datetime'
 
 type Props = {
   meetingId: string
@@ -23,11 +24,6 @@ type Props = {
   onRescheduled?: () => void
 }
 
-function toDatetimeLocal(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 export function RescheduleMeetingDialog({
   meetingId,
   currentScheduledAt = null,
@@ -35,17 +31,13 @@ export function RescheduleMeetingDialog({
   onOpenChange,
   onRescheduled,
 }: Props) {
-  const [newDate, setNewDate] = React.useState(toDatetimeLocal(new Date()))
+  const [newDate, setNewDate] = React.useState(toDatetimeLocalInput(new Date()))
   const [reason, setReason] = React.useState('')
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   React.useEffect(() => {
     if (open) {
-      setNewDate(
-        toDatetimeLocal(
-          currentScheduledAt ? new Date(currentScheduledAt) : new Date(),
-        ),
-      )
+      setNewDate(toDatetimeLocalInput(currentScheduledAt ?? new Date()))
       setReason('')
     }
   }, [open, currentScheduledAt])
@@ -62,7 +54,12 @@ export function RescheduleMeetingDialog({
     setIsSubmitting(true)
     try {
       await rescheduleMeeting({
-        data: { id: meetingId, newScheduledAt: newDate, reason: reason.trim() },
+        data: {
+          id: meetingId,
+          // datetime-local (локальная зона браузера) → UTC ISO для сервера.
+          newScheduledAt: datetimeLocalToISO(newDate) ?? newDate,
+          reason: reason.trim(),
+        },
       })
       toast.success('Встреча перенесена')
       onOpenChange(false)

@@ -42,6 +42,7 @@ import {
   checkRoomAvailability,
 } from '@/components/meetings/actions'
 import { fetchMeetingRooms } from '@/components/meeting-rooms/actions'
+import { datetimeLocalToISO, toDatetimeLocalInput } from '@/lib/datetime'
 import { WizardStepper } from '@/components/meetings/wizard-stepper'
 import type { WizardStep } from '@/components/meetings/wizard-stepper'
 import type {
@@ -141,7 +142,12 @@ function RoomAvailabilityHint({
     setState({ kind: 'checking' })
     const timer = setTimeout(() => {
       checkRoomAvailability({
-        data: { roomId, scheduledAt, endedAt, excludeMeetingId },
+        data: {
+          roomId,
+          scheduledAt: datetimeLocalToISO(scheduledAt) ?? scheduledAt,
+          endedAt: datetimeLocalToISO(endedAt),
+          excludeMeetingId,
+        },
       })
         .then((res) => {
           if (cancelled) return
@@ -313,13 +319,6 @@ export function MeetingForm({
     fetchMeetingRooms().then(setRooms).catch(console.error)
   }, [])
 
-  const toDatetimeLocal = (d: Date | null | undefined) => {
-    if (!d) return ''
-    const dt = new Date(d)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
-  }
-
   // When creating, summary is hidden (it's filled at completion time).
   const isCreate = !item
   const isCompleted = item?.status === 'completed'
@@ -337,10 +336,10 @@ export function MeetingForm({
       meetingRoomId: source?.meetingRoomId ?? presetMeetingRoomId ?? null,
       // Копия наследует переговорку, но даты остаются пустыми.
       scheduledAt: item
-        ? toDatetimeLocal(item.scheduledAt)
+        ? toDatetimeLocalInput(item.scheduledAt)
         : (presetScheduledAt ?? ''),
       endedAt: item?.endedAt
-        ? toDatetimeLocal(item.endedAt)
+        ? toDatetimeLocalInput(item.endedAt)
         : presetScheduledAt
           ? addMinutes(presetScheduledAt, 60)
           : null,
@@ -376,8 +375,9 @@ export function MeetingForm({
         locationType: value.locationType,
         meetingRoomId:
           value.locationType === 'office' ? value.meetingRoomId || null : null,
-        scheduledAt: value.scheduledAt,
-        endedAt: value.endedAt || null,
+        // datetime-local (локальная зона браузера) → UTC ISO для сервера.
+        scheduledAt: datetimeLocalToISO(value.scheduledAt) ?? value.scheduledAt,
+        endedAt: datetimeLocalToISO(value.endedAt),
         companyId: value.companyId || null,
         departmentId: value.departmentId || null,
         organizerId: value.organizerId || null,
